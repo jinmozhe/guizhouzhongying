@@ -65,4 +65,4 @@ plans/                  全栈实施计划及永久登记
 - Backend、Admin 和共享包只能通过明确公开入口协作。
 - 失败必须明确传播，禁止假成功、弱默认值和静默降级。
 - 根 `openapi.json` 是唯一机器契约，`packages/api-client/src/` 只能由生成链更新。
-- 生产只使用完整镜像 digest；发布、部署和回滚需要单独授权。
+- 生产按 [1Panel 源码部署手册](docs/operations/1panel-source-deployment.md) 固定源码提交、Python 运行镜像 digest 和 Admin 静态产物。发布、部署和回滚需要单独授权。

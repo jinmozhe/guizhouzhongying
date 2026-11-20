@@ -122,7 +122,8 @@
 | [candidate-image-validation.md](operations/candidate-image-validation.md) | 当前流程不使用的候选镜像验收工具状态与保留边界，人工部署转至发布手册 |
 | [container-build-and-run.md](operations/container-build-and-run.md) | 三个应用镜像构建、TCR 远程缓存边界、系统包更新、迁移初始化、生产 Compose 和健康验证 |
 | [tencent-tcr-personal-cam-accounts.md](operations/tencent-tcr-personal-cam-accounts.md) | TCR 发布与拉取身份隔离、CAM 单项目与命名空间共享范围、可选本机及服务器登录、验证、轮换和排障 |
-| [1panel-production-runbook.md](operations/1panel-production-runbook.md) | 1Panel 单机生产配置、迁移、OpenResty、日志、备份、恢复和回滚步骤 |
+| [1panel-source-deployment.md](operations/1panel-source-deployment.md) | 贵州众赢单机源码发布、1Panel Python 环境、Admin 静态站点及回滚 |
+| [1panel-production-runbook.md](operations/1panel-production-runbook.md) | 1Panel 镜像编排、迁移、OpenResty、日志、备份、恢复和回滚 |
 | [product-detail-images.md](operations/product-detail-images.md) | 商品详情图集的迁移、可信元数据回填、启用顺序与恢复边界 |
 | [database-backup-restore.md](operations/database-backup-restore.md) | 备份参数、本地恢复演练、生产恢复和数据库迁移保护步骤 |
 | [spec-library-initialization.md](operations/spec-library-initialization.md) | 电商公共规格属性库的本机开发库检查、备份、清空重建、提交后核验和恢复边界 |

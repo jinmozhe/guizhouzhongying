@@ -1,5 +1,7 @@
 # 1Panel 单机生产运行手册
 
+本文用于镜像编排。贵州众赢源码部署执行 [1Panel 源码部署手册](1panel-source-deployment.md)。
+
 ## 1. 适用范围
 
 本手册适用于使用 1Panel、OpenResty 和 `compose.prod.yml` 运行 贵州众赢 的单机生产环境。操作人员从 GitHub Actions 开始执行完整发布时，先阅读[GitHub 到 1Panel 端到端人工发布手册](github-cnb-tcr-1panel-release-runbook.md)。本文继续负责 1Panel 基础设施、生产配置、迁移、OpenResty、备份和恢复细节。
