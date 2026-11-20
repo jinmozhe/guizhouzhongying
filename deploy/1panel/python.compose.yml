@@ -1,0 +1,67 @@
+services:
+  python:
+    image: docker.io/library/python@${PYTHON_RUNTIME_DIGEST:?Set the approved Python image digest}
+    container_name: ${CONTAINER_NAME:?Use the container name assigned by 1Panel}
+    working_dir: /app
+    user: "10001:10001"
+    init: true
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    command: ["bash", "/app/scripts/run_1panel.sh", "serve"]
+    env_file:
+      - path: ${BACKEND_ENV_FILE:?Set the absolute path to the backend production environment file}
+        format: raw
+    environment:
+      ENVIRONMENT: production
+      LOG_FILE_ENABLED: "false"
+      RELEASE_VERSION: ${BACKEND_COMMIT:?Set the full Git commit SHA}
+      UPLOAD_LOCAL_ROOT: /storage/uploads
+      SETTINGS_MEDIA_ROOT: /storage/settings-media
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      PYTHONFAULTHANDLER: "1"
+    volumes:
+      - type: bind
+        source: ${CODE_DIR:?Set the absolute path to the selected release apps/backend directory}
+        target: /app
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${BACKEND_RUNTIME_DIR:?Set the absolute path to the writable runtime directory}
+        target: /runtime
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${BACKEND_STORAGE_DIR:?Set the absolute path to the persistent storage directory}
+        target: /storage
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${BACKEND_UV_BIN:?Set the absolute path to the approved Linux uv executable}
+        target: /deploy-bin/uv
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - 1panel-network
+    ports:
+      - "127.0.0.1:18168:18168"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - /usr/local/bin/python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18168/health/ready', timeout=2).close()"
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+
+networks:
+  1panel-network:
+    external: true

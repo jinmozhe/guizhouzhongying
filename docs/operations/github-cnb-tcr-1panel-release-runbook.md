@@ -1,5 +1,7 @@
 # GitHub、CNB、TCR 与 1Panel 发布手册
 
+贵州众赢源码上线执行 [1Panel 源码部署手册](1panel-source-deployment.md)。本文用于 CNB/TCR 镜像交付。
+
 ## 1. 发布边界
 
 本手册适用于 `guizhouzhongying` 的 Backend 与 Admin。发布、部署和回滚均为独立授权动作。Web 不参与源码交接、构建、镜像发布、部署或验证。

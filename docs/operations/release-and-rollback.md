@@ -1,5 +1,7 @@
 # 发布与回滚手册
 
+贵州众赢的源码交付、1Panel 运行环境和回滚执行 [1Panel 源码部署手册](1panel-source-deployment.md)。本文用于镜像交付路径。
+
 ## 1. 适用范围
 
 本手册适用于 贵州众赢 的 Backend 与 Admin 镜像发布、生产部署和应用回滚。任何真实发布、部署和回滚都需要用户分别授权。操作人员的完整界面和命令顺序见[GitHub 到 1Panel 端到端人工发布手册](github-cnb-tcr-1panel-release-runbook.md)，每个 GitHub Actions 工作流的机制和失败定位见[GitHub Actions 工作流说明](github-actions-workflows.md)。`apps/web` 已冻结，不参与发布、部署或回滚。

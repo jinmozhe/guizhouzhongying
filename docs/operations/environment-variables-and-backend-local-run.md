@@ -78,6 +78,8 @@ pnpm dev:backend -- -ApplyPermissions
 
 ## 5. 生产配置
 
+1Panel 源码部署通过独立生产配置文件注入 Backend 环境变量，按 [1Panel 源码部署手册](1panel-source-deployment.md) 配置。下文用于应用镜像部署。
+
 生产根 `.env` 使用来自商城独立 CNB/TCR 发布清单的完整 digest：
 
 ```dotenv

@@ -33,6 +33,7 @@
 | 架构决策 | [docs/adr/](docs/adr/) | 长期技术取舍及其理由 |
 | 架构机制 | [docs/architecture/](docs/architecture/) | 当前系统边界、认证、错误、测试和可靠性机制 |
 | 开发与运维步骤 | [docs/operations/](docs/operations/) | 本地开发、发布、部署、恢复和故障处理 |
+| 贵州众赢生产部署 | [1Panel 源码部署手册](docs/operations/1panel-source-deployment.md) | 服务器源码、单一 Python 环境和 Admin 静态站点 |
 | 已交付变化 | [CHANGELOG.md](CHANGELOG.md) | 已交付能力和版本变化 |
 | 安全治理 | [SECURITY.md](SECURITY.md) | 漏洞报告、安全响应和安全开发要求 |
 | OpenAPI 契约 | [openapi.json](openapi.json) | 后端导出的唯一机器契约，禁止手工修改 |

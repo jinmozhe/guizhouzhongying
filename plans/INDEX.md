@@ -17,6 +17,7 @@
 
 | 路径 | 状态 | 结果 | 影响范围 | 用途 |
 | --- | --- | --- | --- | --- |
+| `plans/2026-11-20_1Panel源码部署计划.md` | 已结束 | 已完成；本地部署入口、Admin 反代配置和运行手册已交付，生产尚未部署 | Backend、Admin、Database、Deployment、Documentation | 以 1Panel 单一 Python 环境运行宿主机源码 |
 | `plans/2026-11-20_GitHub首次推送准备计划.md` | 已结束 | 已完成；首次推送基线、Redis 模板和开发文档已同步，首提交预览及轻量门禁通过 | Backend、Miniapp、Web 门禁、Deployment、Documentation | 修复首次推送基线并完成本地推送前核对 |
 | `plans/2026-11-20_贵州众赢独立项目初始化计划.md` | 已结束 | 已完成；名称、运行配置、契约、依赖锁文件和适用文档已同步，历史数据库证据边界与本项目未初始化状态已明确，静态门禁通过 | Backend、Admin、Miniapp、API Client、Deployment、Documentation | 初始化贵州众赢独立项目身份与配置 |
 | `plans/2026-11-20_数据库字段顺序统一计划.md` | 已结束 | 已完成；开发库升至 `20261120_01`，48 张表重排、69 张业务表核验，513 行数据及约束索引保留，重复升级、漂移与轻量门禁通过 | Backend、Database、Documentation | 统一模型及本机开发库列序，保留关联主键、数据和约束 |

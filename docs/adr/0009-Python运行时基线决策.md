@@ -5,6 +5,10 @@
 - 决策者：大仙
 - 当前操作：[本地开发环境手册](../operations/local-dev-environment.md)
 
+## 贵州众赢生产运行方式
+
+生产 Backend 由 1Panel 管理单一 Python 运行容器。以完整 digest 固定 Docker 官方标准 CPython 3.14 Linux x86_64 镜像，从只读源码的 `uv.lock` 安装生产依赖。运行用户、实际解释器、原生扩展、OpenSSL 和健康探针按 [1Panel 源码部署手册](../operations/1panel-source-deployment.md) 核验。下文的 Dockerfile 约束适用于应用镜像交付路径。
+
 ## 背景
 
 本仓库是新建全栈母版，阶段 B 已将 Backend 推进到工程 `ready`，当前需要保持运行时、依赖锁、CI 和容器基线一致。原规划固定 Python 3.12，但截至 2026 年 8 月，Python 3.12 已进入仅安全修复阶段，Python 3.14 仍处于稳定 Bugfix 阶段。
