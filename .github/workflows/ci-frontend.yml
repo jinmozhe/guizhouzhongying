@@ -1,0 +1,117 @@
+name: CI - Frontend
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-state:
+    name: Frontend state and boundaries
+    runs-on: ubuntu-latest
+    outputs:
+      admin: ${{ steps.state.outputs.admin }}
+      web: ${{ steps.state.outputs.web }}
+      miniapp: ${{ steps.state.outputs.miniapp }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Validate workspace state
+        id: state
+        shell: pwsh
+        run: ./scripts/ci/check-workspace-state.ps1 -GitHubOutputPath $env:GITHUB_OUTPUT
+
+      - name: Validate module boundaries
+        shell: pwsh
+        run: ./scripts/ci/check-module-boundaries.ps1
+
+      - name: Report empty applications
+        if: steps.state.outputs.web == 'empty' || steps.state.outputs.admin == 'empty'
+        shell: bash
+        run: echo "One or more frontend applications are explicit empty skeletons. Their application quality checks have not passed."
+
+  web-quality:
+    name: Frozen Web isolation
+    needs: frontend-state
+    if: needs.frontend-state.outputs.web == 'ready'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Reject frozen Web changes and runtime entry points
+        shell: bash
+        env:
+          FROZEN_WEB_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FROZEN_WEB_BRANCH_CREATED: ${{ github.event_name == 'push' && github.event.created }}
+        run: |
+          if [[ "$FROZEN_WEB_BRANCH_CREATED" == "true" && "$FROZEN_WEB_BASE" == "0000000000000000000000000000000000000000" ]]; then
+            node scripts/ci/check-frozen-web.mjs --initial-push
+          else
+            node scripts/ci/check-frozen-web.mjs --base "$FROZEN_WEB_BASE"
+          fi
+
+  admin-quality:
+    name: Admin quality
+    needs: frontend-state
+    if: needs.frontend-state.outputs.admin == 'ready'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.17.0
+
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint Admin
+        run: pnpm --filter @pinjie/admin lint
+
+      - name: Typecheck Admin
+        run: pnpm --filter @pinjie/admin typecheck
+
+  miniapp-quality:
+    name: Miniapp static quality
+    needs: frontend-state
+    if: needs.frontend-state.outputs.miniapp == 'ready'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.17.0
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Miniapp lint and typecheck
+        run: pnpm --filter @pinjie/miniapp lint && pnpm --filter @pinjie/miniapp typecheck

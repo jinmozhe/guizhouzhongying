@@ -1,0 +1,70 @@
+# 生产部署使用。
+# PostgreSQL 和 Redis 由 1Panel 作为服务器级共享服务管理。
+# 应用容器只绑定本机环回地址，由 1Panel OpenResty 提供反向代理。
+# 启动命令：docker compose --env-file .env -f compose.prod.yml up -d --wait
+name: guizhouzhongying
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE}
+    ports:
+      - "127.0.0.1:18168:18168"
+    env_file:
+      - apps/backend/.env
+    environment:
+      LOG_FILE_ENABLED: "false"
+      UPLOAD_LOCAL_ROOT: /app/storage/uploads
+      SETTINGS_MEDIA_ROOT: /app/storage/settings-media
+    volumes:
+      - backend_uploads:/app/storage
+    networks:
+      - default
+      - infrastructure
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18168/health/ready', timeout=2)",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+  request-log-consumer:
+    image: ${BACKEND_IMAGE}
+    command: ["python", "-m", "scripts.consume_request_logs"]
+    env_file:
+      - apps/backend/.env
+    environment:
+      LOG_FILE_ENABLED: "false"
+    networks:
+      - default
+      - infrastructure
+    restart: unless-stopped
+    profiles: ["request-logs"]
+
+  admin:
+    image: ${ADMIN_IMAGE}
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:3001/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+volumes:
+  backend_uploads:
+
+networks:
+  infrastructure:
+    name: 1panel-network
+    external: true

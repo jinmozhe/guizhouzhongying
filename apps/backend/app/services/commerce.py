@@ -1,0 +1,531 @@
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from typing import TypeVar
+from uuid import UUID
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.batch import ActiveStatusBatch, BatchCompleted
+from app.core.error_codes import ErrorCode
+from app.core.exceptions import AppException
+from app.core.identifiers import new_uuid7
+from app.core.pagination import PageResult
+from app.db.models.asset import Asset
+from app.db.repositories.commerce_access import CommerceAccessRepository
+from app.db.transaction import transaction_scope
+from app.domains.addresses import AddressInput, AddressRead, AddressService, AddressUpdate
+from app.domains.admin.permissions import PermissionCode
+from app.domains.inventory import InventoryAdjustment, InventoryMovementRead, InventoryRead, InventoryService
+from app.domains.products import (
+    CategoryInput,
+    CategoryRead,
+    CategoryUpdate,
+    ProductCreate,
+    ProductRead,
+    ProductService,
+    ProductStatusUpdate,
+    ProductUpdate,
+    SkuUpdate,
+)
+from app.domains.products.catalog_schemas import (
+    AttributeInput,
+    AttributeRead,
+    AttributeUpdate,
+    BrandInput,
+    BrandRead,
+    BrandUpdate,
+    CandidateAppend,
+    DescriptionSet,
+    DescriptionUpdate,
+    SpecificationConversion,
+    StandardValueInput,
+    StandardValueRead,
+    StandardValueUpdate,
+    TemplateRead,
+    TemplateUpdate,
+)
+from app.domains.products.image_policy import validate_detail_images
+from app.domains.products.schemas import (
+    ProductDetailRead,
+    ProductImageRead,
+    ProductRecommendationBatch,
+    ProductRecommendationUpdate,
+    ProductStatusBatch,
+    PublicProductDetailRead,
+    PublicProductRead,
+    SkuStatusBatch,
+)
+from app.domains.shipping import ShippingService, ShippingTemplateInput, ShippingTemplateRead
+from app.domains.shipping.schemas import FreightQuote, FreightQuoteInput, ShippingTemplateUpdate
+from app.services.security_events import AuditCoordinator
+
+T = TypeVar("T")
+
+
+class CommerceService:
+    """商品基础跨领域应用用例，管理写事务由审计协调器统一拥有。"""
+
+    def __init__(
+        self,
+        *,
+        products: ProductService,
+        inventory: InventoryService,
+        shipping: ShippingService,
+        access: CommerceAccessRepository,
+        audit: AuditCoordinator | None = None,
+        actor_id: UUID | None = None,
+        actor_session_id: UUID | None = None,
+    ) -> None:
+        self.products, self.inventory, self.shipping = products, inventory, shipping
+        self.access, self.audit, self.actor_id = access, audit, actor_id
+        self.actor_session_id = actor_session_id
+
+    async def _write(
+        self,
+        permission: PermissionCode,
+        target_id: UUID | None,
+        operation: Callable[[], Awaitable[T]],
+        *,
+        changed_fields: dict[str, object] | None = None,
+    ) -> T:
+        if self.audit is None or self.actor_id is None:
+            raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="需要管理员权限")
+        actor_id = self.actor_id
+
+        async def authorized() -> T:
+            admin = await self.access.get_admin_for_update(actor_id)
+            if admin is None or not admin.is_active:
+                raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="当前管理员权限已失效")
+            if self.actor_session_id is None:
+                raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="缺少管理员会话")
+            session = await self.access.get_admin_session_for_update(self.actor_session_id)
+            now = datetime.now(UTC)
+            if (
+                session is None
+                or session.admin_id != actor_id
+                or session.revoked_at is not None
+                or session.idle_expires_at <= now
+                or session.absolute_expires_at <= now
+            ):
+                raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="管理员会话已失效")
+            granted = admin.is_superuser or any(
+                role.is_active and any(item.is_active and item.code == permission.value for item in role.permissions)
+                for role in admin.roles
+            )
+            if not granted:
+                raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="当前管理员权限已失效")
+            return await operation()
+
+        return await self.audit.execute(
+            action=permission.value,
+            target_type=permission.value.split(":")[0],
+            target_id=target_id,
+            changed_fields=changed_fields if changed_fields is not None else {"operation": permission.value},
+            operation=authorized,
+        )
+
+    def _actor(self) -> UUID:
+        if self.actor_id is None:
+            raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="需要管理员身份")
+        return self.actor_id
+
+    async def categories(self, *, public: bool = False) -> list[CategoryRead]:
+        return await self.products.categories(public=public)
+
+    async def create_category(self, data: CategoryInput) -> CategoryRead:
+        return await self._write(
+            PermissionCode.PRODUCT_CATEGORIES_CREATE, None, lambda: self.products.save_category(data)
+        )
+
+    async def update_category(self, category_id: UUID, data: CategoryUpdate) -> CategoryRead:
+        return await self._write(
+            PermissionCode.PRODUCT_CATEGORIES_UPDATE,
+            category_id,
+            lambda: self.products.save_category(data, category_id),
+        )
+
+    async def product_page(
+        self,
+        page: int,
+        page_size: int,
+        *,
+        search: str | None = None,
+        category_id: UUID | None = None,
+        status: str | None = None,
+        product_type: str | None = None,
+        is_home_recommended: bool | None = None,
+    ) -> PageResult[ProductRead]:
+        return await self.products.page(
+            page,
+            page_size,
+            search=search,
+            category_id=category_id,
+            status=status,
+            product_type=product_type,
+            is_home_recommended=is_home_recommended,
+        )
+
+    async def categories_status_batch(self, data: ActiveStatusBatch) -> BatchCompleted:
+        return await self._write(
+            PermissionCode.PRODUCT_CATEGORIES_UPDATE, None, lambda: self.products.set_categories_active(data)
+        )
+
+    async def shipping_status_batch(self, data: ActiveStatusBatch) -> BatchCompleted:
+        return await self._write(
+            PermissionCode.SHIPPING_UPDATE, None, lambda: self.shipping.set_active_batch(data, self._actor())
+        )
+
+    async def products_status_batch(self, data: ProductStatusBatch) -> BatchCompleted:
+        async def operation() -> BatchCompleted:
+            await self.products.lock_changes()
+            products = [
+                await self.products.detail_read(target.id) for target in sorted(data.targets, key=lambda item: item.id)
+            ]
+            if data.status == "on_sale":
+                assets = await self.access.get_images_for_update(
+                    sorted(
+                        {
+                            asset_id
+                            for product in products
+                            for asset_id in [*product.image_asset_ids, *product.detail_image_asset_ids]
+                        }
+                    )
+                )
+                for product in products:
+                    self._validate_product_dependencies(product.image_asset_ids, product.detail_image_asset_ids, assets)
+            for target in sorted(data.targets, key=lambda item: item.id):
+                await self.products.set_status(
+                    target.id, ProductStatusUpdate(revision=target.revision, status=data.status)
+                )
+            return BatchCompleted(completed_count=len(data.targets))
+
+        return await self._write(PermissionCode.PRODUCTS_UPDATE, None, operation)
+
+    async def product_read(self, product_id: UUID) -> ProductDetailRead:
+        return await self.products.detail_read(product_id)
+
+    async def public_product_page(
+        self, page: int, page_size: int, *, category_id: UUID | None = None, search: str | None = None
+    ) -> PageResult[PublicProductRead]:
+        return await self.products.public_page(page, page_size, category_id=category_id, search=search)
+
+    async def public_product_read(self, product_id: UUID) -> PublicProductDetailRead:
+        return await self.products.public_detail_read(product_id)
+
+    async def public_product_recommendations(self) -> list[PublicProductRead]:
+        return await self.products.public_recommendations()
+
+    async def set_product_recommendation(self, product_id: UUID, data: ProductRecommendationUpdate) -> ProductRead:
+        return await self._write(
+            PermissionCode.PRODUCTS_UPDATE,
+            product_id,
+            lambda: self.products.set_recommendation(product_id, data),
+            changed_fields={"operation": "home_recommendation", **data.model_dump(mode="json")},
+        )
+
+    async def products_recommendations_batch(self, data: ProductRecommendationBatch) -> BatchCompleted:
+        return await self._write(
+            PermissionCode.PRODUCTS_UPDATE,
+            None,
+            lambda: self.products.set_recommendations(data),
+            changed_fields={"operation": "home_recommendation_batch", **data.model_dump(mode="json")},
+        )
+
+    async def _product_dependencies(self, image_ids: list[UUID], detail_ids: list[UUID] | None = None) -> None:
+        await self.products.lock_changes()
+        combined_ids = sorted(set(image_ids) | set(detail_ids or []))
+        assets = await self.access.get_images_for_update(combined_ids)
+        self._validate_product_dependencies(image_ids, detail_ids or [], assets)
+
+    def _validate_product_dependencies(
+        self, image_ids: list[UUID], detail_ids: list[UUID], assets: list[Asset]
+    ) -> None:
+        combined_ids = sorted(set(image_ids) | set(detail_ids))
+        assets_by_id = {asset.id: asset for asset in assets}
+        selected_assets = [assets_by_id[asset_id] for asset_id in combined_ids if asset_id in assets_by_id]
+        if len(selected_assets) != len(combined_ids) or any(
+            asset.uploader_type not in {"admin", "system"}
+            or asset.scene != "product"
+            or asset.mime_type not in {"image/jpeg", "image/png", "image/webp"}
+            for asset in selected_assets
+        ):
+            raise AppException(
+                status_code=409, code=ErrorCode.PRODUCT_IMAGE_REJECTED, message="商品图片必须为现存管理端图片资产"
+            )
+
+        if detail_ids:
+            try:
+                validate_detail_images(
+                    [
+                        ProductImageRead(
+                            asset_id=asset.id,
+                            url=asset.url,
+                            original_name=asset.original_name,
+                            file_size=asset.file_size,
+                            width=asset.width,
+                            height=asset.height,
+                            frame_count=asset.frame_count,
+                        )
+                        for asset in (assets_by_id[asset_id] for asset_id in detail_ids)
+                    ]
+                )
+            except ValueError as exc:
+                raise AppException(status_code=409, code=ErrorCode.PRODUCT_IMAGE_REJECTED, message=str(exc)) from exc
+
+    async def create_product(self, data: ProductCreate) -> ProductRead:
+        async def operation() -> ProductRead:
+            await self._product_dependencies(data.image_asset_ids, data.detail_image_asset_ids)
+            result = await self.products.create(data)
+            quantities = {item.code: item.initial_quantity for item in data.skus}
+            for sku in sorted(result.skus, key=lambda item: item.id):
+                await self.inventory.initialize(sku.id)
+                if quantities[sku.code]:
+                    await self.inventory.adjust(
+                        sku.id,
+                        InventoryAdjustment(
+                            request_id=new_uuid7(),
+                            revision=1,
+                            quantity_delta=quantities[sku.code],
+                            reason="商品创建初始盘点",
+                        ),
+                        self._actor(),
+                    )
+            return result
+
+        return await self._write(PermissionCode.PRODUCTS_CREATE, None, operation)
+
+    async def update_product(self, product_id: UUID, data: ProductUpdate) -> ProductRead:
+        async def operation() -> ProductRead:
+            await self._product_dependencies(data.image_asset_ids, data.detail_image_asset_ids)
+            return await self.products.update(product_id, data)
+
+        return await self._write(PermissionCode.PRODUCTS_UPDATE, product_id, operation)
+
+    async def write_sku(self, product_id: UUID, data: SkuUpdate, sku_id: UUID | None = None) -> ProductRead:
+        async def operation() -> ProductRead:
+            await self.products.lock_changes()
+            before = await self.products.read(product_id)
+            result = await self.products.write_sku(product_id, data, sku_id)
+            previous_ids = {sku.id for sku in before.skus}
+            for sku in result.skus:
+                if sku.id not in previous_ids:
+                    await self.inventory.initialize(sku.id)
+            return result
+
+        return await self._write(PermissionCode.PRODUCTS_UPDATE, product_id, operation)
+
+    async def set_product_status(self, product_id: UUID, data: ProductStatusUpdate) -> ProductRead:
+        async def operation() -> ProductRead:
+            await self.products.lock_changes()
+            if data.status == "on_sale":
+                product = await self.products.detail_read(product_id)
+                await self._product_dependencies(product.image_asset_ids, product.detail_image_asset_ids)
+            return await self.products.set_status(product_id, data)
+
+        return await self._write(PermissionCode.PRODUCTS_UPDATE, product_id, operation)
+
+    async def inventory_read(self, sku_id: UUID) -> InventoryRead:
+        return await self.inventory.read(sku_id)
+
+    async def skus_status_batch(self, product_id: UUID, data: SkuStatusBatch) -> ProductRead:
+        async def operation() -> ProductRead:
+            await self.products.lock_changes()
+            return await self.products.set_skus_active(product_id, data)
+
+        return await self._write(PermissionCode.PRODUCTS_UPDATE, product_id, operation)
+
+    async def adjust_inventory(self, sku_id: UUID, data: InventoryAdjustment) -> InventoryMovementRead:
+        async def operation() -> InventoryMovementRead:
+            await self.products.require_current_sku(sku_id)
+            return await self.inventory.adjust(sku_id, data, self._actor())
+
+        return await self._write(PermissionCode.INVENTORY_ADJUST, sku_id, operation)
+
+    async def inventory_history(self, sku_id: UUID, page: int, page_size: int) -> PageResult[InventoryMovementRead]:
+        return await self.inventory.history(sku_id, page, page_size)
+
+    async def shipping_page(self, page: int, page_size: int) -> PageResult[ShippingTemplateRead]:
+        return await self.shipping.page(page, page_size)
+
+    async def shipping_read(self, template_id: UUID) -> ShippingTemplateRead:
+        return await self.shipping.read(template_id)
+
+    async def create_shipping(self, data: ShippingTemplateInput) -> ShippingTemplateRead:
+        return await self._write(
+            PermissionCode.SHIPPING_CREATE, None, lambda: self.shipping.create(data, self._actor())
+        )
+
+    async def update_shipping(self, template_id: UUID, data: ShippingTemplateUpdate) -> ShippingTemplateRead:
+        return await self._write(
+            PermissionCode.SHIPPING_UPDATE, template_id, lambda: self.shipping.update(template_id, data, self._actor())
+        )
+
+    async def shipping_quote(self, template_id: UUID, data: FreightQuoteInput) -> FreightQuote:
+        raise AppException(
+            status_code=503,
+            code=ErrorCode.COMMERCE_UPGRADE_REQUIRED,
+            message="旧商品运费模板已退出报价，平台统一运费尚未开放",
+        )
+
+    async def brands(self, page: int, page_size: int) -> PageResult[BrandRead]:
+        return await self.products.brands(page, page_size)
+
+    async def read_brand(self, brand_id: UUID) -> BrandRead:
+        return await self.products.read_brand(brand_id)
+
+    async def create_brand(self, data: BrandInput) -> BrandRead:
+        async def operation() -> BrandRead:
+            await self._product_dependencies([data.logo_asset_id] if data.logo_asset_id else [])
+            return await self.products.save_brand(data)
+
+        return await self._write(PermissionCode.BRANDS_CREATE, None, operation)
+
+    async def update_brand(self, brand_id: UUID, data: BrandUpdate) -> BrandRead:
+        async def operation() -> BrandRead:
+            await self._product_dependencies([data.logo_asset_id] if data.logo_asset_id else [])
+            return await self.products.save_brand(data, brand_id)
+
+        return await self._write(PermissionCode.BRANDS_UPDATE, brand_id, operation)
+
+    async def attributes(
+        self,
+        page: int,
+        page_size: int,
+        *,
+        search: str | None = None,
+        value_type: str | None = None,
+        is_active: bool | None = None,
+    ) -> PageResult[AttributeRead]:
+        return await self.products.attributes(
+            page, page_size, search=search, value_type=value_type, is_active=is_active
+        )
+
+    async def set_attributes_active(self, data: ActiveStatusBatch) -> BatchCompleted:
+        return await self._write(
+            PermissionCode.SPEC_ATTRIBUTES_UPDATE, None, lambda: self.products.set_attributes_active(data)
+        )
+
+    async def set_values_active(self, attribute_id: UUID, data: ActiveStatusBatch) -> BatchCompleted:
+        return await self._write(
+            PermissionCode.SPEC_ATTRIBUTES_UPDATE,
+            attribute_id,
+            lambda: self.products.set_values_active(attribute_id, data),
+        )
+
+    async def save_descriptions(self, product_id: UUID, data: DescriptionSet) -> ProductRead:
+        return await self._write(
+            PermissionCode.PRODUCTS_UPDATE, product_id, lambda: self.products.save_descriptions(product_id, data)
+        )
+
+    async def add_candidates(self, product_id: UUID, adoption_id: UUID, data: CandidateAppend) -> ProductRead:
+        return await self._write(
+            PermissionCode.PRODUCTS_UPDATE,
+            product_id,
+            lambda: self.products.add_candidates(product_id, adoption_id, data),
+        )
+
+    async def read_attribute(self, attribute_id: UUID) -> AttributeRead:
+        return await self.products.read_attribute(attribute_id)
+
+    async def create_attribute(self, data: AttributeInput) -> AttributeRead:
+        return await self._write(
+            PermissionCode.SPEC_ATTRIBUTES_CREATE, None, lambda: self.products.save_attribute(data)
+        )
+
+    async def update_attribute(self, attribute_id: UUID, data: AttributeUpdate) -> AttributeRead:
+        return await self._write(
+            PermissionCode.SPEC_ATTRIBUTES_UPDATE,
+            attribute_id,
+            lambda: self.products.save_attribute(data, attribute_id),
+        )
+
+    async def values(self, attribute_id: UUID) -> list[StandardValueRead]:
+        return await self.products.values(attribute_id)
+
+    async def create_value(self, attribute_id: UUID, data: StandardValueInput) -> StandardValueRead:
+        return await self._write(
+            PermissionCode.SPEC_ATTRIBUTES_UPDATE, attribute_id, lambda: self.products.save_value(attribute_id, data)
+        )
+
+    async def update_value(self, attribute_id: UUID, value_id: UUID, data: StandardValueUpdate) -> StandardValueRead:
+        return await self._write(
+            PermissionCode.SPEC_ATTRIBUTES_UPDATE,
+            value_id,
+            lambda: self.products.save_value(attribute_id, data, value_id),
+        )
+
+    async def delete_value(self, attribute_id: UUID, value_id: UUID) -> None:
+        await self._write(
+            PermissionCode.SPEC_ATTRIBUTES_UPDATE,
+            value_id,
+            lambda: self.products.delete_value(attribute_id, value_id),
+        )
+
+    async def read_template(self, category_id: UUID) -> TemplateRead:
+        return await self.products.read_template(category_id)
+
+    async def update_template(self, category_id: UUID, data: TemplateUpdate) -> TemplateRead:
+        return await self._write(
+            PermissionCode.PRODUCT_CATEGORIES_UPDATE,
+            category_id,
+            lambda: self.products.save_template(category_id, data),
+        )
+
+    async def convert_specifications(self, product_id: UUID, data: SpecificationConversion) -> ProductRead:
+        async def operation() -> ProductRead:
+            await self.products.lock_changes()
+            before = await self.products.read(product_id)
+            await self._product_dependencies(before.image_asset_ids)
+            result, retired = await self.products.convert_specifications(product_id, data)
+            for sku_id in retired:
+                await self.inventory.archive_available(sku_id, sku_id)
+            quantities = {item.code: item.initial_quantity for item in data.skus}
+            for sku in sorted((item for item in result.skus if item.archived_at is None), key=lambda item: item.id):
+                await self.inventory.initialize(sku.id)
+                if quantities[sku.code]:
+                    await self.inventory.adjust(
+                        sku.id,
+                        InventoryAdjustment(
+                            request_id=new_uuid7(),
+                            revision=1,
+                            quantity_delta=quantities[sku.code],
+                            reason="规格转换新货品明确盘点",
+                        ),
+                        self._actor(),
+                    )
+            return result
+
+        return await self._write(PermissionCode.PRODUCTS_UPDATE, product_id, operation)
+
+    async def update_description(self, product_id: UUID, adoption_id: UUID, data: DescriptionUpdate) -> ProductRead:
+        return await self._write(
+            PermissionCode.PRODUCTS_UPDATE,
+            product_id,
+            lambda: self.products.update_description(product_id, adoption_id, data),
+        )
+
+
+class AddressApplicationService:
+    def __init__(
+        self, session: AsyncSession, addresses: AddressService, access: CommerceAccessRepository, user_id: UUID
+    ) -> None:
+        self.session, self.addresses, self.access, self.user_id = session, addresses, access, user_id
+
+    async def list_addresses(self) -> list[AddressRead]:
+        return await self.addresses.list_for_user(self.user_id)
+
+    async def _write(self, operation: Callable[[], Awaitable[T]]) -> T:
+        async with transaction_scope(self.session):
+            user = await self.access.get_user_for_update(self.user_id)
+            if user is None or not user.is_active or user.deleted_at is not None:
+                raise AppException(status_code=403, code=ErrorCode.AUTH_ACCOUNT_DISABLED, message="用户已停用")
+            return await operation()
+
+    async def create(self, data: AddressInput) -> AddressRead:
+        return await self._write(lambda: self.addresses.create(self.user_id, data))
+
+    async def update(self, address_id: UUID, data: AddressUpdate) -> AddressRead:
+        return await self._write(lambda: self.addresses.update(self.user_id, address_id, data))
+
+    async def delete(self, address_id: UUID, revision: int) -> None:
+        await self._write(lambda: self.addresses.delete(self.user_id, address_id, revision))

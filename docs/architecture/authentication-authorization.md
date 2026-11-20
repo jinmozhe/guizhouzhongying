@@ -1,0 +1,166 @@
+# 认证、授权与审计边界
+
+## 1. 目标
+
+本文件定义 Admin Cookie 与消费者 Bearer 的身份、会话、权限和审计机制。取舍见 [ADR 0010](../adr/0010-浏览器认证会话RBAC与审计决策.md)、[ADR 0018](../adr/0018-小程序独立身份会话与内容边界决策.md)与[ADR 0019](../adr/0019-消费者接口统一与浏览器认证退役决策.md)，完整端点与验收以源码、根 OpenAPI 和实际验证为准。阶段 C 历史计划文件未纳入当前仓库。
+
+## 2. 分层职责
+
+| 层 | 职责 |
+| --- | --- |
+| Middleware | 请求 ID、Trace 上下文、安全头、可信代理边界和日志上下文 |
+| Dependency | Cookie 或 Token 解析、会话校验、当前身份加载和通用权限依赖 |
+| Router | 声明端点需要的身份、角色或权限，不执行资源查询 |
+| Service/Policy | 结合资源归属、资源状态、租户或业务数据执行授权 |
+| Database | 唯一约束、外键和适合数据库保证的数据不变量 |
+
+身份认证失败使用 `401`，身份有效但无权执行使用 `403`。资源是否存在本身敏感时，可以按统一策略返回 `404`，同类接口必须保持一致。
+
+## 3. 默认拒绝
+
+- 受保护端点必须显式声明认证要求。
+- 没有匹配授权规则时拒绝。
+- 管理端页面隐藏、按钮禁用和客户端路由保护只改善体验，不承担安全控制。
+- 超级管理员仍需经过统一身份、授权和审计链，禁止绕过。
+- 后台任务和内部调用使用独立服务身份或明确调用上下文，禁止伪装最终用户。
+
+## 4. 客户端认证 Profile
+
+消费者和管理员各有一个明确认证入口，业务 Router 不猜测客户端或顺序尝试凭据。
+
+- Admin Access 与 Refresh 使用 `guizhouzhongying_admin_*`、`HttpOnly`、`SameSite=Lax` Cookie，生产启用 `Secure`，不设置 `Domain`。Access 路径为 `/`，Refresh 限制到 `/api/v1/admin/auth`。
+- Admin CSRF Cookie 保存 Session 绑定随机值，服务端只保存 HMAC 摘要，以常量时间比较；登录响应不返回 Access/Refresh Token。浏览器 Token 不进入客户端可读持久化存储。
+- Admin 写操作精确校验 `ADMIN_ORIGINS`、CSRF 和权限。代理过滤不能代替后端授权。
+- C 端只开放微信登录和 Public Client Bearer，统一由 `get_current_user` 声明 `ConsumerBearer`。拒绝 Cookie 和混合凭据，不执行失败后的身份回退；旧消费者密码注册、登录、改密、直接注销及 Cookie 入口已退役。
+- 认证路由为 `/api/v1/auth`，私有业务按 `/users/me`、`/addresses`、`/cart-items`、`/orders`、`/refunds`、`/distribution/me` 等职责组织。没有客户端专属业务路径或兼容别名。
+- Bearer 保留独立 `pinjie-miniapp` audience 与签名/HMAC 密钥，会话同时要求 `miniapp_bearer`、`pinjie-miniapp`、`csrf_digest=NULL`。历史 Cookie 会话不能认证，不转换或删除历史记录。私有响应包括错误均为 no-store，认证查询故障返回 503。
+- 历史 `WEB_*` 配置和管理设置继续保留，但不开放消费者浏览器登录；既有配置校验、历史审计与迁移文件不因路由重构更名。
+
+微信一次性 code 通过固定 code2Session 接口换取可信 OpenID，以 provider/AppID/OpenID 事务锁及唯一约束防止重复建号。无密码用户独立创建，首次建号受 miniapp_registration 共享配置锁保护；已有绑定不受建号关闭影响。UnionID 仅记录，不自动合并旧账户。登录失败独立写安全事件，成功建号和会话事件与业务事务同提交；秘密、OpenID、session_key 和外部错误原文不进入事件或日志。
+
+客户端 Access/Refresh 仅私有内存，刷新单飞、单次轮换；重放会提交原会话与 Refresh 族撤销再返回 401。每次私有请求检查用户状态、凭据版本、会话撤销和过期。启动身份请求按会话代次合并，首次访问也通过微信 code 静默识别，不读取或伪造本地隐私同意；旧代次响应不得回填。主动退出清理私有请求与 Query，并持久化非秘密退出标记，退出中拒绝新登录，退出后须主动登录。手机号通过平台隐私与手机号组合按钮主动授权。写请求不通用重放，下单未知恢复见[接入手册](../operations/miniapp-identity-and-content.md)。实际迁移、真实微信和动态验收未执行。
+
+小程序资料与头像使用独立 ConsumerBearer：上传固定 avatar 场景与当前用户 uploader，绑定必须显式提供本人资产 ID 或 null。共享 UserProfileService 在事务内锁用户并重新拒绝停用账户，保留资产场景、归属及 URL 校验。会员与资金查询先校验本人账户有效，再按 user_id、beneficiary_user_id 或本人 wallet_id 过滤；安全投影排除他人身份、收款与渠道资料。客户端原生上传纳入会话取消与旧响应拒绝，具体接口见[资料会员资金手册](../operations/miniapp-profile-and-finance.md)。
+
+推荐与积分端点使用同一 ConsumerBearer 和 no-store 边界。推荐安全投影只返回本人邀请码、时间及原码匹配布尔值，不能查询他人资料；写入仍由领域事务内校验 active user、首次绑定、自邀与循环。积分读取按本人 user_id 定位账户，再按本人 account_id 查询流水，排除内部来源标识、备注和幂等键。绑定意图在当前账户确认后保存，客户端不自动绑定或跨身份重放，见[推荐积分手册](../operations/miniapp-referral-and-points.md)。
+
+本人小程序会话列表与撤销只匹配 miniapp_bearer、pinjie-miniapp、csrf_digest=NULL。撤销接受已确认的 1 至 100 个唯一目标，锁用户后复核当前会话、凭据版本、状态与过期，固定顺序锁目标；拒绝当前、他人、Browser 和缺失会话，审计及撤销同事务。未知结果只读查询原集合，后来登录的会话不加入；父 Session 撤销同时阻断后续 Access/Refresh，已执行请求仍需查询事实。注销前置仅本人交易权益只读聚合，不授予删除或权益放弃能力，实际注销关闭，见[账户安全手册](../operations/miniapp-account-security.md)。
+
+### 4.1 小程序手机号与功能分层
+
+商城基础账户初始化不受手机号前置限制。首次微信建号在用户、外部身份和登录会话的同一事务内建立会员档案、双钱包和积分账户；已有微信用户登录时补齐合法缺失记录，失败不签发成功会话。管理端创建商城用户在原审计事务内执行相同初始化，保留操作者权限与审计校验。初始化不授予等级、绑定推荐人或开放资金操作，锁顺序和异常恢复见[会员资金手册](../operations/miniapp-profile-and-finance.md)。
+
+微信建号保留独立 `wx_` 用户名和空密码，手机号不参与静默登录匹配。users 的 phone_e164、phone_verified_at、phone_verification_source 三项全部为空或全部有效，手机号全局唯一。外部身份新增 union_scope_id 记录可信开放平台范围，不按 UnionID 自动归并；见 [ADR 0020](../adr/0020-微信静默建号与独立手机号绑定决策.md)。
+
+POST /users/me/phone 使用基础 ConsumerBearer 和一次性手机号 code，绑定当前账户；服务端从现有绑定取得 OpenID，传给微信验证 code 归属，并核验 AppID 水印、时间和号码结构。外部调用前结束读取事务，完成验证后按手机号摘要锁、用户锁、会话锁顺序重新校验账户与会话，唯一约束兜底并同事务写成功安全事件。冲突不切换用户、不覆盖已有手机号；认证相关路由不记录请求正文。
+
+基础 UserPrincipal 保留资料、绑定、退出和安全操作。PhoneUserPrincipal/get_phone_user 为购物车、地址、订单履约售后评价、会员、推荐、积分和资金入口增加 PHONE_BINDING_REQUIRED 校验，手机号本期只允许首次绑定、不提供解绑或换绑。业务原有资源归属和事务内账户状态检查继续生效。ConsumerUserRead 仅新增 phone_bound 和 phone_masked，不向客户端输出完整手机号、用户名或 OpenID。
+
+微信应用 access_token 由 stable_token 普通模式取得，按 AppID 缓存并在到期前失效，刷新锁 15 秒。手机号 code 摘要原子消费标记保留 600 秒，用户维度 300 秒最多 10 次；换码不自动重试。结果未知使用 PHONE_BINDING_UNKNOWN，客户端读取本人资料后才允许新授权。Token 被微信拒绝时仅清除同值缓存，旧 code 不重放。Redis 故障明确拒绝，缓存不承载最终手机号事实。
+
+## 5. JWT、密码与 Session
+
+- Access JWT 使用 PyJWT 与固定 `HS256` allowlist。消费者与 Admin 分别使用独立 Secret 与 `pinjie-miniapp`、`pinjie-admin` audience。
+- JWT 必需 Claims 为 `iss`、`aud`、`sub`、`sid`、`jti`、`iat`、`nbf`、`exp`、`token_type` 和 `credential_version`，允许最多 30 秒时钟偏差。JWT 不保存角色、权限和个人资料。
+- 消费者 Access 默认 15 分钟，Admin Access 默认 10 分钟。验签后继续校验 PostgreSQL Session、主体状态与凭据版本。
+- 密码使用 Argon2id。Hash 和 Verify 通过线程池执行，并由进程内信号量限制并发。未知用户名执行固定虚拟密码校验，避免明显的账号枚举时序差异。
+- 管理员创建账户、修改本人密码及管理重置凭据时，新密码统一要求 6 至 64 个字符。登录和修改本人密码时的当前密码最多接受 64 个字符；现存超过 64 个字符的密码需要先通过受控重置改为符合当前策略的密码。
+- PostgreSQL 是 Session 和 Refresh Token 的权威来源。Admin Refresh 原值只进入 `HttpOnly` Cookie；消费者 Refresh 只进入私有内存，以请求体轮换。数据库保存 HMAC-SHA256 摘要。
+- Refresh 闲置期限默认 7 天，Session 绝对期限默认 30 天。刷新通过行锁单次消费并旋转，已消费 Token 重放会撤销整个 Session Family。
+- Admin 初次登录创建 Session 时，使用锁定版本的 `ua-parser` 从已清理 User-Agent 生成“浏览器 · 操作系统”展示名称，并同时保留原始摘要。该名称不包含浏览器或系统小版本，不参与认证、授权或可信设备判断；空值和无法识别的输入继续显示为未知设备，Refresh 不重命名既有 Session。
+- Session 列表统一使用 `items`、`total`、`page` 和 `page_size` 分页契约。超过绝对期限或撤销时间 30 天的 Session 由显式保留工具清理，关联 Refresh Token 通过外键级联删除。
+- 管理员修改自己的密码时递增 `credential_version`、保留并轮换当前 Session Cookie、撤销其他 Session。主体状态、管理员角色、超级管理员标记或管理员重置凭据变化时撤销受影响会话。
+
+四个 JWT/HMAC Secret 必须至少包含 32 个 UTF-8 字节、彼此不同且不能使用模板值。认证启用后 Redis 必须为 `required`；生产缺少安全 Cookie、可信代理、明确 CORS 或 Release 配置时拒绝启动。
+
+### 5.1 普通用户创建来源
+
+普通用户有以下独立创建来源：
+
+- Admin 创建用户使用 `POST /api/v1/admin/users`，受 `users:create`、管理员会话和 CSRF 保护，不受公开注册开关影响。该流程只创建账户和 `users:create` 审计事件，不创建 Web Session、Refresh Token 或公开注册登录事件。
+- 微信可信身份首次建号使用 /api/v1/auth/login，受独立 miniapp_registration 与登录总开关控制。无密码账户与外部身份绑定、Bearer 会话和成功事件同事务提交，不使用公开密码注册许可。
+
+密码创建来源复用相同的用户名、邮箱唯一性和密码规则；微信账户生成独立用户名，密码为空，不填写公开默认密码。软删除账户继续占用标识，管理员应恢复原账户，不能用同一标识重复创建。Admin 创建审计只记录目标、启用状态和可选资料是否存在，不保存初始密码、密码摘要或邮箱明文。
+
+登录后的用户资料通过 `GET/PATCH /api/v1/users/me` 读取和更新；头像使用独立的 `PUT /api/v1/users/me/avatar`，只接受当前用户自己上传的 `avatar` 资产 ID，传 `null` 解除绑定。头像更新受统一消费者 Bearer 及事务内本人校验保护，不改变凭据版本或会话。
+
+管理员本人资料和管理员管理资料入口继续接受头像 URL。站内上传路径及已配置 Web/Admin Origin 下的上传地址先归一化为资产公开路径，移除查询参数和片段，再按唯一文件键校验并锁定资产；资产已删除时拒绝保存。绑定与资产删除共用资产行锁，事务结束前保持锁定，已提交头像引用阻止删除。其他外部 URL 和非资产静态路径保持原有行为，清空头像解除引用。
+
+消费者能力通过 `GET /api/v1/auth/capabilities` 返回微信登录总开关。旧浏览器注册能力端点已退役；Admin 历史公开注册设置仍保留，不能据此启用已退役的密码注册入口。微信首次建号使用独立设置和服务端事务校验。
+
+系统设置使用八项独立权限：`settings:site:read`、`settings:site:update`、`settings:registration:read`、`settings:registration:update`、`settings:order-shipping:read`、`settings:order-shipping:update`，以及分佣总开关对应的 `settings:commission-control:read` 和 `settings:commission-control:update`。Admin 设置写接口同时要求管理员会话、准确权限、CSRF、revision 校验和审计；LOGO 上传与删除归站点更新权限，不复用文件资产权限。平台运费和分佣总开关分别由商品运费页、分佣政策页的独立受控区域维护。
+
+站点 LOGO 使用每次操作独立且不可变的 UUID 文件键。数据库提交失败时只补偿本次操作创建的临时对象，不覆盖或删除已有目标文件；并发更新依靠修订号和进程内串行化保护，避免旧操作回滚新提交的媒体。
+
+## 6. CSRF 与来源校验
+
+- Admin Cookie 身份的 `POST`、`PUT`、`PATCH` 和 `DELETE` 请求必须同时通过精确 Origin allowlist 与 `X-CSRF-Token` 校验。
+- Refresh 与 Logout 使用 Refresh Cookie 和同一 Session 的 CSRF 对，普通受保护写请求使用 Access Cookie 对应的当前 Session。
+- Admin 登录尚无 Session，仍执行 Origin 校验，并结合 `SameSite=Lax` Cookie 与 Redis 原子限流。
+- Backend 仅在认证校验明确标记失效时清理对应 Profile 的认证 Cookie。前端仅将 HTTP 401 且错误码为 `AUTH_REQUIRED`、`AUTH_TOKEN_INVALID`、`AUTH_SESSION_REVOKED`、`AUTH_SESSION_EXPIRED` 或 `AUTH_REFRESH_REUSE_DETECTED` 的响应视为会话错误；最多执行一次 Refresh 和一次原请求重放，Refresh 端点本身不得递归重试。
+- `AUTH_INVALID_CREDENTIALS` 等业务失败和未知错误码原样返回，不触发刷新、请求重放或登录失效。刷新接口的错误状态、错误码、请求标识与 `Retry-After` 继续向上传播；429、503 和网络失败不清理客户端会话状态。消费者刷新与写请求恢复遵守第 4 节的独立内存会话和原意图恢复规则。
+- Logout 只有在服务端明确成功后才进入未认证页面；失败必须保留当前页面并展示可重试错误，不能把失败伪装为本地退出成功。
+
+Admin 运行期间的受保护请求在 Refresh 失败或重放请求再次返回终止性会话错误时，通过 HTTP 管道通知运行时统一处理。运行时清理 Query 缓存、当前身份和受保护页面状态，并带原站内地址返回登录页；业务 401、网络失败、429 和 503 继续留在当前页面并按原错误反馈。
+
+Admin 收到上述明确的会话 401 时，若 `guizhouzhongying_admin_csrf` Cookie 缺失或为空，HTTP 管道直接传播原始会话错误并通知运行时，不发起缺少必要 CSRF 条件的 Refresh。首次访问由启动流程带原站内地址跳转登录页，避免将未登录误报为刷新 CSRF 403；存在该 Cookie 时继续执行原有单飞刷新及错误传播。此判断不替代服务端认证、CSRF 和来源校验。
+
+Admin 打开或整页刷新时，启动恢复通过 `/api/v1/admin/auth/me` 加载身份。若该请求触发 Refresh，且 Refresh 返回 `503 / SERVICE_UNAVAILABLE`，启动流程带原站内地址跳转登录页，展示安全错误消息、HTTP 状态、错误码及可用的请求编号；开发环境额外提示检查 Redis。HTTP 管道标记 Refresh 错误来源，普通身份请求或刷新成功后的重放请求返回 503 不触发此跳转。此行为只提供故障恢复入口，不将 503 归类为会话失效，也不撤销服务端会话或清理认证 Cookie。登录页跳过自动身份恢复，防止跳转循环；诊断信息通过路由状态传递，不进入 URL。新的登录失败优先展示最新错误，底层依赖恢复前重新登录仍可能失败。
+
+## 7. 权限模型边界
+
+本商城提供规范化 RBAC 基础，尚未预设复杂 ABAC、组织树和多租户数据权限。`PermissionCode` 与 `PERMISSION_CATALOG` 是权限目录源码，数据库通过显式 `scripts.sync_permissions --check/--apply` 同步；应用启动不自动修改权限表。
+
+管理员、角色、权限及关联关系使用规范化表和外键。Admin 导航由前端代码维护，并按服务端返回的权限过滤，不建立动态菜单表。Dependency 校验端点权限，Service 在事务内读取权威资源状态并执行最终授权。超级管理员仍经过 Session、CSRF、最后超级管理员保护和审计链；会减少有效超级管理员数量的写操作在同一 PostgreSQL 事务内取得固定 advisory lock，串行执行计数和修改。
+
+最终授权使用的单个及批量管理员锁定读取显式设置 `populate_existing=True`，刷新同一 AsyncSession 中在认证阶段已加载的属性和关联。数据库行锁与 ORM 状态刷新共同保证事务内校验读取最新状态，避免并发停用或降权后复用旧身份。
+
+管理员管理、会员配置、积分调整、分佣政策、系统设置、资产删除、履约及提现管理写用例由 `AdminAuditCoordinator` 在审计器开启的业务事务内重新锁定操作者与当前会话，校验账户启用、会话归属、撤销及闲置/绝对过期状态和精确动作权限，然后执行资源变更。未传会话标识也必须拒绝。会员创建与修改分别校验对应权限，提现通用审计动作由调用者显式提供本次准确权限；审计动作、版本、成功/拒绝语义继续沿用原审计器。Commerce 保留既有的事务内操作者、会话和权限复核。
+
+管理员及角色管理先取得 PostgreSQL 身份图事务 advisory lock，稳定角色成员集合，再将操作者、单个或批量目标、受角色变化影响的管理员合并去重并按 UUID 升序锁定，随后锁当前会话并完成最终鉴权。后续目标读取不得引入未纳入集合的管理员；批量操作必须显式传完整目标。角色失效不能先锁角色再逐个获取未预锁的管理员。身份图锁只用于管理员及角色写入，业务写入继续只锁操作者及其会话；最后超级管理员保护锁保持在统一身份锁之后。
+
+最终鉴权前已提交的停用、撤权或会话撤销必须被刷新读取并拒绝，业务回滚且记录拒绝审计。已持有身份和会话锁的合法写入与后续撤权按数据库锁顺序完成，不承诺撤权请求能追溯取消已取得锁的事务。路由层权限依赖不能替代此复核；当前实现范围不包含资产上传的最终鉴权改造。并发及真实 PostgreSQL 验收结果以实施计划为准。
+
+`admins:update` 只负责管理员资料与状态修改，不接受 `is_superuser`。超级管理员身份统一通过 `PATCH /api/v1/admin/admins/{admin_id}/superuser` 和系统权限 `admins:superuser:change` 变更；该权限在权限目录中可见，但标记为不可分配给角色，角色权限写接口拒绝保存。独立端点同时校验管理员会话、CSRF、准确权限和当前超级管理员身份，Service 在事务内重新读取操作者权威状态；创建管理员时提交 `is_superuser=true` 也执行同一权威校验，防止从创建入口绕过。Admin 只向当前超级管理员提供身份切换入口，界面控制不替代服务端授权。
+
+管理员资源权限只授权动作类型，不自动授权超级管理员目标。资料编辑、单条与批量状态变更、角色分配、密码重置、会话查看和会话撤销在 Service 中读取并锁定目标管理员；目标为超级管理员时，操作者的数据库权威状态也必须是启用的超级管理员，否则统一拒绝。批量目标只要包含一名超级管理员就整体拒绝普通管理员，禁止通过混合目标绕过。Admin 同步禁用超级管理员行的对应按钮、状态 Tag 和批量复选框，但该界面限制只承担体验职责。
+
+角色权限配置继续消费 `GET /api/v1/admin/permissions` 返回的扁平源码权限目录，并向角色权限写接口提交 `permission_codes: string[]`。Admin 在弹窗内按权限码资源前缀直接展示 Ant Design Tree，支持父子联动、名称和代码搜索、全选、反选、清空及展开控制；搜索只过滤显示，全选、反选和清空始终基于完整启用权限目录，已分配的停用权限保持锁定。未知前缀进入“其他权限”，分组节点只使用前端内部 key，提交前按当前权限目录过滤，因此后端契约、权限码权威来源和服务端授权边界不依赖前端树结构。
+
+Admin 不提供管理操作的密码二次确认 Token 或确认请求头。所有单条和批量管理端点必须通过管理员会话、准确资源权限、CSRF、事务内资源校验和审计；前端隐藏路由或按钮只改善体验，不承担授权控制。Admin 的所有删除、移入回收站和移除操作，无论软硬删除、单条或批量，均先通过统一标准警告弹窗确认操作者意图，并防止重复提交、明确反馈失败；具体入口和交互约束见 [Admin 工程实施标准](admin-engineering-standard.md)。启停、凭据重置、身份与权限变更、会话撤销等非删除操作保持原交互。
+
+旧版 `POST /api/v1/admin/auth/confirm` 仅在 2026-08-27 至 2026-09-26 按 ADR 0007 保留为受控契约兼容端点。它继续校验当前管理员密码并返回历史响应结构，但确认回执不写入 Redis、不参与后续操作授权，仓库当前 Admin 不调用该端点。每次使用记录 `admin_confirmation_compatibility_used` 结构化警告；到期必须核对调用量并删除端点、兼容 Schema、Service 方法和对应弃用契约测试，延期需要重新确认。
+
+每个新增 Admin 管理端点必须在 Router 显式声明准确 `PermissionCode`。管理员登录态、超级管理员客户端显示、Admin Access 和通用权限均不能替代端点资源权限；权限目录缺少代码时先更新 `PermissionCode` 与 `PERMISSION_CATALOG`，通过目录检查后再按受控 `scripts.sync_permissions --check/--apply` 流程同步目标环境。应用启动不自动修改权限表。
+
+Admin 数据列表的批量写操作使用显式 UUID 集合和专用 Backend 端点，每次限制 1 至 100 个且拒绝重复 ID。目标集合按固定顺序锁定并在一个事务中完成，任一目标缺失、生命周期冲突、仍被引用或会话撤销失败时整批回滚。用户批量删除使用 `users:delete` 权限，把账户移入回收站、停用账户、提升凭据版本并撤销会话，同时记录通用软删除主体 ID、主体类型和可选删除原因；软删除记录长期保留并占用用户名和邮箱，避免恢复冲突。用户单条和批量恢复使用独立 `users:restore` 权限，恢复后保持停用且历史会话继续失效，不受时间期限或匿名化状态限制。消费者实际注销入口已退役，当前只提供只读前置核对；管理端软删除、恢复与审计流程继续保留。角色与文件资产批量硬删除分别使用 `roles:delete`、`assets:delete` 权限，并在 Admin 使用统一标准警告弹窗。角色只允许删除未分配给管理员的记录，文件资产删除还必须完成存储暂存和失败恢复。角色批量停用使用 `roles:update` 权限，并撤销关联管理员会话。管理员账户继续使用启用和停用表达生命周期，不提供删除接口。
+
+登录安全事件、审计事件和请求元数据属于保留策略管理的安全事实，Admin 不提供人工选择或批量删除入口。
+
+## 8. 审计与请求元数据
+
+以下事件默认属于高风险审计范围：
+
+- 管理员登录成功、失败和会话失效。
+- 角色、权限和管理员状态变化。
+- 用户账号禁用、解锁、凭据重置和高风险资料变化。
+- 数据导出、批量修改、删除和不可逆操作。
+- 安全配置、部署和迁移等生产变更。
+
+审计记录至少关联操作者、动作、目标、结果、时间和 `request_id`。高风险业务通过 `AuditCoordinator` 建立审计意图，成功变更与审计结果在同一事务提交；拒绝和异常由独立终结器记录。登录安全事件属于认证结果，写入失败时认证失败关闭。
+
+普通访问日志使用结构化输出。可选请求持久化只支持 `REQUEST_LOG_MODE=metadata`，由 Redis Stream、Consumer Group、pending reclaim、DLQ 和 PostgreSQL `request_id` 唯一约束组成。正常请求不保存请求体；错误 JSON 请求只在非敏感路由捕获，递归脱敏敏感字段并限制为 4096 字符。登录和改密等敏感路由、响应体、Cookie、Authorization 和 Token 永不进入请求日志。
+
+登录安全事件和审计事件默认保留 180 天，请求元数据默认保留 30 天，已过期或已撤销 Session 默认额外保留 30 天。清理由显式 dry-run/`--apply` 脚本执行，不在请求进程内自动删除。应用日志、审计日志、指标和 Trace 各自承担独立职责。
+
+## 9. 必测场景
+
+- 未认证、凭据过期、凭据撤销和会话注销。
+- 有身份但缺少权限。
+- 资源属于其他主体或处于禁止操作状态。
+- 权限在请求期间发生变化。
+- 超级管理员和服务身份的审计链完整。
+- 错误响应不泄露资源存在性或敏感上下文。
+- C/B Secret、audience、Cookie、Session 和权限交叉使用均被拒绝。
+- CSRF 缺失、错误 Origin、Refresh 并发与重放均失败关闭。
+- 响应、浏览器存储、页面源码、日志和测试产物中没有 Token 泄露。

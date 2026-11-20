@@ -1,0 +1,245 @@
+from datetime import datetime
+from decimal import Decimal
+from typing import Annotated, Literal, Self
+from uuid import UUID
+
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from app.core.batch import VersionedBatch
+from app.core.restricted_html import restricted_html
+
+from .catalog_schemas import AdoptionRead, SkuFields, SpecificationSet, WholesalePrice
+
+RestrictedDescription = Annotated[str, AfterValidator(restricted_html)]
+
+
+class CategoryInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=100, description="分类名称")
+    parent_id: UUID | None = Field(default=None, description="父分类 ID，根分类为空")
+    icon_asset_id: UUID | None = Field(default=None, description="分类图标资产 ID")
+    description: str = Field(default="", max_length=20000, description="分类简述，HTML 字符串")
+    sort_order: int | None = Field(default=None, ge=0, description="排序权重，值越小越靠前，不填则自动排最后")
+    is_active: bool = Field(default=True, strict=True, description="分类是否启用")
+
+
+class CategoryUpdate(CategoryInput):
+    revision: int = Field(gt=0, description="读取分类时获得的版本")
+
+
+class CategoryRead(CategoryInput):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID = Field(description="分类 ID")
+    revision: int = Field(description="分类版本")
+    icon_url: str | None = Field(default=None, description="分类图标公开访问 URL")
+
+
+class SkuInput(SkuFields):
+    spec_value_ids: list[UUID] = Field(
+        default_factory=list, max_length=10, description="当前商品采用版本的候选值 ID，无规格为空"
+    )
+
+    @field_validator("spec_value_ids")
+    @classmethod
+    def unique_values(cls, values: list[UUID]) -> list[UUID]:
+        if len(set(values)) != len(values):
+            raise ValueError("规格候选值不能重复")
+        return values
+
+
+class SkuRead(SkuInput):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID = Field(description="稳定 SKU ID")
+    sku_no: int
+    specifications: dict[str, str]
+    specification_key: str
+    archived_at: datetime | None
+
+
+class PublicSkuRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+    code: str
+    sku_no: int
+    specifications: dict[str, str]
+    price: Decimal
+    market_price: Decimal | None
+    wholesale_prices: list[WholesalePrice]
+    weight_grams: int | None
+    is_active: bool
+
+
+class CheckoutSku(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: UUID
+    product_id: UUID
+    code: str
+    specifications: dict[str, str]
+    price: Decimal
+    weight_grams: int | None
+    product_name: str
+    product_type: Literal["physical", "virtual"]
+    product_revision: int
+
+
+class SkuUpdate(SkuInput):
+    revision: int = Field(gt=0, description="商品当前版本，变体编辑共用商品版本")
+
+
+class ProductInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=200, description="商品名称")
+    description: str = Field(default="", max_length=20000, description="商品受限 HTML；旧说明由显式迁移审计")
+    product_type: Literal["physical", "virtual"] = Field(description="实物或虚拟商品")
+    category_id: UUID = Field(description="所属分类 ID")
+    brand_id: UUID | None = Field(default=None, description="可选品牌")
+    purchase_limit_quantity: int = Field(
+        default=0, ge=0, le=2147483647, description="每用户累计限购配置，交易阶段实施计数"
+    )
+    image_asset_ids: list[UUID] = Field(default_factory=list, max_length=20, description="有序图片资产 ID，首张为主图")
+
+    @model_validator(mode="after")
+    def check_product(self) -> Self:
+        if len(self.image_asset_ids) != len(set(self.image_asset_ids)):
+            raise ValueError("商品图片不能重复")
+        return self
+
+
+class ProductCreate(ProductInput, SpecificationSet):
+    description: RestrictedDescription = Field(
+        default="", max_length=20000, description="受限 HTML v1，仅文字格式和颜色；不支持媒体、链接或脚本"
+    )
+    detail_image_asset_ids: list[UUID] = Field(default_factory=list, max_length=20, description="有序详情图资产 ID")
+
+    @field_validator("detail_image_asset_ids")
+    @classmethod
+    def unique_detail_images(cls, values: list[UUID]) -> list[UUID]:
+        if len(values) != len(set(values)):
+            raise ValueError("详情图片不能重复")
+        return values
+
+
+class ProductUpdate(ProductInput):
+    description: RestrictedDescription = Field(
+        default="", max_length=20000, description="受限 HTML v1；不支持媒体、链接或脚本"
+    )
+    detail_image_asset_ids: list[UUID] = Field(max_length=20, description="完整有序详情图资产 ID，空数组解除全部关联")
+
+    @field_validator("detail_image_asset_ids")
+    @classmethod
+    def unique_detail_images(cls, values: list[UUID]) -> list[UUID]:
+        if len(values) != len(set(values)):
+            raise ValueError("详情图片不能重复")
+        return values
+
+    revision: int = Field(gt=0, description="读取商品时获得的版本")
+
+
+class ProductStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int = Field(gt=0, description="读取商品时获得的版本")
+    status: Literal["on_sale", "off_sale"] = Field(description="上架或下架")
+
+
+class ProductStatusBatch(VersionedBatch):
+    status: Literal["on_sale", "off_sale"] = Field(description="统一设置的商品上下架状态")
+
+
+class ProductRecommendationUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int = Field(gt=0, description="读取商品时获得的版本")
+    is_home_recommended: bool = Field(strict=True, description="是否指定为首页推荐")
+    home_recommend_sort: int | None = Field(
+        ge=0, le=2147483647, strict=True, description="首页推荐排序，值越小越靠前，空值排最后"
+    )
+
+
+class ProductRecommendationBatch(VersionedBatch):
+    is_home_recommended: bool = Field(strict=True, description="批量设置首页推荐状态，保留各商品排序")
+
+
+class SkuStatusBatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    sku_ids: list[UUID] = Field(min_length=1, max_length=100, description="同一商品内明确选中的变体标识")
+    revision: int = Field(gt=0, description="读取商品时的共享版本")
+    is_active: bool = Field(strict=True, description="统一设置的变体启用状态")
+
+    @field_validator("sku_ids")
+    @classmethod
+    def unique_ids(cls, values: list[UUID]) -> list[UUID]:
+        if len(values) != len(set(values)):
+            raise ValueError("SKU 标识不能重复")
+        return values
+
+
+class ProductRead(ProductInput):
+    description_format: Literal["legacy", "restricted_html_v1"] = Field(description="说明内容格式；legacy 须显式迁移")
+    id: UUID = Field(description="商品 ID")
+    status: Literal["draft", "on_sale", "off_sale"] = Field(description="商品状态")
+    revision: int = Field(description="商品版本")
+    is_home_recommended: bool = Field(description="是否指定为首页推荐，与实际上架可见性独立")
+    home_recommend_sort: int | None = Field(description="首页推荐排序，空值排最后")
+    skus: list[SkuRead] = Field(description="商品全部 SKU")
+    attributes: list[AdoptionRead] = Field(description="当前及历史属性采用")
+
+
+class ProductImageRead(BaseModel):
+    asset_id: UUID
+    url: str
+    original_name: str
+    file_size: int = Field(gt=0)
+    width: int | None = Field(default=None, gt=0)
+    height: int | None = Field(default=None, gt=0)
+    frame_count: int | None = Field(default=None, gt=0)
+
+
+class ProductDetailRead(ProductRead):
+    image_assets: list[ProductImageRead] = Field(description="已绑定轮播图片元数据，不依赖资产列表分页")
+    detail_image_asset_ids: list[UUID] = Field(description="有序详情图资产 ID")
+    detail_images: list[ProductImageRead] = Field(description="已绑定详情图片元数据")
+
+
+class PublicDetailImageRead(BaseModel):
+    url: str
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+
+
+class PublicProductRead(BaseModel):
+    id: UUID = Field(description="商品 ID")
+    name: str = Field(description="商品名称")
+    description: str = Field(description="已校验的受限 HTML；legacy 未审计内容不向消费者输出")
+    description_format: Literal["legacy", "restricted_html_v1"]
+    product_type: Literal["physical", "virtual"] = Field(description="商品类型")
+    category_id: UUID = Field(description="分类 ID")
+    brand_id: UUID | None
+    images: list[str] = Field(description="图片公开地址")
+    skus: list[PublicSkuRead] = Field(description="启用且未归档的商品变体，无成本字段")
+    attributes: list[AdoptionRead] = Field(description="当前采用定义及描述值")
+
+
+class PublicProductDetailRead(PublicProductRead):
+    detail_images: list[PublicDetailImageRead] = Field(description="按展示顺序排列的详情切片，含可信图片尺寸")
+
+
+def validate_category_tree(parents: dict[UUID, UUID | None]) -> None:
+    for category_id in parents:
+        seen: set[UUID] = set()
+        current: UUID | None = category_id
+        while current is not None:
+            if current in seen:
+                raise ValueError("分类不能构成循环")
+            if current not in parents:
+                raise ValueError("父分类不存在")
+            seen.add(current)
+            if len(seen) > 3:
+                raise ValueError("分类最多三级")
+            current = parents[current]

@@ -1,0 +1,159 @@
+import type {
+  OrdersPageApiV1AdminOrdersGetData, CommerceExportRead, SelectedCommerceIds,
+  PageResultPaymentAttemptRead, PageResultReconciliationRecordRead, PageResultMemberProfileRead,
+  PageResultCommissionRead, PageResultAdminWalletRead, PageResultWalletLedgerRead,
+  ReconciliationRecordCreate, ReconciliationRecordRead, ReconciliationResolve,
+  ActiveStatusBatch, BatchCompleted, CategoryInput, CategoryRead, CategoryUpdate,
+  FreightQuote, FreightQuoteInput, InventoryAdjustment, InventoryMovementRead, InventoryRead,
+  PageResultInventoryMovementRead, PageResultProductRead, PageResultShippingTemplateRead,
+  ProductCreate, ProductDetailRead, ProductRead, ProductStatusBatch, ProductStatusUpdate, ProductUpdate,
+  ProductRecommendationUpdate, ProductRecommendationBatch,
+  ShippingTemplateInput, ShippingTemplateRead, ShippingTemplateUpdate, SkuUpdate, SkuStatusBatch,
+  OrderRead, OrderAcceptance, FulfillmentRead, RefundRequestRead, RefundReview, ShipmentCreate, VirtualDeliveryCreate,
+  PageResultAdminOrderSummary, PageResultRefundRequestRead, PageResultWithdrawalRead, WithdrawalRead, WithdrawalReview,
+  BrandInput, BrandRead, BrandUpdate, PageResultBrandRead,
+  AttributeInput, AttributeRead, AttributeUpdate, PageResultAttributeRead,
+  StandardValueInput, StandardValueRead, StandardValueUpdate,
+  TemplateRead, TemplateUpdate, SpecificationConversion,
+  DescriptionSet, CandidateAppend,
+  MemberLevelCreate, MemberLevelRead, MemberLevelUpdate, PageResultMemberLevelRead,
+  MemberLevelConditionCreate, MemberLevelConditionRead, MemberLevelConditionUpdate, PageResultMemberLevelConditionRead,
+  MemberPriceRuleCreate, MemberPriceRuleRead, MemberPriceRuleUpdate, PageResultMemberPriceRuleRead,
+  PointsAccountRead, PageResultPointsAccountRead, PageResultPointsLedgerRead, PointsManualAdjustment,
+  PageResultMemberLevelEventRead, PageResultMembershipQualificationEventRead,
+  CommissionControlRead, CommissionControlUpdate,
+  CommissionPolicyRead, CommissionPolicyCreate, CommissionPolicyUpdate, CommissionPolicyPublish, PageResultCommissionPolicyRead,
+  CommissionAmountRuleRead, CommissionAmountRuleCreate,
+  CommissionDistributionRuleRead, CommissionDistributionRuleCreate,
+  PageResultRefundAttemptRead,
+  PageResultDurableTaskRead,
+} from "@pinjie/api-client";
+
+import { apiRequest, jsonBody } from "./http";
+
+export type ProductFilters = {
+  page: number; search?: string; category_id?: string;
+  status?: ProductRead["status"]; product_type?: ProductRead["product_type"];
+  is_home_recommended?: boolean;
+};
+
+export type CommerceFilters = NonNullable<OrdersPageApiV1AdminOrdersGetData["query"]>;
+export type CommerceResource = "orders" | "refunds" | "withdrawals" | "payments" | "reconciliation-records" | "members" | "commissions" | "wallets" | "refund-executions" | "durable-tasks";
+
+export function queryString(values: Record<string, string | number | boolean | null | undefined>): string {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined && value !== null && value !== "") query.set(key, String(value));
+  }
+  return query.toString();
+}
+
+export const commerceApi = {
+  export: (resource: CommerceResource, input: SelectedCommerceIds) => apiRequest<CommerceExportRead>(`/api/v1/admin/${resource}/export`, { method: "POST", body: jsonBody(input) }),
+  payments: (filters: CommerceFilters) => apiRequest<PageResultPaymentAttemptRead>(`/api/v1/admin/payments?${queryString(filters)}`),
+  reconciliations: (filters: CommerceFilters) => apiRequest<PageResultReconciliationRecordRead>(`/api/v1/admin/reconciliation-records?${queryString(filters)}`),
+  reconcile: (input: ReconciliationRecordCreate) => apiRequest<ReconciliationRecordRead>("/api/v1/admin/reconciliation-records", { method: "POST", body: jsonBody(input) }),
+  resolveReconciliation: (id: string, input: ReconciliationResolve) =>
+    apiRequest<ReconciliationRecordRead>("/api/v1/admin/reconciliation-records/" + id + "/resolve", { method: "POST", body: jsonBody(input) }),
+  members: (filters: CommerceFilters) => apiRequest<PageResultMemberProfileRead>(`/api/v1/admin/members?${queryString(filters)}`),
+  commissions: (filters: CommerceFilters) => apiRequest<PageResultCommissionRead>(`/api/v1/admin/commissions?${queryString(filters)}`),
+  wallets: (filters: CommerceFilters) => apiRequest<PageResultAdminWalletRead>(`/api/v1/admin/wallets?${queryString(filters)}`),
+  ledgers: (id: string, page: number) => apiRequest<PageResultWalletLedgerRead>(`/api/v1/admin/wallets/${id}/ledgers?page=${page}&page_size=20`),
+  categories: () => apiRequest<CategoryRead[]>("/api/v1/admin/product-categories"),
+  createCategory: (input: CategoryInput) => apiRequest<CategoryRead>("/api/v1/admin/product-categories", { method: "POST", body: jsonBody(input) }),
+  updateCategory: (id: string, input: CategoryUpdate) => apiRequest<CategoryRead>(`/api/v1/admin/product-categories/${id}`, { method: "PUT", body: jsonBody(input) }),
+  categoriesStatus: (input: ActiveStatusBatch) => apiRequest<BatchCompleted>("/api/v1/admin/product-categories/status/batch", { method: "PATCH", body: jsonBody(input) }),
+  products: (filters: ProductFilters) => apiRequest<PageResultProductRead>(`/api/v1/admin/products?${queryString({ ...filters, page_size: 20 })}`),
+  product: (id: string) => apiRequest<ProductDetailRead>(`/api/v1/admin/products/${id}`),
+  createProduct: (input: ProductCreate) => apiRequest<ProductRead>("/api/v1/admin/products", { method: "POST", body: jsonBody(input) }),
+  updateProduct: (id: string, input: ProductUpdate) => apiRequest<ProductRead>(`/api/v1/admin/products/${id}`, { method: "PUT", body: jsonBody(input) }),
+  productStatus: (id: string, input: ProductStatusUpdate) => apiRequest<ProductRead>(`/api/v1/admin/products/${id}/status`, { method: "PUT", body: jsonBody(input) }),
+  productsStatus: (input: ProductStatusBatch) => apiRequest<BatchCompleted>("/api/v1/admin/products/status/batch", { method: "PATCH", body: jsonBody(input) }),
+  productRecommendation: (id: string, input: ProductRecommendationUpdate) =>
+    apiRequest<ProductRead>(`/api/v1/admin/products/${id}/recommendation`, { method: "PUT", body: jsonBody(input) }),
+  productsRecommendations: (input: ProductRecommendationBatch) =>
+    apiRequest<BatchCompleted>("/api/v1/admin/products/recommendations/batch", { method: "PATCH", body: jsonBody(input) }),
+  writeSku: (productId: string, input: SkuUpdate, skuId?: string) => apiRequest<ProductRead>(`/api/v1/admin/products/${productId}/skus${skuId ? `/${skuId}` : ""}`, { method: skuId ? "PUT" : "POST", body: jsonBody(input) }),
+  skusStatus: (productId: string, input: SkuStatusBatch) => apiRequest<ProductRead>(`/api/v1/admin/products/${productId}/skus/status/batch`, { method: "PATCH", body: jsonBody(input) }),
+  inventory: (skuId: string) => apiRequest<InventoryRead>(`/api/v1/admin/inventory/${skuId}`),
+  adjustInventory: (skuId: string, input: InventoryAdjustment) => apiRequest<InventoryMovementRead>(`/api/v1/admin/inventory/${skuId}/adjustments`, { method: "POST", body: jsonBody(input) }),
+  movements: (skuId: string, page: number) => apiRequest<PageResultInventoryMovementRead>(`/api/v1/admin/inventory/${skuId}/movements?page=${page}&page_size=20`),
+  shipping: (page: number) => apiRequest<PageResultShippingTemplateRead>(`/api/v1/admin/shipping-templates?page=${page}&page_size=20`),
+  shippingDetail: (id: string) => apiRequest<ShippingTemplateRead>(`/api/v1/admin/shipping-templates/${id}`),
+  createShipping: (input: ShippingTemplateInput) => apiRequest<ShippingTemplateRead>("/api/v1/admin/shipping-templates", { method: "POST", body: jsonBody(input) }),
+  updateShipping: (id: string, input: ShippingTemplateUpdate) => apiRequest<ShippingTemplateRead>(`/api/v1/admin/shipping-templates/${id}`, { method: "PUT", body: jsonBody(input) }),
+  shippingStatus: (input: ActiveStatusBatch) => apiRequest<BatchCompleted>("/api/v1/admin/shipping-templates/status/batch", { method: "PATCH", body: jsonBody(input) }),
+  quote: (id: string, input: FreightQuoteInput) => apiRequest<FreightQuote>(`/api/v1/admin/shipping-templates/${id}/quote`, { method: "POST", body: jsonBody(input) }),
+  orders: (filters: CommerceFilters) => apiRequest<PageResultAdminOrderSummary>(`/api/v1/admin/orders?${queryString(filters)}`),
+  order: (id: string) => apiRequest<OrderRead>(`/api/v1/admin/orders/${id}`),
+  acceptOrder: (id: string, input: OrderAcceptance) => apiRequest<OrderRead>(`/api/v1/admin/orders/${id}/acceptance`, { method: "POST", body: jsonBody(input) }),
+  fulfillment: (id: string) => apiRequest<FulfillmentRead>(`/api/v1/admin/orders/${id}/fulfillment`),
+  ship: (id: string, input: ShipmentCreate) => apiRequest<FulfillmentRead>(`/api/v1/admin/orders/${id}/fulfillment/shipment`, { method: "POST", body: jsonBody(input) }),
+  deliverVirtual: (id: string, input: VirtualDeliveryCreate) => apiRequest<FulfillmentRead>(`/api/v1/admin/orders/${id}/fulfillment/virtual-delivery`, { method: "POST", body: jsonBody(input) }),
+  refunds: (filters: CommerceFilters) => apiRequest<PageResultRefundRequestRead>(`/api/v1/admin/refunds?${queryString(filters)}`),
+  refundExecutions: (filters: CommerceFilters) => apiRequest<PageResultRefundAttemptRead>(`/api/v1/admin/refund-executions?${queryString(filters)}`),
+  approveRefund: (id: string, input: RefundReview) => apiRequest<RefundRequestRead>(`/api/v1/admin/refunds/${id}/approve`, { method: "POST", body: jsonBody(input) }),
+  rejectRefund: (id: string, input: RefundReview) => apiRequest<RefundRequestRead>(`/api/v1/admin/refunds/${id}/reject`, { method: "POST", body: jsonBody(input) }),
+  withdrawals: (filters: CommerceFilters) => apiRequest<PageResultWithdrawalRead>(`/api/v1/admin/withdrawals?${queryString(filters)}`),
+  approveWithdrawal: (id: string, input: WithdrawalReview) => apiRequest<WithdrawalRead>(`/api/v1/admin/withdrawals/${id}/approve`, { method: "POST", body: jsonBody(input) }),
+  rejectWithdrawal: (id: string, input: WithdrawalReview) => apiRequest<WithdrawalRead>(`/api/v1/admin/withdrawals/${id}/reject`, { method: "POST", body: jsonBody(input) }),
+  brands: (page: number, pageSize: number = 20) => apiRequest<PageResultBrandRead>(`/api/v1/admin/brands?page=${page}&page_size=${pageSize}`),
+  brand: (id: string) => apiRequest<BrandRead>(`/api/v1/admin/brands/${id}`),
+  createBrand: (input: BrandInput) => apiRequest<BrandRead>("/api/v1/admin/brands", { method: "POST", body: jsonBody(input) }),
+  updateBrand: (id: string, input: BrandUpdate) => apiRequest<BrandRead>(`/api/v1/admin/brands/${id}`, { method: "PUT", body: jsonBody(input) }),
+  attributes: (page: number, pageSize: number = 20, filters: { search?: string; value_type?: AttributeRead["value_type"]; is_active?: boolean } = {}) => apiRequest<PageResultAttributeRead>(`/api/v1/admin/spec-attributes?${queryString({ page, page_size: pageSize, ...filters })}`),
+  attributesStatus: (input: ActiveStatusBatch) => apiRequest<BatchCompleted>("/api/v1/admin/spec-attributes/status/batch", { method: "PATCH", body: jsonBody(input) }),
+  attributeValuesStatus: (id: string, input: ActiveStatusBatch) => apiRequest<BatchCompleted>(`/api/v1/admin/spec-attributes/${id}/values/status/batch`, { method: "PATCH", body: jsonBody(input) }),
+  attribute: (id: string) => apiRequest<AttributeRead>(`/api/v1/admin/spec-attributes/${id}`),
+  createAttribute: (input: AttributeInput) => apiRequest<AttributeRead>("/api/v1/admin/spec-attributes", { method: "POST", body: jsonBody(input) }),
+  updateAttribute: (id: string, input: AttributeUpdate) => apiRequest<AttributeRead>(`/api/v1/admin/spec-attributes/${id}`, { method: "PUT", body: jsonBody(input) }),
+  attributeValues: (attributeId: string) => apiRequest<StandardValueRead[]>(`/api/v1/admin/spec-attributes/${attributeId}/values`),
+  createAttributeValue: (attributeId: string, input: StandardValueInput) => apiRequest<StandardValueRead>(`/api/v1/admin/spec-attributes/${attributeId}/values`, { method: "POST", body: jsonBody(input) }),
+  updateAttributeValue: (attributeId: string, valueId: string, input: StandardValueUpdate) => apiRequest<StandardValueRead>(`/api/v1/admin/spec-attributes/${attributeId}/values/${valueId}`, { method: "PUT", body: jsonBody(input) }),
+  deleteAttributeValue: (attributeId: string, valueId: string) => apiRequest<void>(`/api/v1/admin/spec-attributes/${attributeId}/values/${valueId}`, { method: "DELETE" }),
+  categoryTemplate: (categoryId: string) => apiRequest<TemplateRead>(`/api/v1/admin/product-categories/${categoryId}/attributes`),
+  updateCategoryTemplate: (categoryId: string, input: TemplateUpdate) => apiRequest<TemplateRead>(`/api/v1/admin/product-categories/${categoryId}/attributes`, { method: "PUT", body: jsonBody(input) }),
+  convertSpecifications: (productId: string, input: SpecificationConversion) => apiRequest<ProductRead>(`/api/v1/admin/products/${productId}/specification-conversions`, { method: "POST", body: jsonBody(input) }),
+  saveDescriptions: (productId: string, input: DescriptionSet) => apiRequest<ProductRead>(`/api/v1/admin/products/${productId}/description-attributes`, { method: "PUT", body: jsonBody(input) }),
+  appendCandidates: (productId: string, adoptionId: string, input: CandidateAppend) => apiRequest<ProductRead>(`/api/v1/admin/products/${productId}/spec-attributes/${adoptionId}/values`, { method: "POST", body: jsonBody(input) }),
+  memberLevels: (page: number, pageSize: number = 20) => apiRequest<PageResultMemberLevelRead>(`/api/v1/admin/member-levels?page=${page}&page_size=${pageSize}`),
+  memberLevelOptions: async () => {
+    const first = await commerceApi.memberLevels(1, 100);
+    const items = [...first.items];
+    for (let page = 2; page <= first.total_pages; page += 1) {
+      const next = await commerceApi.memberLevels(page, 100);
+      items.push(...next.items);
+    }
+    return items;
+  },
+  createMemberLevel: (input: MemberLevelCreate) => apiRequest<MemberLevelRead>("/api/v1/admin/member-levels", { method: "POST", body: jsonBody(input) }),
+  updateMemberLevel: (id: string, input: MemberLevelUpdate) => apiRequest<MemberLevelRead>(`/api/v1/admin/member-levels/${id}`, { method: "PUT", body: jsonBody(input) }),
+  memberLevelConditions: (page: number, pageSize: number = 20) => apiRequest<PageResultMemberLevelConditionRead>(`/api/v1/admin/member-level-conditions?page=${page}&page_size=${pageSize}`),
+  createMemberLevelCondition: (input: MemberLevelConditionCreate) => apiRequest<MemberLevelConditionRead>("/api/v1/admin/member-level-conditions", { method: "POST", body: jsonBody(input) }),
+  updateMemberLevelCondition: (id: string, input: MemberLevelConditionUpdate) => apiRequest<MemberLevelConditionRead>(`/api/v1/admin/member-level-conditions/${id}`, { method: "PUT", body: jsonBody(input) }),
+  qualificationEvents: (userId: string, page: number = 1, pageSize: number = 20) => apiRequest<PageResultMembershipQualificationEventRead>(`/api/v1/admin/members/${userId}/qualification-events?page=${page}&page_size=${pageSize}`),
+  levelEvents: (userId: string, page: number = 1, pageSize: number = 20) => apiRequest<PageResultMemberLevelEventRead>(`/api/v1/admin/members/${userId}/level-events?page=${page}&page_size=${pageSize}`),
+  pointsAccounts: (page: number, pageSize: number = 20) => apiRequest<PageResultPointsAccountRead>(`/api/v1/admin/points-accounts?page=${page}&page_size=${pageSize}`),
+  pointsLedgers: (accountId: string, page: number = 1, pageSize: number = 20) => apiRequest<PageResultPointsLedgerRead>(`/api/v1/admin/points-accounts/${accountId}/ledgers?page=${page}&page_size=${pageSize}`),
+  adjustPoints: (input: PointsManualAdjustment) => apiRequest<PointsAccountRead>("/api/v1/admin/points-adjustments", { method: "POST", body: jsonBody(input) }),
+  memberPriceRules: (page: number, pageSize: number = 20) => apiRequest<PageResultMemberPriceRuleRead>(`/api/v1/admin/member-price-rules?page=${page}&page_size=${pageSize}`),
+  createMemberPriceRule: (input: MemberPriceRuleCreate) => apiRequest<MemberPriceRuleRead>("/api/v1/admin/member-price-rules", { method: "POST", body: jsonBody(input) }),
+  updateMemberPriceRule: (id: string, input: MemberPriceRuleUpdate) => apiRequest<MemberPriceRuleRead>(`/api/v1/admin/member-price-rules/${id}`, { method: "PUT", body: jsonBody(input) }),
+  commissionControl: () => apiRequest<CommissionControlRead>("/api/v1/admin/settings/commission-control"),
+  updateCommissionControl: (input: CommissionControlUpdate) => apiRequest<CommissionControlRead>("/api/v1/admin/settings/commission-control", { method: "PUT", body: jsonBody(input) }),
+  policies: (page: number, pageSize: number = 20) => apiRequest<PageResultCommissionPolicyRead>(`/api/v1/admin/commission-policies?page=${page}&page_size=${pageSize}`),
+  policy: (id: string) => apiRequest<CommissionPolicyRead>(`/api/v1/admin/commission-policies/${id}`),
+  createPolicy: (input: CommissionPolicyCreate) => apiRequest<CommissionPolicyRead>("/api/v1/admin/commission-policies", { method: "POST", body: jsonBody(input) }),
+  updatePolicy: (id: string, input: CommissionPolicyUpdate) => apiRequest<CommissionPolicyRead>(`/api/v1/admin/commission-policies/${id}`, { method: "PUT", body: jsonBody(input) }),
+  publishPolicy: (id: string, input: CommissionPolicyPublish) => apiRequest<CommissionPolicyRead>(`/api/v1/admin/commission-policies/${id}/publish`, { method: "POST", body: jsonBody(input) }),
+  amountRules: (policyId: string) => apiRequest<CommissionAmountRuleRead[]>(`/api/v1/admin/commission-policies/${policyId}/amount-rules`),
+  addAmountRule: (policyId: string, input: CommissionAmountRuleCreate) => apiRequest<CommissionAmountRuleRead>(`/api/v1/admin/commission-policies/${policyId}/amount-rules`, { method: "POST", body: jsonBody(input) }),
+  updateAmountRule: (policyId: string, ruleId: string, input: CommissionAmountRuleCreate) => apiRequest<CommissionAmountRuleRead>(`/api/v1/admin/commission-policies/${policyId}/amount-rules/${ruleId}`, { method: "PUT", body: jsonBody(input) }),
+  deleteAmountRule: (policyId: string, ruleId: string, policyRevision: number) => apiRequest<void>(`/api/v1/admin/commission-policies/${policyId}/amount-rules/${ruleId}?policy_revision=${policyRevision}`, { method: "DELETE" }),
+  distributionRules: (policyId: string) => apiRequest<CommissionDistributionRuleRead[]>(`/api/v1/admin/commission-policies/${policyId}/distribution-rules`),
+  addDistributionRule: (policyId: string, input: CommissionDistributionRuleCreate) => apiRequest<CommissionDistributionRuleRead>(`/api/v1/admin/commission-policies/${policyId}/distribution-rules`, { method: "POST", body: jsonBody(input) }),
+  updateDistributionRule: (policyId: string, ruleId: string, input: CommissionDistributionRuleCreate) => apiRequest<CommissionDistributionRuleRead>(`/api/v1/admin/commission-policies/${policyId}/distribution-rules/${ruleId}`, { method: "PUT", body: jsonBody(input) }),
+  deleteDistributionRule: (policyId: string, ruleId: string, policyRevision: number) => apiRequest<void>(`/api/v1/admin/commission-policies/${policyId}/distribution-rules/${ruleId}?policy_revision=${policyRevision}`, { method: "DELETE" }),
+  durableTasks: (filters: CommerceFilters) =>
+    apiRequest<PageResultDurableTaskRead>(`/api/v1/admin/durable-tasks?${queryString(filters)}`),
+};
