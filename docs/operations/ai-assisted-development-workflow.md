@@ -581,7 +581,8 @@ AI 必须完成：
 默认自动验证范围固定为轻量门禁，风险增加不会自动扩大为重型验证：
 
 ```text
-Admin / Miniapp / frozen Web: typecheck + lint
+Admin / Miniapp: typecheck + lint
+Frozen Web: static workspace and boundary governance only
 Backend: Ruff + format + Mypy + import boundaries + compile + app import
 公开 API: OpenAPI + API Client + breaking / drift
 治理变更: documents + workspace + boundaries + text + Markdown

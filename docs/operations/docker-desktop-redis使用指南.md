@@ -15,7 +15,7 @@
 Windows 本机开发拓扑
 ├── Backend：uv + CPython 3.14 + FastAPI（端口 18168）
 ├── Admin：pnpm + Umi Max + React 19 + Ant Design 6（端口 3001）
-├── Web：pnpm + Next.js 15（端口 3000）
+├── Miniapp：Taro 持续编译，由微信开发者工具加载
 ├── PostgreSQL：Windows 本机服务（端口 5432）
 └── Docker Desktop
     └── Redis 8.10.0-alpine：单容器 + 命名数据卷持久化（宿主机端口 6381，容器端口 6379）

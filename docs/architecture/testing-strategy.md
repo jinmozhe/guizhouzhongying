@@ -12,7 +12,7 @@
 
 1. **默认自动门禁**：Admin 与 Miniapp 运行 typecheck 和 lint；Backend 运行 Ruff、格式、Mypy、导入边界、编译、应用导入和 OpenAPI 契约检查。冻结 Web 不消费当前契约，只运行 `check:frozen-web` 校验代码冻结与运行入口禁用，治理 CI 同时验证其拒绝用例。公开 API 变化继续执行契约导出、API Client 生成、漂移与 Breaking Change 检查。
 2. **统一触发边界**：日常开发、普通提交、`$git-sync`、Push 和 Pull Request 均使用默认轻量门禁。`$git-sync` 只扩展 Git 交付动作，不自动扩展测试范围。
-3. **重型验证授权**：Admin/Web production build、任何 Vitest、任何 pytest、Playwright、浏览器自动化和测试数据库验证，只有用户在当前任务中明确点名后才能执行。授权只覆盖被点名的应用、命令和范围，不延续到后续任务。
+3. **重型验证授权**：Admin production build、任何 Vitest、任何 pytest、Playwright、浏览器自动化和测试数据库验证，只有用户在当前任务中明确点名后才能执行。授权只覆盖被点名的应用、命令和范围，不延续到后续任务。
 4. **线上边界**：GitHub Actions 的 Push、Pull Request 和定时任务不得执行重型验证，也不得通过 Workflow 调用链间接触发。完整验证只保留人工 `workflow_dispatch`，并要求输入默认分支历史中的完整 Commit SHA。
 5. **结果表达**：默认交付只说明轻量门禁结果。未获授权的重型验证记录为“按项目策略未执行”，不能表述为通过、待 GitSync 执行、完整跨栈验收完成或生产可用。
 
@@ -62,25 +62,24 @@ Backend 进入 `ready` 后，CI 必须：
 
 ### 6.1 固定测试栈
 
-Admin 与 Web 统一采用以下测试栈：
+Admin 采用以下测试栈：
 
 | 职责 | 工具 | 边界 |
 | --- | --- | --- |
 | 测试运行、断言与覆盖率 | Vitest、`@vitest/coverage-v8` | 纯 TypeScript 单元测试使用 `node` 环境，React 组件测试使用 `jsdom` 环境 |
 | React 组件行为 | React Testing Library、`@testing-library/jest-dom`、`@testing-library/user-event` | 按角色、标签、名称和可见文本验证用户可观察行为，不读取 React 组件实例或内部状态 |
 | HTTP 边界替身 | MSW 2 | 在单元和组件测试中拦截真实请求接口，集中表达加载、成功、空数据、业务失败和网络失败；未声明请求默认失败 |
-| 真实浏览器跨栈 E2E | Playwright Test | 启动真实 Backend、Admin、Web 和隔离 PostgreSQL 测试库，验证关键用户旅程与前后端契约 |
+| 真实浏览器跨栈 E2E | Playwright Test | 使用真实 Backend、Admin 和隔离 PostgreSQL 测试库，验证关键用户旅程与前后端契约 |
 | 自动化可访问性检查 | `@axe-core/playwright` | 在 Playwright 中扫描关键页面和关键状态；扫描结果不能替代键盘、焦点、语义和人工可用性检查 |
 
 Jest、Cypress、Storybook 和 Vitest Browser Mode 不属于阶段 B 默认测试基础设施。只有现有栈无法可靠覆盖且有明确风险证据时，才通过后续计划评估引入，禁止为同一层级长期维护两套等价测试框架。
 
-上述依赖已写入 Admin、Web 和根工作区的 `package.json` 与 `pnpm-lock.yaml`。当前两端的 Vitest 与 `@vitest/coverage-v8` 均固定为 4.1.11；升级后的单元、构建和 E2E 验证需要用户明确授权，未执行时必须记录风险。
+上述依赖由 Admin 和根工作区的 `package.json` 声明，解析版本见 `pnpm-lock.yaml`。小程序的测试、编译及真机验证见[小程序工程标准](miniapp-engineering-standard.md#8-验证与交付)。
 
 ### 6.2 单元与组件测试
 
 - 纯函数、数据转换、状态机、Reducer、Store 和不依赖 DOM 的 Hook 优先在 Vitest `node` 环境测试。
 - React Client Component、表单、路由交互、TanStack Query 状态和 DOM 行为使用 Vitest、React Testing Library 与 `jsdom`。
-- Web 的同步 Server Component 可以在 Vitest 中测试；异步 Server Component、流式渲染和跨 Server、Client 边界行为由 Playwright E2E 覆盖，禁止用脆弱 Mock 伪造框架运行时。
 - 交互使用 `user-event`，查询优先使用语义角色、可访问名称、标签和可见文本。只有缺少稳定语义入口时才使用 `data-testid`。
 - HTTP 行为通过共享 MSW Handler 描述，Handler 使用生成 API Client 的契约类型；禁止在各测试中分散替换 `fetch`、Axios 或 TanStack Query 内部实现。
 - 测试断言用户可观察结果和对外契约，避免快照整个页面、断言 CSS 类名、调用次数或无业务价值的实现顺序。
@@ -88,15 +87,15 @@ Jest、Cypress、Storybook 和 Vitest Browser Mode 不属于阶段 B 默认测�
 
 ### 6.3 Playwright 跨栈 E2E
 
-- E2E 默认针对生产构建运行：Web 使用 `next build` 后的 standalone server，Admin 使用 `max build`，开发/预览通过 `apps/admin/scripts/run-umi.mjs` 设置 `PORT=3001`。Web 构建脚本同时把静态资源准备到 standalone 目录。
-- Windows 和 CI 统一通过 `scripts/e2e/run-e2e.mjs` 启动并回收本次拥有的 Web、Admin 进程，再调用 Playwright。脚本会复用已经存在的受管服务，退出时只终止自己启动的进程，避免 Playwright `webServer` 在 Windows 上回收挂起。
+- E2E 默认验证 Admin 生产构建。GitHub 手工工作流使用 Nginx 托管同次构建的 `dist`。本地由 `scripts/e2e/run-e2e.mjs` 管理 Admin 预览，并使用已准备的 Backend。
+- Chromium 配置包括 `admin-desktop` 和 `admin-mobile`。冻结 Web 只参加静态治理检查。
 - 关键跨栈测试连接真实 Backend 和独立 `_test` PostgreSQL，不使用 MSW 替代本项目 API。不可控第三方服务在边界处使用可审计替身。
 - 每个测试拥有独立浏览器上下文和可准确归属的测试数据，禁止依赖其他测试的执行顺序、Cookie、存储或数据库残留。
 - Locator 优先使用 `getByRole()`、`getByLabel()` 和其他用户可见契约；断言使用 Playwright 自动等待能力，禁止固定时长 `sleep` 和无限重试。
 - Playwright 不由日常开发、`$git-sync`、Push、Pull Request 或定时任务自动运行。需要本地标准 Chromium E2E 时由用户明确授权；需要干净 Ubuntu 环境时由用户人工触发 GitHub 完整验证。Firefox 与 WebKit 也只在用户明确要求或商城验收计划明确授权时执行。单独的本地浏览器结果不能满足严格源码交接门禁；GitHub 完整验证只有在 pytest、Vitest、production build 和 Chromium Playwright 全部成功并生成同 SHA Artifact 后，才形成发布可核验的重型验证证据。快速源码交接模式明确表示未取得该证据，不能表述为完整验证通过。
 - CI 失败只上传白名单阶段耗时、退出状态和浏览器文件位置、项目、状态、重试结果，不上传 Cookie、HAR、Trace、Video、HTML 或截图。CI 禁用 Trace/Video，`failOnFlakyTests` 阻断重试后才成功的套件；本地已授权专项复现可保留现有诊断能力，但敏感报告不得进入 Git 或发布附件。
-- 手动 `CI - Full Validation` 支持默认 `full` 和显式 `smoke`。full 并行执行 Backend pytest 和 Admin/Web Vitest、生产构建，最后消费同一 Run 的产物执行 Web standalone、Admin 生产 Nginx dist E2E，并输出 v2 成功证据。smoke 跳过 Admin/Web Vitest 和 coverage，继续执行 Backend pytest、两端生产构建、四个 Chromium 项目的入口页面质量检查及桌面 Stage C；移动端 Stage C 不在 smoke 范围内。`E2E_PROFILE` 未设置时默认 full，非法值直接失败。两种模式均为人工授权的重型验证，不进入日常自动门禁。
-- smoke 入口页面基线覆盖 Web 首页、Admin 登录页的可用性、横向溢出、键盘焦点、axe、Token 持久化及 Console error 检查；不代表移动端登录后的账户、管理、上传或权限流程已验收。认证授权、移动端业务交互等高风险修改使用 full。smoke 仅生成独立 `pinjie-smoke-validation-v1`，记录前端测试跳过及 `all-quality-pages,desktop-stage-c` 范围，不能满足 strict 交接；完整模式继续使用 `pinjie-full-validation-v2`。
+- 手动 `CI - Full Validation` 支持 `full` 和 `smoke`。两者执行 Backend pytest、Admin 生产构建和生产静态产物 E2E。`full` 另跑 Admin Vitest，E2E 覆盖完整配置。`smoke` 跳过 Admin Vitest，运行桌面和移动端入口质量检查及桌面 Stage C。`E2E_PROFILE` 默认 `full`，非法值直接失败。
+- `full` 成功证据使用 `guizhouzhongying-full-validation-v1`，`smoke` 使用 `guizhouzhongying-smoke-validation-v1`，记录跳过的前端测试及 `all-quality-pages,desktop-stage-c`。严格源码交接要求完整证据。小程序平台和真实资金验证独立留证。
 - 当前单维护者、1Panel 人工部署不要求再运行候选镜像 E2E，使用 CNB/TCR 来源、digest 与扫描核验及部署后健康和关键业务检查，步骤见[端到端人工发布手册](../operations/github-cnb-tcr-1panel-release-runbook.md)。两种验证模式消费的构建产物与最终 TCR 镜像仍有边界，不能表述为最终镜像组合已通过自动 E2E。
 - 视觉回归只覆盖少量稳定且高价值的页面或组件状态，固定操作系统、浏览器、字体和视口；普通布局断言优先使用语义和尺寸检查。
 
@@ -138,4 +137,4 @@ Jest、Cypress、Storybook 和 Vitest Browser Mode 不属于阶段 B 默认测�
 
 前端覆盖率必须纳入承担 Cookie、CSRF、Refresh、权限启动和 BFF 转发的高风险入口。当前 Admin 统计 `src/features/**`、`src/lib/api/**`、`src/access.ts` 与 `src/app.tsx`；Web 统计 `src/features/**`、`src/lib/api/**` 与 BFF Route Handler。不得通过只统计页面组件排除传输和认证生命周期代码来满足 80% 门禁。
 
-最近一次已记录的 Backend 动态验证基线为 2026-09-23 的 441 项自动化测试通过，行与分支综合覆盖率 `90.06%`；同次验证确认本机开发库和隔离测试库已升级至 `20260923_02`，并通过空库、重复升级、恢复和 Alembic 漂移检查。Admin 当前完成 typecheck、lint 及治理轻量门禁，Vitest、production build、Playwright 和真实跨栈验收仍需当前任务明确授权；Web 永久冻结，不作为运行或生产验证目标。
+2026-09-23 的 441 项自动化测试、`90.06%` 行与分支综合覆盖率及 `20260923_02` 隔离库验证属于来源项目历史记录。贵州众赢的本机开发库迁移、静态门禁和动态验证状态分别见[项目索引](../../PROJECT_INDEX.md)与[数据库字典第 13 章](database-schema-guide.md#131-当前源码及迁移盘点)。

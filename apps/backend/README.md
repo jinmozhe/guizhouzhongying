@@ -30,7 +30,10 @@ uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 18168
 
 当前已实现配置、请求上下文、统一错误响应、数据库会话与事务、Redis 生命周期、Alembic、健康探针和 `system` 状态接口，以及消费者微信 Bearer、Admin Cookie 认证、用户、管理员、RBAC、Session/Refresh、CSRF、限流、安全事件、审计和可选请求元数据管道。
 
-商城 M1 已增加商品分类、SPU/稳定 SKU、图片资产关联、独立库存账户与幂等人工调整、本人收货地址、存量运费模板管理和商品报价基础。M2 已增加购物车、服务端结算预览、幂等待付款订单、订单快照、库存占用及取消或超时释放；创建订单时锁定平台运费规则和库存，支付确认只提供后续支付领域使用的内部入口，达到订单到期点的确认会被拒绝。M3 已增加支付意图、履约、退款、评价和对账基础；未配置微信或支付宝时支付意图明确显示不可用，真实渠道确认仍仅能由后续内部适配器调用。M4 已增加会员档案、推荐关系、三级预算佣金规则快照、交付后结算、退款追佣、双轨钱包、幂等提现申请和审核解冻。自动确认收货使用 `uv run python -m scripts.auto_confirm_fulfillments --confirm-database <数据库名>` 预览，显式追加 `--apply` 才会写入。M1 至 M4 与 Admin 运营接口已完成本地实现；本机开发库和隔离测试库已迁移到 `20260923_02`，本地权限目录已同步，最新迁移、恢复与动态验证见[后端最新修复迁移与动态验收计划](../../plans/2026-09-23_后端最新修复迁移与动态验收计划.md)；其他环境需独立授权同步。消费者地址、交易、资料与资金查询已统一使用 Bearer；微信换码与会话源码已实现，默认登录关闭，真实平台及动态验证未执行。旧消费者浏览器认证已退役，真实支付渠道尚未实现。详细边界见[商城后端设计](../../docs/architecture/commerce-backend.md)，建设记录见[四阶段计划](../../plans/2026-09-17_商城后端四阶段建设计划.md)；小程序产品与工程边界见[小程序 PRD](../../docs/MINIAPP_PRD.md)和[小程序架构文档](../../docs/architecture/miniapp-architecture.md)。
+- 商城已有商品分类、SPU 与稳定 SKU、商品图片、库存、购物车、本人订单、支付售后、评价与对账，以及会员资格、三级佣金、双轨钱包和历史提现处理。
+- 新购仅支持已绑定有效商家的到店商品，同一订单限一个商家。服务端提供 SKU 限额积分抵扣、支付确认、纯积分内部成交、核销、未核销整单退款和商家结算。历史物流和虚拟履约按原订单处理。见[商城后端设计](../../docs/architecture/commerce-backend.md)和[到店业务手册](../../docs/operations/local-commerce.md)。
+- 消费者私有接口使用微信 Bearer。普通商户微信支付、通知、查关单及退款已有源码，微信登录和支付默认关闭。新提现申请当前未开放，后台保留历史申请审核及人工付款确认。见[微信支付手册](../../docs/operations/wechat-pay.md)和[小程序 PRD](../../docs/MINIAPP_PRD.md)。
+- 已记录的本机开发库版本为 `20261121_01`，权限目录已同步。来源项目的数据库及动态测试记录保存在原实施计划，本项目测试库、生产及真实渠道需独立验证。见[项目索引](../../PROJECT_INDEX.md)。
 
 ## 质量检查
 
@@ -44,4 +47,4 @@ uv run python -c "from app.main import app; app.openapi()"
 uv run python -m scripts.verify_target_model
 ```
 
-公开接口变化后运行 `uv run python -m scripts.export_openapi`，再在仓库根运行 `pnpm generate-api`。待付款超时处理使用 `uv run python -m scripts.expire_pending_orders --confirm-database <数据库名>` 预览，只有显式追加 `--apply` 才修改订单与库存。持久任务执行器使用 `uv run python -m scripts.run_durable_tasks --confirm-database <数据库名>` 预览，显式追加 `--apply` 才领取并执行一轮有界任务；它不替代常驻调度、告警或渠道适配器。任何 pytest 与真实数据库迁移仅在当前任务明确点名授权后执行；数据库集成测试必须显式配置独立的 `TEST_DATABASE_URL` 和 `TEST_REDIS_URL`，数据库名以 `_test` 结尾。
+公开接口变化后运行 `uv run python -m scripts.export_openapi`，再在仓库根运行 `pnpm generate-api`。待付款超时处理使用 `uv run python -m scripts.expire_pending_orders --confirm-database <数据库名>` 预览，显式追加 `--apply` 后才写入。持久任务执行器使用 `uv run python -m scripts.run_durable_tasks --confirm-database <数据库名>` 预览，追加 `--apply` 运行一轮，追加 `--apply --watch` 持续运行有界批次。常驻运行需要外部托管与告警。pytest 与真实数据库迁移仅在当前任务明确点名授权后执行。数据库集成测试必须显式配置独立的 `TEST_DATABASE_URL` 和 `TEST_REDIS_URL`，数据库名以 `_test` 结尾。

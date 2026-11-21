@@ -56,7 +56,14 @@ docker compose up -d --wait python
 docker compose ps python
 ```
 
-API 启动时离线核验已安装依赖。创建初始管理员使用同一运行环境的 `scripts.create_initial_admin`，具体参数以该脚本的 `--help` 为准。启用 `REQUEST_LOG_MODE=metadata` 时，独立托管 `docker compose exec -T python /runtime/.venv/bin/python -m scripts.consume_request_logs`。接入微信支付时，按 [微信支付手册](wechat-pay.md) 配置只读密钥挂载、常驻 Worker 和重启策略，运行命令同样使用 `docker compose exec -T python /runtime/.venv/bin/python -m ...`。
+API 启动时离线核验已安装依赖。初始管理员使用同一运行环境的 `scripts.create_initial_admin`，参数见脚本 `--help`。启用 `REQUEST_LOG_MODE=metadata` 时，独立托管 `docker compose exec -T python /runtime/.venv/bin/python -m scripts.consume_request_logs`。
+
+到店交易启用前，在 API 和 Worker 注入相同的 `LOCAL_REDEMPTION_KEY`，核对六项权限并独立托管持久任务进程。七天到期退款也适用于纯积分订单，因此启用到店时即需要 Worker。Compose 模板的 `python` 服务只启动 API。以下命令由外部进程管理器执行，并配置重启、日志和告警。微信现金支付另需配置只读密钥挂载。见[到店业务手册](local-commerce.md)及[微信支付手册](wechat-pay.md)。
+
+```bash
+docker compose exec -T python /runtime/.venv/bin/python -m scripts.run_durable_tasks \
+  --confirm-database YOUR_DATABASE --apply --watch
+```
 
 ## 4. 配置 HTTPS 和验收
 

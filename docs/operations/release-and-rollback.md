@@ -47,7 +47,7 @@ CI 通过不自动授权镜像发布，镜像发布完成不自动授权生产�
 
 GitHub 源码交接成功只说明 CNB 已接收批准提交，不能表述为镜像发布成功。`candidate-<CNB Build ID>` 标签只用于本次构建、扫描和证据核对，禁止部署。单端变化时可以独立发布该端，未改动端保留既有已验证 digest；多端变化时必须等待预期 Pipeline 全部成功并核对相同 Commit SHA，同时评估共享契约和数据库兼容性。任一预期端失败、缺失或错误跳过时部署停止。生产始终使用完整 digest，人工核验后直接由 1Panel 拉取部署，不重新构建镜像。
 
-当前单维护者生产流程不要求 `Validate Candidate Images`、部署组合 JSON 或自动变量预检，操作顺序与发布记录统一见[端到端人工发布手册](github-cnb-tcr-1panel-release-runbook.md)。新版严格源码门禁使用 `pinjie-full-validation-v2`；CNB 扫描保留完整包与漏洞 JSON，通过离线转换生成表格和 CycloneDX，再以结构化检查阻断已有修复的 High/Critical。未修复漏洞继续出现在完整报告中，不能表述为没有任何已知高危漏洞。
+镜像人工发布的操作顺序与记录见[端到端人工发布手册](github-cnb-tcr-1panel-release-runbook.md)。严格源码门禁使用 `guizhouzhongying-full-validation-v1`。CNB 扫描保留完整包与漏洞 JSON，通过离线转换生成表格和 CycloneDX，再以结构化检查阻断已有修复的 High/Critical。1Panel 源码交付和回滚入口见[源码部署手册](1panel-source-deployment.md)。
 
 首次运行、变更文件超过 CNB 的 300 文件统计上限、Git 对比不可用或影响范围存疑时，在 CNB `main` 分支详情页人工触发“Backend 与 Admin 全量镜像构建”。该操作属于独立镜像发布授权，不能由源码交接成功自动替代。
 
