@@ -201,7 +201,7 @@ PONG
 
 ## 六、日常启动
 
-Backend 与 Admin 使用两个独立 PowerShell 终端；小程序工程初始化后增加一个 Taro watch 终端。Redis 由 Docker Desktop 后台运行。本项目不需要 Web 端，完全禁止启动 Web 端服务与监听 3000 端口。
+Backend 与 Admin 使用两个独立 PowerShell 终端，小程序开发使用第三个终端运行 Taro watch，再由微信开发者工具加载产物。Redis 由 Docker Desktop 运行。Web 服务和 3000 端口保持禁用。
 
 ### 终端一：Backend
 

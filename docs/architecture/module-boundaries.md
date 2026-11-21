@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-本文件定义 Backend 领域、Admin Feature、后续小程序与共享包之间的依赖方向。详细技术取舍见 [ADR 0006](../adr/0006-模块化单体与领域依赖边界决策.md)。
+本文件定义 Backend 领域、Admin、Miniapp 的 Feature 与共享包之间的依赖方向。详细技术取舍见 [ADR 0006](../adr/0006-模块化单体与领域依赖边界决策.md)。
 
 ## 2. Backend 分层
 
@@ -56,7 +56,7 @@ Router
 
 ## 5. Admin Feature 边界
 
-Admin 与后续小程序是独立消费者，彼此不得引用源码。每个 Admin Feature 只能通过自己的公开入口向外暴露稳定能力。
+Admin 与 Miniapp 是独立消费者，彼此不得引用源码。每个 Admin Feature 只能通过自己的公开入口向外暴露稳定能力。
 
 ```text
 Route / Page
@@ -74,11 +74,11 @@ Route / Page
 - Zustand 只保存非敏感客户端状态，认证 Token 不进入客户端可读持久化存储。
 - `packages/` 只接受业务中立、边界明确且确有跨应用复用的能力。
 
-### 5.1 后续小程序接入
+### 5.1 Miniapp Feature 边界
 
 小程序沿用应用隔离、Feature 公开入口、服务端状态单一来源与共享包准入原则。目标目录、层级职责和调用链以[小程序目录与应用架构](miniapp-architecture.md)为准；页面经 Feature 的 `index.ts` 组合能力，不穿透其他 Feature 的内部文件，领域 API 封装与业务组件就近内聚。
 
-小程序请求运行时独立使用 Taro.request，通过既有 API Client 公共入口消费生成类型；catalog 与 catalog-detail 公开入口已落地，SKU domain 不依赖 UI 和平台框架。认证凭据隔离与购物车角标派生随后续身份交易专项接入。
+小程序请求运行时独立使用 Taro.request，通过 API Client 公共入口消费生成类型。商品、认证、购物车、订单及到店能力均通过各自 Feature 公开入口接入。SKU domain 独立于 UI 和平台框架，认证凭据由应用内存会话持有，购物车角标从本人购物车查询派生。
 
 ## 6. 共享包准入
 

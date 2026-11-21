@@ -54,7 +54,7 @@
 | [backend-engineering-standard.md](architecture/backend-engineering-standard.md) | Backend 配置、Router、事务、数据、外部调用、日志、探针、测试和质量门禁的具体实施标准       |
 | [admin-engineering-standard.md](architecture/admin-engineering-standard.md) | Admin Umi/Pro 边界、请求状态、统一页面间距、响应式工具栏、列宽、开关交互与依赖准入 |
 | [commerce-backend.md](architecture/commerce-backend.md) | 商城后端领域边界、阶段 1 至 6 及符合性修复后的商品交易、资金恢复、售后、分佣、钱包、会员资格、积分和对账机制 |
-| [miniapp-architecture.md](architecture/miniapp-architecture.md) | 小程序已实现公开浏览目录及后续交易目标、Feature 分层、状态与认证边界 |
+| [miniapp-architecture.md](architecture/miniapp-architecture.md) | 小程序公开浏览、身份交易、到店角色及 Feature、状态和认证边界 |
 | [miniapp-engineering-standard.md](architecture/miniapp-engineering-standard.md) | 小程序初始化精确版本、配置、代码边界、请求恢复、内容渲染与验证执行标准 |
 | [miniapp-ui-standard.md](architecture/miniapp-ui-standard.md) | 小程序设计 tokens、组件、页面布局、异常反馈、安全区与视觉验收规范 |
 | [module-boundaries.md](architecture/module-boundaries.md)                       | Backend 领域、Frontend Feature、共享包和机械依赖门禁的边界                                 |
@@ -127,7 +127,7 @@
 | [1panel-production-runbook.md](operations/1panel-production-runbook.md) | 1Panel 镜像编排、迁移、OpenResty、日志、备份、恢复和回滚 |
 | [product-detail-images.md](operations/product-detail-images.md) | 商品详情图集的迁移、可信元数据回填、启用顺序与恢复边界 |
 | [database-backup-restore.md](operations/database-backup-restore.md) | 备份参数、本地恢复演练、生产恢复和数据库迁移保护步骤 |
-| [spec-library-initialization.md](operations/spec-library-initialization.md) | 电商公共规格属性库的本机开发库检查、备份、清空重建、提交后核验和恢复边界 |
+| [spec-library-initialization.md](operations/spec-library-initialization.md) | 电商公共规格属性库的历史重建流程、版本限制、备份与恢复边界 |
 | [incident-response.md](operations/incident-response.md) | 事故分级、角色、止损、恢复验证、状态沟通和复盘步骤 |
 | [docker-desktop-redis使用指南.md](operations/docker-desktop-redis使用指南.md) | Docker Desktop Redis 架构选型、日常启停、会话限流关键依赖、多项目数据隔离与生产建议 |
 

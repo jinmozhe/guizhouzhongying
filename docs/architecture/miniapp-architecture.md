@@ -3,7 +3,7 @@
 | 项目 | 内容 |
 | --- | --- |
 | 适用应用 | `apps/miniapp`，建议包名 `@pinjie/miniapp` |
-| 文档状态 | 工程、公开浏览、独立会话、本人地址/购物车/结算/订单、履约售后评价、公开帮助与受限说明已有源码；资金、数据库与平台验收未完成 |
+| 文档状态 | 公开浏览、独立会话、本人交易、资金查询、物业发分与商家核销已有源码。已记录的本机开发库版本为 `20261121_01`，真实资金、平台及端到端验收待完成 |
 | 产品依据 | [微信小程序 PRD](../MINIAPP_PRD.md)与[产品需求基线](../PROJECT_REQUIREMENTS.md) |
 | 通用边界 | [模块与依赖边界](module-boundaries.md)、[认证机制](authentication-authorization.md)、[错误模型](error-model.md) |
 | 核对日期 | 2026-10-09 |
@@ -117,7 +117,7 @@ apps/miniapp/
 
 目录补充约束：
 
-- 上述树为目标分层。当前实际入口为 lib/api.ts、lib/session.ts、lib/cancellation.ts、lib/query.ts；features 包含 catalog、catalog-detail、cart、account、addresses、privacy、checkout、checkout-page 与 orders。checkout 公开草稿能力与 checkout-page 分包 UI 分离，地址区域数据只由地址分包消费，不经 app.tsx 导入全部分包。
+- 上述树展示分层。实际页面路由和分包以 `src/app.config.ts` 为准，当前分包为 `local`、`catalog`、`account`、`finance`、`trade` 和 `service`。基础设施入口为 `lib/api.ts`、`lib/session.ts`、`lib/cancellation.ts` 和 `lib/query.ts`。`checkout` 的草稿能力与 `checkout-page` 的分包 UI 分离，地址区域数据只由地址分包消费。
 - 商品与 SKU 选择先归 `catalog`；没有独立业务边界与复用证据时，不拆一个全局 `features/sku`。
 - 商品卡片留在 `features/catalog/components/`，通过公开入口复用。业务组件不全部堆入 `components/biz`。
 - 每个领域的端点封装与生成类型转换放在自身 `api/`，不集中堆入全局 `services/` 或单一 `endpoints.ts`。
@@ -264,6 +264,8 @@ auth/session -> auth-api -> transport（认证请求，无自动恢复）
 
 ### 7.3 支付平台适配的边界
 
+当前购买经 `checkout` 和 `checkout-page` 使用同一商家的到店报价。商品详情可进入公开商家页，订单页面组合 `local-commerce` 公开入口读取本人凭证。“我的”按服务端返回的角色展示物业发分、商家核销与财务入口，Backend 在操作时校验手机号、角色状态和数据归属。到店现金需要微信支付，纯积分直接读取服务端成交事实。状态与恢复见[到店业务手册](../operations/local-commerce.md)。
+
 checkout 用例先调用后端创建支付意图，获取签名参数，再调用 platform/payment；平台返回后通过 orders 的公开查询能力确认后端结果。平台适配器只表达调用完成、用户取消和平台失败，不直接更新已付款缓存。
 
 切换支付渠道通常同时影响后端下单、商户配置、身份字段、签名、回调、退款、对账、公开契约、页面可用性与验收，不能承诺只新增一个 alipay.ts。微信小程序首版仍只开放经验证的微信支付，不因适配层存在而增加其他渠道。
@@ -284,7 +286,7 @@ app.tsx 只装配必要 Provider、生命周期及应用级投影，不导入全
 | 角标显示口径 | cart 派生选择器与 TabBar 展示 | 不新增持久业务副本，不在加购回调手工维护计数 |
 | 支付渠道 | 全栈资金与平台链路 | 需独立计划、资金恢复及真实渠道验收 |
 
-Hook 按明确用例拆分，如 `useCheckoutPreview`、`useCreateOrder`、`useCheckoutDraft`，避免一个 Hook 承担全部流程；也不为每个 useState 强制创建文件。结算草稿只包含当前支持的地址、SKU 和数量等意图，不加入尚未实现的优惠券选择。
+Hook 按明确用例拆分。到店结算草稿包含 SKU、数量、积分用量及原请求恢复所需字段，当前新购无需地址。
 
 ## 9. 测试、治理与实施顺序
 

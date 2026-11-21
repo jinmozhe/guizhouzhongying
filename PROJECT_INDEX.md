@@ -22,7 +22,7 @@
 | 产品需求基线 | [docs/PROJECT_REQUIREMENTS.md](docs/PROJECT_REQUIREMENTS.md) | 商城目标用户、能力、非目标和验收边界 |
 | 全域目标数据库字典 | [docs/architecture/database-schema-guide.md](docs/architecture/database-schema-guide.md) | 长期目标物理模型、字段约束、配置、事务与迁移差异；源码与 Alembic 迁移链已登记，来源项目历史数据库证据与本项目环境状态分开记录 |
 | 小程序详细需求 | [docs/MINIAPP_PRD.md](docs/MINIAPP_PRD.md) | 小程序用户流程、交付分组与专项验收；详细完成状态以源码及计划验证为准 |
-| 小程序工程设计 | [docs/architecture/miniapp-architecture.md](docs/architecture/miniapp-architecture.md) | 已实现公开浏览目录与后续身份交易分层、调用链与状态归属 |
+| 小程序工程设计 | [docs/architecture/miniapp-architecture.md](docs/architecture/miniapp-architecture.md) | 工程目录、公开浏览、身份交易和到店能力的分层及调用链 |
 | 小程序技术决策 | [docs/adr/0017-小程序采用TaroReact与NutUI决策.md](docs/adr/0017-小程序采用TaroReact与NutUI决策.md) | 已定版技术路线与取舍；工程与公开浏览已实施 |
 | 小程序工程标准 | [docs/architecture/miniapp-engineering-standard.md](docs/architecture/miniapp-engineering-standard.md) | 初始化版本、配置、依赖、请求、内容与验证要求 |
 | 小程序 UI 规范 | [docs/architecture/miniapp-ui-standard.md](docs/architecture/miniapp-ui-standard.md) | 设计 tokens、组件、页面与交互验收标准 |
@@ -52,7 +52,7 @@
 
 [贵州众赢独立项目初始化计划](plans/2026-11-20_贵州众赢独立项目初始化计划.md)已完成项目身份、独立配置模板、契约和适用静态门禁。本机开发库另行完成初始化，平台及生产资源待配置。
 
-[数据库字段顺序统一计划](plans/2026-11-20_数据库字段顺序统一计划.md)保留来源项目历史结果，包含 69 张业务表的公共列序核对及 48 张表重排。贵州众赢开发库已从空库升至 `20261120_01`，测试库和生产库迁移、downgrade 与隔离恢复演练未执行。
+[数据库字段顺序统一计划](plans/2026-11-20_数据库字段顺序统一计划.md)记录截至 `20261120_01` 的 69 张业务表公共列序核对及 48 张表重排。测试库和生产库迁移、downgrade 与隔离恢复演练未执行。
 
 [首页人工推荐商品计划](plans/2026-11-19_首页人工推荐商品计划.md)已结束：后台推荐筛选、开关、排序与原子批量操作、完整公开推荐数组及首页双列一次展示已有本地实现，契约和适用轻量检查通过。功能迁移为 `20261119_01`，2026-11-20 已核实用户升级开发库成功，并继续执行字段顺序专项至 `20261120_01`；动态验收及本机 oasdiff 未执行。
 
@@ -74,6 +74,6 @@
 
 小程序工程、公开浏览、独立微信身份、本人基础交易、履约售后评价、公开帮助、资料头像、会员与双钱包流水/佣金/历史提现、推荐分享/主动首次绑定与本人积分查询，以及账户设置、本人会话管理和注销前置核对已有源码，适用轻量门禁通过；相关操作见[资料会员资金手册](docs/operations/miniapp-profile-and-finance.md)、[推荐积分手册](docs/operations/miniapp-referral-and-points.md)与[账户安全手册](docs/operations/miniapp-account-security.md)，最近实施结果见[账户安全计划](plans/2026-10-09_小程序账户设置会话与注销前置计划.md)。贵州众赢 AppID 待配置，默认登录关闭，新提现申请与实际注销关闭。平台与重型验收未完成，实际服务端配置以目标环境为准。请求取消适配的开发编译结果见[运行环境修复计划](plans/2026-11-13_小程序请求取消运行环境修复计划.md)；开发路由记录已接入，用户提供的 Console 日志确认启动、认证与返回路径产生记录，不构成完整业务验收。到店 SKU 限额积分抵扣已纳入本次本地实现；有效邀请政策、积分自身到期、其他兑换场景、实际注销及真实资金渠道验收留待后续专项。
 
-此前目标模型及动态验证计划继续保留原结果。接单售后、分佣快照、资金恢复、约束审计和消费资格来源修复的本地实现及本次专项动态验证均已收口；验证分层见[数据库字典第 13 章](docs/architecture/database-schema-guide.md#131-当前源码及迁移盘点)，全部记录见[计划永久登记](plans/INDEX.md)。
+接单售后、分佣快照、资金恢复、约束审计和消费资格来源修复保留原实施及来源项目动态验证记录。贵州众赢的验证证据见[数据库字典第 13 章](docs/architecture/database-schema-guide.md#131-当前源码及迁移盘点)，全部计划见[计划永久登记](plans/INDEX.md)。
 
 2026-11-17 小程序启动静默身份、一次按钮手机号授权、首次绑定资料引导、头像即时更新及全局安全返回已完成本地实现；登录页与个人资料页视觉、透明导航和固定全屏背景已同步，适用轻量门禁通过。实施与边界见[身份和资料流程计划](plans/2026-11-17_小程序启动静默建号与一键手机号授权计划.md)及[登录页视觉计划](plans/2026-11-17_小程序统一登录页视觉替换计划.md)；构建、Vitest 与真实微信动态验收未执行，实际登录开关和发布状态未改变。

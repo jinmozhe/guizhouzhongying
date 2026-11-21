@@ -16,7 +16,7 @@
 
 ## 3. Backend 本地配置
 
-从模板创建 `apps/backend/.env` 后，至少设置本机 PostgreSQL、Redis 和四个相互不同的认证密钥。`WEB_ORIGINS` 保留为后续小程序网关或浏览器调试来源的显式白名单，不启动 Web 服务，也不填写 3000 端口。
+从模板创建 `apps/backend/.env` 后，至少设置本机 PostgreSQL、Redis 和四个相互不同的认证密钥。Backend 配置校验要求 `WEB_ORIGINS` 至少有一个显式来源，并与 `ADMIN_ORIGINS` 隔离。Web 服务保持冻结。
 
 ```dotenv
 PROJECT_NAME="贵州众赢 Backend"
@@ -33,7 +33,7 @@ WEB_TOKEN_HMAC_KEY=<至少32字节且独立的密钥>
 ADMIN_TOKEN_HMAC_KEY=<至少32字节且独立的密钥>
 ```
 
-`WEB_*` 认证变量是既有消费者会话配置名称，不表示允许 Web 服务或 Web 端口。后续小程序认证适配需要单独计划，不在本手册范围内。
+`WEB_JWT_SECRET` 与 `WEB_TOKEN_HMAC_KEY` 仍由 Backend 启动校验要求。微信小程序使用独立 `MINIAPP_*` 凭据，启用方式见[身份接入手册](miniapp-identity-and-content.md)，到店核销和微信支付分别见[到店业务手册](local-commerce.md)与[微信支付手册](wechat-pay.md)。
 
 ## 4. 启动顺序
 

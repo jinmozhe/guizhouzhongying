@@ -45,7 +45,7 @@
 | `apps/backend` | FastAPI API、领域模型、认证授权、数据访问、迁移和 OpenAPI 导出 | 当前开发重点 |
 | `apps/admin` | 运营管理、权限、系统设置与安全审计 | 当前开发重点 |
 | `apps/web` | 历史 Next.js 用户端代码 | 永久冻结 |
-| `apps/miniapp` | 面向消费者的微信商城交互 | 工程与公开浏览已实现；微信身份和交易未接入 |
+| `apps/miniapp` | 面向消费者、到店商家和物业的微信商城交互 | 公开浏览、微信身份、本人交易及到店角色入口已有源码，微信登录和支付默认关闭 |
 
 Backend 与 Admin 不得相互直接引用。跨应用共享只能经由 `packages/` 中的公共包，详细依赖规则以[模块边界](module-boundaries.md)为准。
 

@@ -12,14 +12,14 @@
 | `app/services/assets.py` | 执行场景策略、主体授权、去重、元数据事务和删除补偿 |
 | `app/services/storage/` | 定义存储端口并实现本地文件的暂存、提交、恢复和清理 |
 | `app/db/models/asset.py` | 保存资产主体、存储键、真实 MIME、大小、哈希、URL、场景及可信宽高和帧数 |
-| Admin/Web 上传组件 | 选择文件、调用双域上传端点、回填站内资源路径并展示结果 |
+| Admin 与 Miniapp 上传组件 | Admin 上传受控资产，Miniapp 经本人资料接口上传头像，页面读取返回的站内资源路径 |
 
 Router 不处理文件系统或数据库事务。Repository 只读写资产元数据，文件副作用由 Service 通过存储端口编排。
 
 ## 3. 上传流程
 
-1. `/api/v1/assets/upload` 根据精确 `Origin` 选择 Web 或 Admin Cookie Profile。
-2. 依赖层验证访问 Cookie、权威会话、CSRF Cookie/Header 配对和 Session 中的 CSRF 摘要。
+1. Admin 使用 `/api/v1/assets/upload`，依赖层验证 Admin Cookie、权威会话及 CSRF。资产列表与删除分别校验 `assets:read` 和 `assets:delete`。
+2. 小程序使用 `/api/v1/users/me/avatar-assets`，依赖层验证本人 ConsumerBearer，会话只允许固定头像场景。
 3. Service 校验受控 `scene`、扩展名、场景体积上限和上传主体可用场景。
 4. 本地驱动以 64 KiB 分块在线程池读取，计算 SHA-256，并通过 Magic Number 与 OOXML ZIP 结构探测真实类型。新 `product` 图片在私有 staging 内再由 Pillow 完整解码，记录 EXIF 展示方向下的宽高和帧数；不重写文件字节。
 5. 文件先写入私有 staging，完成 `fsync` 后以 `os.replace` 原子提交到公开根目录。
@@ -40,7 +40,7 @@ Router 不处理文件系统或数据库事务。Repository 只读写资产元�
 └── .uploads-trash/
 ```
 
-生产命名卷挂载 `/app/storage`，`UPLOAD_LOCAL_ROOT` 为 `/app/storage/uploads`。staging、trash 和公开文件因此位于同一文件系统，原子移动不会跨卷；FastAPI 只挂载 `uploads/`，两个私有目录不进入静态路由。
+镜像方案使用 `/app/storage/uploads`，1Panel 源码方案使用 `/storage/uploads`。staging、trash 和公开文件位于同一文件系统，FastAPI 只公开 `uploads/`。实际挂载见[1Panel 源码部署手册](../operations/1panel-source-deployment.md)。
 
 ## 5. 场景与安全边界
 
@@ -49,7 +49,7 @@ Router 不处理文件系统或数据库事务。Repository 只读写资产元�
 - `product`：JPEG、PNG、WebP，最多 10 MB。
 - `document`：PDF、DOC、DOCX、XLS、XLSX，最多 30 MB。
 - `attachment` 与 `temp`：受全局扩展名和总大小上限控制。
-- Web 用户只允许 `avatar`、`attachment` 和 `temp`；Admin 可以使用全部场景。
+- 消费者本人上传固定使用 `avatar`；Admin 可在权限保护下使用各受控场景。
 - SVG 始终不在默认白名单中，避免同源静态脚本执行风险。
 - 客户端声明的 `Content-Type` 不作为信任来源，响应带 `X-Content-Type-Options: nosniff`。
 - 文件名只保存为元数据；落盘键由场景、日期、哈希和 UUID 生成，禁止使用原始路径。
