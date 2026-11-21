@@ -2,9 +2,10 @@ import { useState } from 'react'
 import Taro, { useDidHide, useDidShow } from '@tarojs/taro'
 import { Button, Input, ScrollView, Text, View } from '@tarojs/components'
 import { useQuery } from '@tanstack/react-query'
-import type { ResponseModelListCategoryRead } from '@pinjie/api-client'
+import type { ResponseModelListCategoryRead, ResponseModelListPublicMerchantRead } from '@pinjie/api-client'
 import { Icon } from '@/components/Icon'
 import { QueryState } from '@/components/QueryState'
+import { ProductImage } from '@/components/ProductImage'
 import { getPublic } from '@/lib/api'
 import { queryClient } from '@/lib/query'
 import { CategoryProducts } from './CategoryProducts'
@@ -18,6 +19,10 @@ export function CategoryPage({ initialCategory }: { initialCategory?: string }) 
   const [keyword, setKeyword] = useState('')
   const [revision, setRevision] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
+  const [merchantSelection, setMerchantSelection] = useState<{ scope: string; id: string }>()
+  const merchantScope = JSON.stringify([selected, keyword])
+  const merchantId = merchantSelection?.scope === merchantScope ? merchantSelection.id : undefined
+  const merchants = useQuery({ queryKey: ['catalog', 'merchants', selected, keyword, revision], enabled: visible, queryFn: ({ signal }) => getPublic<ResponseModelListPublicMerchantRead>(`/merchants?${selected ? `category_id=${encodeURIComponent(selected)}&` : ''}${keyword ? `search=${encodeURIComponent(keyword)}` : ''}`, signal) })
   const categories = useQuery({
     queryKey: ['catalog', 'categories'],
     queryFn: ({ signal }) => getPublic<ResponseModelListCategoryRead>('/product-categories', signal),
@@ -79,6 +84,15 @@ export function CategoryPage({ initialCategory }: { initialCategory?: string }) 
       </View>
     </ScrollView>}
   </>
+  const merchantFilter = <View className='category-merchants'>
+    {merchants.isPending && <QueryState title='正在读取商家' />}
+    {merchants.isError && <QueryState title='商家读取失败' error={merchants.error} retry={() => { void merchants.refetch() }} />}
+    {merchants.data && !merchants.isError && <>
+      <View className='category-merchant-title'>本分类商家 {merchantId && <Button className='category-text-action' onClick={() => setMerchantSelection(undefined)}>查看全部商家商品</Button>}</View>
+      {!merchants.data.length && <View className='muted'>暂无可售商家</View>}
+      <View className='category-merchant-grid'>{merchants.data.map((merchant) => <View key={merchant.id} role='button' ariaLabel={`只看${merchant.name}商品`} className={`category-merchant ${merchant.id === merchantId ? 'is-selected' : ''}`} onClick={() => setMerchantSelection({ scope: merchantScope, id: merchant.id })}><View className='category-merchant-logo'><ProductImage url={merchant.logo_url ?? undefined} /></View><Text className='category-merchant-name'>{merchant.name}</Text></View>)}</View>
+    </>}
+  </View>
 
   return <View className='category-page'>
     <View className='category-search'>
@@ -106,8 +120,9 @@ export function CategoryPage({ initialCategory }: { initialCategory?: string }) 
         </ScrollView>
         <View className='category-main'>
           {missing ? <QueryState title='该分类已不可用' detail='分类可能已停用，请选择其他分类。' retry={() => setSelected(undefined)} /> : <CategoryProducts
-            key={JSON.stringify([selected, keyword, revision])}
+            key={JSON.stringify([selected, keyword, merchantId, revision])}
             categoryId={selected} keyword={keyword} scope={scope} visible={visible} revision={revision}
+            merchantId={merchantId} merchantFilter={merchantFilter}
             filters={filters} refreshing={refreshing} onRefresh={() => { void refresh() }}
             clearSearch={() => submitSearch('')} searchAll={() => { setDraft(keyword); setSelected(undefined) }}
           />}

@@ -3,6 +3,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -174,7 +175,7 @@ class RefundRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ),
         CheckConstraint("review_mode IN ('automatic', 'manual')", name="ck_refund_request_review_mode"),
         CheckConstraint(
-            "items_amount >= 0 AND freight_amount >= 0 AND amount = items_amount + freight_amount",
+            "items_amount >= 0 AND freight_amount >= 0 AND points_returned >= 0 AND amount = items_amount + freight_amount - points_returned AND amount >= 0",
             name="ck_refund_request_amount",
         ),
         CheckConstraint("currency = 'CNY'", name="ck_refund_request_currency"),
@@ -197,6 +198,7 @@ class RefundRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     items_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), comment="原商品实付金额")
     freight_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), comment="原订单运费")
     amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), comment="整单退款总金额")
+    points_returned: Mapped[int] = mapped_column(BigInteger, default=0, comment="整单原路返还积分，现金退款额不含积分")
     currency: Mapped[str] = mapped_column(String(3), default="CNY", comment="币种")
     reason: Mapped[str] = mapped_column(String(300), comment="用户申请原因")
     review_note: Mapped[str | None] = mapped_column(String(300), nullable=True, comment="审核说明")

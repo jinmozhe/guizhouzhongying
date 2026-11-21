@@ -455,6 +455,30 @@ export type AdminOrderSummary = {
      */
     total_amount: string;
     /**
+     * Order Gross Amount
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    order_gross_amount: string;
+    /**
+     * Points Deduction
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points_deduction: number;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string | null;
+    /**
+     * Fulfillment Mode
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    fulfillment_mode: string;
+    /**
      * Expires At
      *
      * 凭据过期时间
@@ -2099,6 +2123,50 @@ export type CheckoutQuote = {
      */
     total_amount: string;
     /**
+     * Order Gross Amount
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    order_gross_amount: string;
+    /**
+     * Points Deduction
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points_deduction: number;
+    /**
+     * Available Points
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    available_points: string;
+    /**
+     * Maximum Points
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    maximum_points: number;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string;
+    /**
+     * Merchant Snapshot
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_snapshot: {
+        [key: string]: unknown;
+    };
+    /**
+     * Fulfillment Mode
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    fulfillment_mode: string;
+    /**
      * Address Id
      *
      * 收货地址标识
@@ -2162,6 +2230,12 @@ export type CheckoutRequest = {
      * 收货地址标识
      */
     address_id?: string | null;
+    /**
+     * Points To Use
+     *
+     * 本次使用整数积分，受账户余额及逐件SKU上限约束
+     */
+    points_to_use?: number;
     /**
      * Quote Fingerprint
      *
@@ -2966,6 +3040,12 @@ export type ConsumerCartItemRead = {
      */
     revision: number;
     /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string | null;
+    /**
      * Product Id
      *
      * 商品标识
@@ -3426,7 +3506,7 @@ export type ConsumerPointsLedgerRead = {
      *
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
-    source_type: 'invite' | 'order' | 'refund' | 'redemption' | 'manual';
+    source_type: 'invite' | 'order' | 'refund' | 'redemption' | 'manual' | 'property';
     /**
      * Created At
      *
@@ -3525,6 +3605,12 @@ export type ConsumerRefundLookupRead = {
  * ConsumerRefundRead
  */
 export type ConsumerRefundRead = {
+    /**
+     * Points Returned
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points_returned: number;
     /**
      * Id
      *
@@ -3763,6 +3849,38 @@ export type ConsumerTradeOrderRead = {
      * 订单应付总金额，单位人民币元
      */
     total_amount: string;
+    /**
+     * Order Gross Amount
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    order_gross_amount: string;
+    /**
+     * Points Deduction
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points_deduction: number;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string | null;
+    /**
+     * Merchant Snapshot
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_snapshot: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Fulfillment Mode
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    fulfillment_mode: string;
     /**
      * Address Snapshot
      *
@@ -4585,6 +4703,30 @@ export type LiveStatus = {
      * 当前状态代码
      */
     status: 'alive';
+};
+
+/**
+ * LocalRolesRead
+ */
+export type LocalRolesRead = {
+    /**
+     * Member
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    member?: boolean;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string | null;
+    /**
+     * Property Operator Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    property_operator_id: string | null;
 };
 
 /**
@@ -5424,6 +5566,216 @@ export type MembershipQualificationEventRead = {
 };
 
 /**
+ * MerchantInput
+ */
+export type MerchantInput = {
+    /**
+     * Name
+     *
+     * 资源名称
+     */
+    name: string;
+    /**
+     * Phone E164
+     *
+     * 国际格式授权手机号，中国手机号填写 +86
+     */
+    phone_e164: string;
+    /**
+     * Is Active
+     *
+     * 资源当前是否启用
+     */
+    is_active?: boolean;
+    /**
+     * Logo Asset Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    logo_asset_id?: string | null;
+    /**
+     * Description
+     *
+     * 资源说明文本
+     */
+    description?: string;
+    /**
+     * Address
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    address?: string;
+    /**
+     * Business Hours
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    business_hours?: string;
+    /**
+     * Public Phone
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    public_phone?: string;
+    /**
+     * Sort Order
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    sort_order?: number | null;
+};
+
+/**
+ * MerchantRead
+ */
+export type MerchantRead = {
+    /**
+     * Name
+     *
+     * 资源名称
+     */
+    name: string;
+    /**
+     * Phone E164
+     *
+     * 国际格式授权手机号，中国手机号填写 +86
+     */
+    phone_e164: string;
+    /**
+     * Is Active
+     *
+     * 资源当前是否启用
+     */
+    is_active?: boolean;
+    /**
+     * Logo Asset Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    logo_asset_id?: string | null;
+    /**
+     * Description
+     *
+     * 资源说明文本
+     */
+    description?: string;
+    /**
+     * Address
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    address?: string;
+    /**
+     * Business Hours
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    business_hours?: string;
+    /**
+     * Public Phone
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    public_phone?: string;
+    /**
+     * Sort Order
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    sort_order?: number | null;
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * User Id
+     *
+     * 用户标识
+     */
+    user_id: string | null;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+    /**
+     * Logo Url
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    logo_url?: string | null;
+};
+
+/**
+ * MerchantUpdate
+ */
+export type MerchantUpdate = {
+    /**
+     * Name
+     *
+     * 资源名称
+     */
+    name: string;
+    /**
+     * Phone E164
+     *
+     * 国际格式授权手机号，中国手机号填写 +86
+     */
+    phone_e164: string;
+    /**
+     * Is Active
+     *
+     * 资源当前是否启用
+     */
+    is_active?: boolean;
+    /**
+     * Logo Asset Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    logo_asset_id?: string | null;
+    /**
+     * Description
+     *
+     * 资源说明文本
+     */
+    description?: string;
+    /**
+     * Address
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    address?: string;
+    /**
+     * Business Hours
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    business_hours?: string;
+    /**
+     * Public Phone
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    public_phone?: string;
+    /**
+     * Sort Order
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    sort_order?: number | null;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+};
+
+/**
  * MiniappRegistrationPatch
  */
 export type MiniappRegistrationPatch = {
@@ -5488,6 +5840,12 @@ export type NewSkuInput = {
      */
     price: number | string;
     /**
+     * Max Points Deduction
+     *
+     * 单件积分上限，1积分抵1元
+     */
+    max_points_deduction?: number;
+    /**
      * Cost Price
      *
      * 当前业务字段，具体语义由所属请求或响应模型定义
@@ -5543,6 +5901,102 @@ export type OperationIntentRead = {
      * 用于定位本次请求的唯一标识
      */
     request_id: string;
+};
+
+/**
+ * OperatorInput
+ */
+export type OperatorInput = {
+    /**
+     * Name
+     *
+     * 资源名称
+     */
+    name: string;
+    /**
+     * Phone E164
+     *
+     * 国际格式授权手机号，中国手机号填写 +86
+     */
+    phone_e164: string;
+    /**
+     * Is Active
+     *
+     * 资源当前是否启用
+     */
+    is_active?: boolean;
+};
+
+/**
+ * OperatorRead
+ */
+export type OperatorRead = {
+    /**
+     * Name
+     *
+     * 资源名称
+     */
+    name: string;
+    /**
+     * Phone E164
+     *
+     * 国际格式授权手机号，中国手机号填写 +86
+     */
+    phone_e164: string;
+    /**
+     * Is Active
+     *
+     * 资源当前是否启用
+     */
+    is_active?: boolean;
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * User Id
+     *
+     * 用户标识
+     */
+    user_id: string | null;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+};
+
+/**
+ * OperatorUpdate
+ */
+export type OperatorUpdate = {
+    /**
+     * Name
+     *
+     * 资源名称
+     */
+    name: string;
+    /**
+     * Phone E164
+     *
+     * 国际格式授权手机号，中国手机号填写 +86
+     */
+    phone_e164: string;
+    /**
+     * Is Active
+     *
+     * 资源当前是否启用
+     */
+    is_active?: boolean;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
 };
 
 /**
@@ -5612,6 +6066,12 @@ export type OrderItemRead = {
      */
     line_amount: string;
     /**
+     * Points Deduction
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points_deduction: number;
+    /**
      * Price Snapshot
      *
      * 当前业务字段，具体语义由所属请求或响应模型定义
@@ -5661,6 +6121,38 @@ export type OrderRead = {
      * 订单应付总金额，单位人民币元
      */
     total_amount: string;
+    /**
+     * Order Gross Amount
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    order_gross_amount: string;
+    /**
+     * Points Deduction
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points_deduction: number;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string | null;
+    /**
+     * Merchant Snapshot
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_snapshot: {
+        [key: string]: unknown;
+    } | null;
+    /**
+     * Fulfillment Mode
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    fulfillment_mode: string;
     /**
      * Address Snapshot
      *
@@ -6704,6 +7196,78 @@ export type PageResultMembershipQualificationEventRead = {
 };
 
 /**
+ * PageResult[MerchantRead]
+ */
+export type PageResultMerchantRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<MerchantRead>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
+ * PageResult[OperatorRead]
+ */
+export type PageResultOperatorRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<OperatorRead>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
  * PageResult[PaymentAttemptRead]
  */
 export type PageResultPaymentAttemptRead = {
@@ -6884,6 +7448,42 @@ export type PageResultProductReviewRead = {
 };
 
 /**
+ * PageResult[PropertyGrantRead]
+ */
+export type PageResultPropertyGrantRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<PropertyGrantRead>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
  * PageResult[PublicProductRead]
  */
 export type PageResultPublicProductRead = {
@@ -6893,6 +7493,42 @@ export type PageResultPublicProductRead = {
      * 当前分页中的资源列表
      */
     items: Array<PublicProductRead>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
+ * PageResult[ReceivableRead]
+ */
+export type PageResultReceivableRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<ReceivableRead>;
     /**
      * Page
      *
@@ -7136,6 +7772,42 @@ export type PageResultSessionRead = {
 };
 
 /**
+ * PageResult[SettlementRead]
+ */
+export type PageResultSettlementRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<SettlementRead>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
  * PageResult[ShippingTemplateRead]
  */
 export type PageResultShippingTemplateRead = {
@@ -7145,6 +7817,42 @@ export type PageResultShippingTemplateRead = {
      * 当前分页中的资源列表
      */
     items: Array<ShippingTemplateRead>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
+ * PageResult[VoucherRead]
+ */
+export type PageResultVoucherRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<VoucherRead>;
     /**
      * Page
      *
@@ -7468,6 +8176,18 @@ export type PermissionRead = {
 };
 
 /**
+ * PhoneLookup
+ */
+export type PhoneLookup = {
+    /**
+     * Phone E164
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    phone_e164: string;
+};
+
+/**
  * PointsAccountRead
  */
 export type PointsAccountRead = {
@@ -7700,6 +8420,18 @@ export type ProductCreate = {
      */
     brand_id?: string | null;
     /**
+     * Merchant Id
+     *
+     * 唯一到店消费商家
+     */
+    merchant_id?: string | null;
+    /**
+     * Fulfillment Mode
+     *
+     * 当前新增售卖使用到店核销；legacy保留历史商品
+     */
+    fulfillment_mode?: 'legacy' | 'local';
+    /**
      * Purchase Limit Quantity
      *
      * 每用户累计限购配置，交易阶段实施计数
@@ -7753,6 +8485,18 @@ export type ProductDetailRead = {
      * 可选品牌
      */
     brand_id?: string | null;
+    /**
+     * Merchant Id
+     *
+     * 唯一到店消费商家
+     */
+    merchant_id?: string | null;
+    /**
+     * Fulfillment Mode
+     *
+     * 当前新增售卖使用到店核销；legacy保留历史商品
+     */
+    fulfillment_mode?: 'legacy' | 'local';
     /**
      * Purchase Limit Quantity
      *
@@ -7915,6 +8659,18 @@ export type ProductRead = {
      * 可选品牌
      */
     brand_id?: string | null;
+    /**
+     * Merchant Id
+     *
+     * 唯一到店消费商家
+     */
+    merchant_id?: string | null;
+    /**
+     * Fulfillment Mode
+     *
+     * 当前新增售卖使用到店核销；legacy保留历史商品
+     */
+    fulfillment_mode?: 'legacy' | 'local';
     /**
      * Purchase Limit Quantity
      *
@@ -8144,6 +8900,18 @@ export type ProductUpdate = {
      */
     brand_id?: string | null;
     /**
+     * Merchant Id
+     *
+     * 唯一到店消费商家
+     */
+    merchant_id?: string | null;
+    /**
+     * Fulfillment Mode
+     *
+     * 当前新增售卖使用到店核销；legacy保留历史商品
+     */
+    fulfillment_mode?: 'legacy' | 'local';
+    /**
      * Purchase Limit Quantity
      *
      * 每用户累计限购配置，交易阶段实施计数
@@ -8170,6 +8938,126 @@ export type ProductUpdate = {
 };
 
 /**
+ * PropertyGrantCreate
+ */
+export type PropertyGrantCreate = {
+    /**
+     * Phone E164
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    phone_e164: string;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+    /**
+     * User Id
+     *
+     * 用户标识
+     */
+    user_id: string;
+    /**
+     * Phone Verified At
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    phone_verified_at: string;
+    /**
+     * Points
+     *
+     * 正整数积分字符串，避免客户端大整数丢失
+     */
+    points: string;
+    /**
+     * Note
+     *
+     * 操作说明或核对备注
+     */
+    note?: string;
+};
+
+/**
+ * PropertyGrantRead
+ */
+export type PropertyGrantRead = {
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+    /**
+     * User Id
+     *
+     * 用户标识
+     */
+    user_id: string;
+    /**
+     * Points
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points: string;
+    /**
+     * Note
+     *
+     * 操作说明或核对备注
+     */
+    note: string;
+    /**
+     * Ledger Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    ledger_id: string;
+    /**
+     * Created At
+     *
+     * 创建时间
+     */
+    created_at: string;
+};
+
+/**
+ * PropertyTargetRead
+ */
+export type PropertyTargetRead = {
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * Display Name
+     *
+     * 展示名称
+     */
+    display_name: string | null;
+    /**
+     * Phone Masked
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    phone_masked: string;
+    /**
+     * Phone Verified At
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    phone_verified_at: string;
+};
+
+/**
  * PublicDetailImageRead
  */
 export type PublicDetailImageRead = {
@@ -8191,6 +9079,66 @@ export type PublicDetailImageRead = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     height: number;
+};
+
+/**
+ * PublicMerchantRead
+ */
+export type PublicMerchantRead = {
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * Name
+     *
+     * 资源名称
+     */
+    name: string;
+    /**
+     * Logo Url
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    logo_url?: string | null;
+    /**
+     * Description
+     *
+     * 资源说明文本
+     */
+    description: string;
+    /**
+     * Description Format
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    description_format?: 'restricted_html_v1';
+    /**
+     * Address
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    address: string;
+    /**
+     * Business Hours
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    business_hours: string;
+    /**
+     * Public Phone
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    public_phone: string;
+    /**
+     * Is Active
+     *
+     * 资源当前是否启用
+     */
+    is_active: boolean;
 };
 
 /**
@@ -8239,6 +9187,18 @@ export type PublicProductDetailRead = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     brand_id: string | null;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string | null;
+    /**
+     * Fulfillment Mode
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    fulfillment_mode: 'legacy' | 'local';
     /**
      * Images
      *
@@ -8312,6 +9272,18 @@ export type PublicProductRead = {
      */
     brand_id: string | null;
     /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string | null;
+    /**
+     * Fulfillment Mode
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    fulfillment_mode: 'legacy' | 'local';
+    /**
      * Images
      *
      * 图片公开地址
@@ -8367,6 +9339,12 @@ export type PublicSkuRead = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     price: string;
+    /**
+     * Max Points Deduction
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    max_points_deduction: number;
     /**
      * Market Price
      *
@@ -8465,6 +9443,18 @@ export type QuoteLine = {
      * 订单明细金额，单位人民币元
      */
     line_amount: string;
+    /**
+     * Points Deduction
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points_deduction?: number;
+    /**
+     * Max Points Deduction
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    max_points_deduction?: number;
     /**
      * Product Revision
      *
@@ -8615,6 +9605,60 @@ export type ReceiptConfirm = {
      * 资源并发控制版本
      */
     revision: number;
+};
+
+/**
+ * ReceivableRead
+ */
+export type ReceivableRead = {
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string;
+    /**
+     * Order Id
+     *
+     * 订单标识
+     */
+    order_id: string;
+    /**
+     * Gross Amount
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    gross_amount: string;
+    /**
+     * Cash Amount
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    cash_amount: string;
+    /**
+     * Points Amount
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points_amount: string;
+    /**
+     * Settlement Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    settlement_id: string | null;
+    /**
+     * Created At
+     *
+     * 创建时间
+     */
+    created_at: string;
 };
 
 /**
@@ -8798,6 +9842,90 @@ export type ReconciliationResolve = {
 };
 
 /**
+ * RedemptionConfirmInput
+ */
+export type RedemptionConfirmInput = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+    /**
+     * Order Id
+     *
+     * 订单标识
+     */
+    order_id: string;
+};
+
+/**
+ * RedemptionPreviewInput
+ */
+export type RedemptionPreviewInput = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+};
+
+/**
+ * RedemptionPreviewRead
+ */
+export type RedemptionPreviewRead = {
+    /**
+     * Order Id
+     *
+     * 订单标识
+     */
+    order_id: string;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string;
+    /**
+     * Merchant Name
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_name: string;
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<string>;
+    /**
+     * Order Gross Amount
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    order_gross_amount: string;
+    /**
+     * Expires At
+     *
+     * 凭据过期时间
+     */
+    expires_at: string;
+    /**
+     * Status
+     *
+     * 当前状态代码
+     */
+    status: string;
+};
+
+/**
  * RedisHealthRead
  */
 export type RedisHealthRead = {
@@ -8975,6 +10103,12 @@ export type RefundRequestCreate = {
  * RefundRequestRead
  */
 export type RefundRequestRead = {
+    /**
+     * Points Returned
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    points_returned: number;
     /**
      * Id
      *
@@ -10318,6 +11452,34 @@ export type ResponseModelInventoryRead = {
 };
 
 /**
+ * ResponseModel[LocalRolesRead]
+ */
+export type ResponseModelLocalRolesRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: LocalRolesRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
  * ResponseModel[MemberLevelConditionRead]
  */
 export type ResponseModelMemberLevelConditionRead = {
@@ -10393,6 +11555,34 @@ export type ResponseModelMemberPriceRuleRead = {
      * 响应业务数据
      */
     data: MemberPriceRuleRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[MerchantRead]
+ */
+export type ResponseModelMerchantRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: MerchantRead;
     /**
      * Request Id
      *
@@ -10479,6 +11669,34 @@ export type ResponseModelOperationIntentRead = {
      * 响应业务数据
      */
     data: OperationIntentRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[OperatorRead]
+ */
+export type ResponseModelOperatorRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: OperatorRead;
     /**
      * Request Id
      *
@@ -11244,6 +12462,62 @@ export type ResponseModelPageResultMembershipQualificationEventRead = {
 };
 
 /**
+ * ResponseModel[PageResult[MerchantRead]]
+ */
+export type ResponseModelPageResultMerchantRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultMerchantRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[PageResult[OperatorRead]]
+ */
+export type ResponseModelPageResultOperatorRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultOperatorRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
  * ResponseModel[PageResult[PaymentAttemptRead]]
  */
 export type ResponseModelPageResultPaymentAttemptRead = {
@@ -11384,6 +12658,34 @@ export type ResponseModelPageResultProductReviewRead = {
 };
 
 /**
+ * ResponseModel[PageResult[PropertyGrantRead]]
+ */
+export type ResponseModelPageResultPropertyGrantRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultPropertyGrantRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
  * ResponseModel[PageResult[PublicProductRead]]
  */
 export type ResponseModelPageResultPublicProductRead = {
@@ -11403,6 +12705,34 @@ export type ResponseModelPageResultPublicProductRead = {
      * 响应业务数据
      */
     data: PageResultPublicProductRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[PageResult[ReceivableRead]]
+ */
+export type ResponseModelPageResultReceivableRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultReceivableRead;
     /**
      * Request Id
      *
@@ -11580,6 +12910,34 @@ export type ResponseModelPageResultSessionRead = {
 };
 
 /**
+ * ResponseModel[PageResult[SettlementRead]]
+ */
+export type ResponseModelPageResultSettlementRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultSettlementRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
  * ResponseModel[PageResult[ShippingTemplateRead]]
  */
 export type ResponseModelPageResultShippingTemplateRead = {
@@ -11599,6 +12957,34 @@ export type ResponseModelPageResultShippingTemplateRead = {
      * 响应业务数据
      */
     data: PageResultShippingTemplateRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[PageResult[VoucherRead]]
+ */
+export type ResponseModelPageResultVoucherRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultVoucherRead;
     /**
      * Request Id
      *
@@ -11832,6 +13218,90 @@ export type ResponseModelProductReviewRead = {
 };
 
 /**
+ * ResponseModel[PropertyGrantRead]
+ */
+export type ResponseModelPropertyGrantRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PropertyGrantRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[PropertyTargetRead]
+ */
+export type ResponseModelPropertyTargetRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PropertyTargetRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[PublicMerchantRead]
+ */
+export type ResponseModelPublicMerchantRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PublicMerchantRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
  * ResponseModel[PublicProductDetailRead]
  */
 export type ResponseModelPublicProductDetailRead = {
@@ -11879,6 +13349,34 @@ export type ResponseModelReconciliationRecordRead = {
      * 响应业务数据
      */
     data: ReconciliationRecordRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[RedemptionPreviewRead]
+ */
+export type ResponseModelRedemptionPreviewRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: RedemptionPreviewRead;
     /**
      * Request Id
      *
@@ -11963,6 +13461,34 @@ export type ResponseModelRoleRead = {
      * 响应业务数据
      */
     data: RoleRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[SettlementRead]
+ */
+export type ResponseModelSettlementRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: SettlementRead;
     /**
      * Request Id
      *
@@ -12159,6 +13685,34 @@ export type ResponseModelUserPrincipalOut = {
      * 响应业务数据
      */
     data: UserPrincipalOut;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[VoucherRead]
+ */
+export type ResponseModelVoucherRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: VoucherRead;
     /**
      * Request Id
      *
@@ -12494,6 +14048,36 @@ export type ResponseModelListPermissionRead = {
 };
 
 /**
+ * ResponseModel[list[PublicMerchantRead]]
+ */
+export type ResponseModelListPublicMerchantRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * Data
+     *
+     * 响应业务数据
+     */
+    data: Array<PublicMerchantRead>;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
  * ResponseModel[list[PublicProductRead]]
  */
 export type ResponseModelListPublicProductRead = {
@@ -12515,6 +14099,36 @@ export type ResponseModelListPublicProductRead = {
      * 响应业务数据
      */
     data: Array<PublicProductRead>;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[list[SettlementEventRead]]
+ */
+export type ResponseModelListSettlementEventRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * Data
+     *
+     * 响应业务数据
+     */
+    data: Array<SettlementEventRead>;
     /**
      * Request Id
      *
@@ -12827,6 +14441,210 @@ export type SessionRead = {
      * 会话撤销时间
      */
     revoked_at: string | null;
+};
+
+/**
+ * SettlementCreate
+ */
+export type SettlementCreate = {
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string;
+    /**
+     * Receivable Ids
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    receivable_ids: Array<string>;
+};
+
+/**
+ * SettlementEventRead
+ */
+export type SettlementEventRead = {
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+    /**
+     * Kind
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    kind: string;
+    /**
+     * Amount
+     *
+     * 业务金额，单位人民币元
+     */
+    amount: string;
+    /**
+     * Payment Reference
+     *
+     * 已确认支付参考号
+     */
+    payment_reference: string;
+    /**
+     * Paid At
+     *
+     * 可信支付确认时间
+     */
+    paid_at: string;
+    /**
+     * Reason
+     *
+     * 申请原因
+     */
+    reason: string;
+    /**
+     * Created At
+     *
+     * 创建时间
+     */
+    created_at: string;
+};
+
+/**
+ * SettlementPayment
+ */
+export type SettlementPayment = {
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+    /**
+     * Amount
+     *
+     * 业务金额，单位人民币元
+     */
+    amount: number | string;
+    /**
+     * Payment Reference
+     *
+     * 已确认支付参考号
+     */
+    payment_reference: string;
+    /**
+     * Paid At
+     *
+     * 可信支付确认时间
+     */
+    paid_at: string;
+};
+
+/**
+ * SettlementRead
+ */
+export type SettlementRead = {
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string;
+    /**
+     * Amount
+     *
+     * 业务金额，单位人民币元
+     */
+    amount: string;
+    /**
+     * Status
+     *
+     * 当前状态代码
+     */
+    status: string;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+    /**
+     * Payment Reference
+     *
+     * 已确认支付参考号
+     */
+    payment_reference: string | null;
+    /**
+     * Paid At
+     *
+     * 可信支付确认时间
+     */
+    paid_at: string | null;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+    /**
+     * Created At
+     *
+     * 创建时间
+     */
+    created_at: string;
+};
+
+/**
+ * SettlementReversal
+ */
+export type SettlementReversal = {
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+    /**
+     * Reason
+     *
+     * 申请原因
+     */
+    reason: string;
 };
 
 /**
@@ -13290,6 +15108,12 @@ export type SkuRead = {
      */
     price: string;
     /**
+     * Max Points Deduction
+     *
+     * 单件积分上限，1积分抵1元
+     */
+    max_points_deduction?: number;
+    /**
      * Cost Price
      *
      * 当前业务字段，具体语义由所属请求或响应模型定义
@@ -13399,6 +15223,12 @@ export type SkuUpdate = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     price: number | string;
+    /**
+     * Max Points Deduction
+     *
+     * 单件积分上限，1积分抵1元
+     */
+    max_points_deduction?: number;
     /**
      * Cost Price
      *
@@ -14052,6 +15882,66 @@ export type VirtualDeliveryCreate = {
 };
 
 /**
+ * VoucherRead
+ */
+export type VoucherRead = {
+    /**
+     * Order Id
+     *
+     * 订单标识
+     */
+    order_id: string;
+    /**
+     * Merchant Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_id: string;
+    /**
+     * Status
+     *
+     * 当前状态代码
+     */
+    status: string;
+    /**
+     * Code
+     *
+     * 仅买家本人且待核销时返回
+     */
+    code?: string | null;
+    /**
+     * Qr Data Url
+     *
+     * 仅买家本人待核销凭证的二维码PNG
+     */
+    qr_data_url?: string | null;
+    /**
+     * Expires At
+     *
+     * 凭据过期时间
+     */
+    expires_at: string;
+    /**
+     * Redeemed At
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    redeemed_at: string | null;
+    /**
+     * Items
+     *
+     * 核销记录的订单商品快照
+     */
+    items?: Array<string>;
+    /**
+     * Order Gross Amount
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    order_gross_amount?: string | null;
+};
+
+/**
  * WalletLedgerRead
  */
 export type WalletLedgerRead = {
@@ -14324,6 +16214,866 @@ export type WithdrawalReview = {
      */
     note: string;
 };
+
+export type CategoryMerchantsApiV1MerchantsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Category Id
+         */
+        category_id?: string | null;
+        /**
+         * Search
+         */
+        search?: string | null;
+    };
+    url: '/api/v1/merchants';
+};
+
+export type CategoryMerchantsApiV1MerchantsGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type CategoryMerchantsApiV1MerchantsGetError = CategoryMerchantsApiV1MerchantsGetErrors[keyof CategoryMerchantsApiV1MerchantsGetErrors];
+
+export type CategoryMerchantsApiV1MerchantsGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelListPublicMerchantRead;
+};
+
+export type CategoryMerchantsApiV1MerchantsGetResponse = CategoryMerchantsApiV1MerchantsGetResponses[keyof CategoryMerchantsApiV1MerchantsGetResponses];
+
+export type RolesApiV1UsersMeBusinessRolesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/users/me/business-roles';
+};
+
+export type RolesApiV1UsersMeBusinessRolesGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelLocalRolesRead;
+};
+
+export type RolesApiV1UsersMeBusinessRolesGetResponse = RolesApiV1UsersMeBusinessRolesGetResponses[keyof RolesApiV1UsersMeBusinessRolesGetResponses];
+
+export type PublicMerchantApiV1MerchantsMerchantIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Merchant Id
+         */
+        merchant_id: string;
+    };
+    query?: never;
+    url: '/api/v1/merchants/{merchant_id}';
+};
+
+export type PublicMerchantApiV1MerchantsMerchantIdGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type PublicMerchantApiV1MerchantsMerchantIdGetError = PublicMerchantApiV1MerchantsMerchantIdGetErrors[keyof PublicMerchantApiV1MerchantsMerchantIdGetErrors];
+
+export type PublicMerchantApiV1MerchantsMerchantIdGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPublicMerchantRead;
+};
+
+export type PublicMerchantApiV1MerchantsMerchantIdGetResponse = PublicMerchantApiV1MerchantsMerchantIdGetResponses[keyof PublicMerchantApiV1MerchantsMerchantIdGetResponses];
+
+export type MerchantsApiV1AdminMerchantsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+    };
+    url: '/api/v1/admin/merchants';
+};
+
+export type MerchantsApiV1AdminMerchantsGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type MerchantsApiV1AdminMerchantsGetError = MerchantsApiV1AdminMerchantsGetErrors[keyof MerchantsApiV1AdminMerchantsGetErrors];
+
+export type MerchantsApiV1AdminMerchantsGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPageResultMerchantRead;
+};
+
+export type MerchantsApiV1AdminMerchantsGetResponse = MerchantsApiV1AdminMerchantsGetResponses[keyof MerchantsApiV1AdminMerchantsGetResponses];
+
+export type CreateMerchantApiV1AdminMerchantsPostData = {
+    body: MerchantInput;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/merchants';
+};
+
+export type CreateMerchantApiV1AdminMerchantsPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type CreateMerchantApiV1AdminMerchantsPostError = CreateMerchantApiV1AdminMerchantsPostErrors[keyof CreateMerchantApiV1AdminMerchantsPostErrors];
+
+export type CreateMerchantApiV1AdminMerchantsPostResponses = {
+    /**
+     * 请求成功
+     */
+    201: ResponseModelMerchantRead;
+};
+
+export type CreateMerchantApiV1AdminMerchantsPostResponse = CreateMerchantApiV1AdminMerchantsPostResponses[keyof CreateMerchantApiV1AdminMerchantsPostResponses];
+
+export type UpdateMerchantApiV1AdminMerchantsMerchantIdPutData = {
+    body: MerchantUpdate;
+    path: {
+        /**
+         * Merchant Id
+         */
+        merchant_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/merchants/{merchant_id}';
+};
+
+export type UpdateMerchantApiV1AdminMerchantsMerchantIdPutErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateMerchantApiV1AdminMerchantsMerchantIdPutError = UpdateMerchantApiV1AdminMerchantsMerchantIdPutErrors[keyof UpdateMerchantApiV1AdminMerchantsMerchantIdPutErrors];
+
+export type UpdateMerchantApiV1AdminMerchantsMerchantIdPutResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelMerchantRead;
+};
+
+export type UpdateMerchantApiV1AdminMerchantsMerchantIdPutResponse = UpdateMerchantApiV1AdminMerchantsMerchantIdPutResponses[keyof UpdateMerchantApiV1AdminMerchantsMerchantIdPutResponses];
+
+export type MerchantStatusApiV1AdminMerchantsStatusBatchPatchData = {
+    body: ActiveStatusBatch;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/merchants/status/batch';
+};
+
+export type MerchantStatusApiV1AdminMerchantsStatusBatchPatchErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type MerchantStatusApiV1AdminMerchantsStatusBatchPatchError = MerchantStatusApiV1AdminMerchantsStatusBatchPatchErrors[keyof MerchantStatusApiV1AdminMerchantsStatusBatchPatchErrors];
+
+export type MerchantStatusApiV1AdminMerchantsStatusBatchPatchResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelBatchCompleted;
+};
+
+export type MerchantStatusApiV1AdminMerchantsStatusBatchPatchResponse = MerchantStatusApiV1AdminMerchantsStatusBatchPatchResponses[keyof MerchantStatusApiV1AdminMerchantsStatusBatchPatchResponses];
+
+export type OperatorsApiV1AdminPropertyOperatorsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+        /**
+         * Search
+         */
+        search?: string | null;
+    };
+    url: '/api/v1/admin/property-operators';
+};
+
+export type OperatorsApiV1AdminPropertyOperatorsGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type OperatorsApiV1AdminPropertyOperatorsGetError = OperatorsApiV1AdminPropertyOperatorsGetErrors[keyof OperatorsApiV1AdminPropertyOperatorsGetErrors];
+
+export type OperatorsApiV1AdminPropertyOperatorsGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPageResultOperatorRead;
+};
+
+export type OperatorsApiV1AdminPropertyOperatorsGetResponse = OperatorsApiV1AdminPropertyOperatorsGetResponses[keyof OperatorsApiV1AdminPropertyOperatorsGetResponses];
+
+export type CreateOperatorApiV1AdminPropertyOperatorsPostData = {
+    body: OperatorInput;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/property-operators';
+};
+
+export type CreateOperatorApiV1AdminPropertyOperatorsPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type CreateOperatorApiV1AdminPropertyOperatorsPostError = CreateOperatorApiV1AdminPropertyOperatorsPostErrors[keyof CreateOperatorApiV1AdminPropertyOperatorsPostErrors];
+
+export type CreateOperatorApiV1AdminPropertyOperatorsPostResponses = {
+    /**
+     * 请求成功
+     */
+    201: ResponseModelOperatorRead;
+};
+
+export type CreateOperatorApiV1AdminPropertyOperatorsPostResponse = CreateOperatorApiV1AdminPropertyOperatorsPostResponses[keyof CreateOperatorApiV1AdminPropertyOperatorsPostResponses];
+
+export type UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutData = {
+    body: OperatorUpdate;
+    path: {
+        /**
+         * Operator Id
+         */
+        operator_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/property-operators/{operator_id}';
+};
+
+export type UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutError = UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutErrors[keyof UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutErrors];
+
+export type UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelOperatorRead;
+};
+
+export type UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutResponse = UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutResponses[keyof UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutResponses];
+
+export type OperatorStatusApiV1AdminPropertyOperatorsStatusBatchPatchData = {
+    body: ActiveStatusBatch;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/property-operators/status/batch';
+};
+
+export type OperatorStatusApiV1AdminPropertyOperatorsStatusBatchPatchErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type OperatorStatusApiV1AdminPropertyOperatorsStatusBatchPatchError = OperatorStatusApiV1AdminPropertyOperatorsStatusBatchPatchErrors[keyof OperatorStatusApiV1AdminPropertyOperatorsStatusBatchPatchErrors];
+
+export type OperatorStatusApiV1AdminPropertyOperatorsStatusBatchPatchResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelBatchCompleted;
+};
+
+export type OperatorStatusApiV1AdminPropertyOperatorsStatusBatchPatchResponse = OperatorStatusApiV1AdminPropertyOperatorsStatusBatchPatchResponses[keyof OperatorStatusApiV1AdminPropertyOperatorsStatusBatchPatchResponses];
+
+export type AdminLookupApiV1AdminPropertyOperatorsLookupUserPostData = {
+    body: PhoneLookup;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/property-operators/lookup-user';
+};
+
+export type AdminLookupApiV1AdminPropertyOperatorsLookupUserPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type AdminLookupApiV1AdminPropertyOperatorsLookupUserPostError = AdminLookupApiV1AdminPropertyOperatorsLookupUserPostErrors[keyof AdminLookupApiV1AdminPropertyOperatorsLookupUserPostErrors];
+
+export type AdminLookupApiV1AdminPropertyOperatorsLookupUserPostResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPropertyTargetRead;
+};
+
+export type AdminLookupApiV1AdminPropertyOperatorsLookupUserPostResponse = AdminLookupApiV1AdminPropertyOperatorsLookupUserPostResponses[keyof AdminLookupApiV1AdminPropertyOperatorsLookupUserPostResponses];
+
+export type LookupApiV1PropertyPointsLookupUserPostData = {
+    body: PhoneLookup;
+    path?: never;
+    query?: never;
+    url: '/api/v1/property/points/lookup-user';
+};
+
+export type LookupApiV1PropertyPointsLookupUserPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type LookupApiV1PropertyPointsLookupUserPostError = LookupApiV1PropertyPointsLookupUserPostErrors[keyof LookupApiV1PropertyPointsLookupUserPostErrors];
+
+export type LookupApiV1PropertyPointsLookupUserPostResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPropertyTargetRead;
+};
+
+export type LookupApiV1PropertyPointsLookupUserPostResponse = LookupApiV1PropertyPointsLookupUserPostResponses[keyof LookupApiV1PropertyPointsLookupUserPostResponses];
+
+export type GrantsApiV1PropertyPointsGrantsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/property/points/grants';
+};
+
+export type GrantsApiV1PropertyPointsGrantsGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type GrantsApiV1PropertyPointsGrantsGetError = GrantsApiV1PropertyPointsGrantsGetErrors[keyof GrantsApiV1PropertyPointsGrantsGetErrors];
+
+export type GrantsApiV1PropertyPointsGrantsGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPageResultPropertyGrantRead;
+};
+
+export type GrantsApiV1PropertyPointsGrantsGetResponse = GrantsApiV1PropertyPointsGrantsGetResponses[keyof GrantsApiV1PropertyPointsGrantsGetResponses];
+
+export type GrantApiV1PropertyPointsGrantsPostData = {
+    body: PropertyGrantCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/property/points/grants';
+};
+
+export type GrantApiV1PropertyPointsGrantsPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type GrantApiV1PropertyPointsGrantsPostError = GrantApiV1PropertyPointsGrantsPostErrors[keyof GrantApiV1PropertyPointsGrantsPostErrors];
+
+export type GrantApiV1PropertyPointsGrantsPostResponses = {
+    /**
+     * 请求成功
+     */
+    201: ResponseModelPropertyGrantRead;
+};
+
+export type GrantApiV1PropertyPointsGrantsPostResponse = GrantApiV1PropertyPointsGrantsPostResponses[keyof GrantApiV1PropertyPointsGrantsPostResponses];
+
+export type GrantRequestApiV1PropertyPointsGrantsByRequestRequestIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Request Id
+         */
+        request_id: string;
+    };
+    query?: never;
+    url: '/api/v1/property/points/grants/by-request/{request_id}';
+};
+
+export type GrantRequestApiV1PropertyPointsGrantsByRequestRequestIdGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type GrantRequestApiV1PropertyPointsGrantsByRequestRequestIdGetError = GrantRequestApiV1PropertyPointsGrantsByRequestRequestIdGetErrors[keyof GrantRequestApiV1PropertyPointsGrantsByRequestRequestIdGetErrors];
+
+export type GrantRequestApiV1PropertyPointsGrantsByRequestRequestIdGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPropertyGrantRead;
+};
+
+export type GrantRequestApiV1PropertyPointsGrantsByRequestRequestIdGetResponse = GrantRequestApiV1PropertyPointsGrantsByRequestRequestIdGetResponses[keyof GrantRequestApiV1PropertyPointsGrantsByRequestRequestIdGetResponses];
+
+export type BuyerVoucherApiV1OrdersOrderIdRedemptionGetData = {
+    body?: never;
+    path: {
+        /**
+         * Order Id
+         */
+        order_id: string;
+    };
+    query?: never;
+    url: '/api/v1/orders/{order_id}/redemption';
+};
+
+export type BuyerVoucherApiV1OrdersOrderIdRedemptionGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type BuyerVoucherApiV1OrdersOrderIdRedemptionGetError = BuyerVoucherApiV1OrdersOrderIdRedemptionGetErrors[keyof BuyerVoucherApiV1OrdersOrderIdRedemptionGetErrors];
+
+export type BuyerVoucherApiV1OrdersOrderIdRedemptionGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelVoucherRead;
+};
+
+export type BuyerVoucherApiV1OrdersOrderIdRedemptionGetResponse = BuyerVoucherApiV1OrdersOrderIdRedemptionGetResponses[keyof BuyerVoucherApiV1OrdersOrderIdRedemptionGetResponses];
+
+export type RedemptionPreviewApiV1MerchantRedemptionsPreviewPostData = {
+    body: RedemptionPreviewInput;
+    path?: never;
+    query?: never;
+    url: '/api/v1/merchant/redemptions/preview';
+};
+
+export type RedemptionPreviewApiV1MerchantRedemptionsPreviewPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type RedemptionPreviewApiV1MerchantRedemptionsPreviewPostError = RedemptionPreviewApiV1MerchantRedemptionsPreviewPostErrors[keyof RedemptionPreviewApiV1MerchantRedemptionsPreviewPostErrors];
+
+export type RedemptionPreviewApiV1MerchantRedemptionsPreviewPostResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelRedemptionPreviewRead;
+};
+
+export type RedemptionPreviewApiV1MerchantRedemptionsPreviewPostResponse = RedemptionPreviewApiV1MerchantRedemptionsPreviewPostResponses[keyof RedemptionPreviewApiV1MerchantRedemptionsPreviewPostResponses];
+
+export type RedemptionConfirmApiV1MerchantRedemptionsConfirmPostData = {
+    body: RedemptionConfirmInput;
+    path?: never;
+    query?: never;
+    url: '/api/v1/merchant/redemptions/confirm';
+};
+
+export type RedemptionConfirmApiV1MerchantRedemptionsConfirmPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type RedemptionConfirmApiV1MerchantRedemptionsConfirmPostError = RedemptionConfirmApiV1MerchantRedemptionsConfirmPostErrors[keyof RedemptionConfirmApiV1MerchantRedemptionsConfirmPostErrors];
+
+export type RedemptionConfirmApiV1MerchantRedemptionsConfirmPostResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelVoucherRead;
+};
+
+export type RedemptionConfirmApiV1MerchantRedemptionsConfirmPostResponse = RedemptionConfirmApiV1MerchantRedemptionsConfirmPostResponses[keyof RedemptionConfirmApiV1MerchantRedemptionsConfirmPostResponses];
+
+export type RedemptionRecordsApiV1MerchantRedemptionsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/merchant/redemptions';
+};
+
+export type RedemptionRecordsApiV1MerchantRedemptionsGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type RedemptionRecordsApiV1MerchantRedemptionsGetError = RedemptionRecordsApiV1MerchantRedemptionsGetErrors[keyof RedemptionRecordsApiV1MerchantRedemptionsGetErrors];
+
+export type RedemptionRecordsApiV1MerchantRedemptionsGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPageResultVoucherRead;
+};
+
+export type RedemptionRecordsApiV1MerchantRedemptionsGetResponse = RedemptionRecordsApiV1MerchantRedemptionsGetResponses[keyof RedemptionRecordsApiV1MerchantRedemptionsGetResponses];
+
+export type OwnReceivablesApiV1MerchantReceivablesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/merchant/receivables';
+};
+
+export type OwnReceivablesApiV1MerchantReceivablesGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type OwnReceivablesApiV1MerchantReceivablesGetError = OwnReceivablesApiV1MerchantReceivablesGetErrors[keyof OwnReceivablesApiV1MerchantReceivablesGetErrors];
+
+export type OwnReceivablesApiV1MerchantReceivablesGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPageResultReceivableRead;
+};
+
+export type OwnReceivablesApiV1MerchantReceivablesGetResponse = OwnReceivablesApiV1MerchantReceivablesGetResponses[keyof OwnReceivablesApiV1MerchantReceivablesGetResponses];
+
+export type OwnSettlementsApiV1MerchantSettlementsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/merchant/settlements';
+};
+
+export type OwnSettlementsApiV1MerchantSettlementsGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type OwnSettlementsApiV1MerchantSettlementsGetError = OwnSettlementsApiV1MerchantSettlementsGetErrors[keyof OwnSettlementsApiV1MerchantSettlementsGetErrors];
+
+export type OwnSettlementsApiV1MerchantSettlementsGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPageResultSettlementRead;
+};
+
+export type OwnSettlementsApiV1MerchantSettlementsGetResponse = OwnSettlementsApiV1MerchantSettlementsGetResponses[keyof OwnSettlementsApiV1MerchantSettlementsGetResponses];
+
+export type ReceivablesApiV1AdminMerchantReceivablesGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+        /**
+         * Merchant Id
+         */
+        merchant_id?: string | null;
+    };
+    url: '/api/v1/admin/merchant-receivables';
+};
+
+export type ReceivablesApiV1AdminMerchantReceivablesGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type ReceivablesApiV1AdminMerchantReceivablesGetError = ReceivablesApiV1AdminMerchantReceivablesGetErrors[keyof ReceivablesApiV1AdminMerchantReceivablesGetErrors];
+
+export type ReceivablesApiV1AdminMerchantReceivablesGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPageResultReceivableRead;
+};
+
+export type ReceivablesApiV1AdminMerchantReceivablesGetResponse = ReceivablesApiV1AdminMerchantReceivablesGetResponses[keyof ReceivablesApiV1AdminMerchantReceivablesGetResponses];
+
+export type SettlementsApiV1AdminMerchantSettlementsGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+        /**
+         * Merchant Id
+         */
+        merchant_id?: string | null;
+    };
+    url: '/api/v1/admin/merchant-settlements';
+};
+
+export type SettlementsApiV1AdminMerchantSettlementsGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type SettlementsApiV1AdminMerchantSettlementsGetError = SettlementsApiV1AdminMerchantSettlementsGetErrors[keyof SettlementsApiV1AdminMerchantSettlementsGetErrors];
+
+export type SettlementsApiV1AdminMerchantSettlementsGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPageResultSettlementRead;
+};
+
+export type SettlementsApiV1AdminMerchantSettlementsGetResponse = SettlementsApiV1AdminMerchantSettlementsGetResponses[keyof SettlementsApiV1AdminMerchantSettlementsGetResponses];
+
+export type CreateSettlementApiV1AdminMerchantSettlementsPostData = {
+    body: SettlementCreate;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/merchant-settlements';
+};
+
+export type CreateSettlementApiV1AdminMerchantSettlementsPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type CreateSettlementApiV1AdminMerchantSettlementsPostError = CreateSettlementApiV1AdminMerchantSettlementsPostErrors[keyof CreateSettlementApiV1AdminMerchantSettlementsPostErrors];
+
+export type CreateSettlementApiV1AdminMerchantSettlementsPostResponses = {
+    /**
+     * 请求成功
+     */
+    201: ResponseModelSettlementRead;
+};
+
+export type CreateSettlementApiV1AdminMerchantSettlementsPostResponse = CreateSettlementApiV1AdminMerchantSettlementsPostResponses[keyof CreateSettlementApiV1AdminMerchantSettlementsPostResponses];
+
+export type PaySettlementApiV1AdminMerchantSettlementsSettlementIdPaymentPostData = {
+    body: SettlementPayment;
+    path: {
+        /**
+         * Settlement Id
+         */
+        settlement_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/merchant-settlements/{settlement_id}/payment';
+};
+
+export type PaySettlementApiV1AdminMerchantSettlementsSettlementIdPaymentPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type PaySettlementApiV1AdminMerchantSettlementsSettlementIdPaymentPostError = PaySettlementApiV1AdminMerchantSettlementsSettlementIdPaymentPostErrors[keyof PaySettlementApiV1AdminMerchantSettlementsSettlementIdPaymentPostErrors];
+
+export type PaySettlementApiV1AdminMerchantSettlementsSettlementIdPaymentPostResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelSettlementRead;
+};
+
+export type PaySettlementApiV1AdminMerchantSettlementsSettlementIdPaymentPostResponse = PaySettlementApiV1AdminMerchantSettlementsSettlementIdPaymentPostResponses[keyof PaySettlementApiV1AdminMerchantSettlementsSettlementIdPaymentPostResponses];
+
+export type SettlementHistoryApiV1AdminMerchantSettlementsSettlementIdHistoryGetData = {
+    body?: never;
+    path: {
+        /**
+         * Settlement Id
+         */
+        settlement_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/merchant-settlements/{settlement_id}/history';
+};
+
+export type SettlementHistoryApiV1AdminMerchantSettlementsSettlementIdHistoryGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type SettlementHistoryApiV1AdminMerchantSettlementsSettlementIdHistoryGetError = SettlementHistoryApiV1AdminMerchantSettlementsSettlementIdHistoryGetErrors[keyof SettlementHistoryApiV1AdminMerchantSettlementsSettlementIdHistoryGetErrors];
+
+export type SettlementHistoryApiV1AdminMerchantSettlementsSettlementIdHistoryGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelListSettlementEventRead;
+};
+
+export type SettlementHistoryApiV1AdminMerchantSettlementsSettlementIdHistoryGetResponse = SettlementHistoryApiV1AdminMerchantSettlementsSettlementIdHistoryGetResponses[keyof SettlementHistoryApiV1AdminMerchantSettlementsSettlementIdHistoryGetResponses];
+
+export type ReverseSettlementApiV1AdminMerchantSettlementsSettlementIdReversalPostData = {
+    body: SettlementReversal;
+    path: {
+        /**
+         * Settlement Id
+         */
+        settlement_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/merchant-settlements/{settlement_id}/reversal';
+};
+
+export type ReverseSettlementApiV1AdminMerchantSettlementsSettlementIdReversalPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type ReverseSettlementApiV1AdminMerchantSettlementsSettlementIdReversalPostError = ReverseSettlementApiV1AdminMerchantSettlementsSettlementIdReversalPostErrors[keyof ReverseSettlementApiV1AdminMerchantSettlementsSettlementIdReversalPostErrors];
+
+export type ReverseSettlementApiV1AdminMerchantSettlementsSettlementIdReversalPostResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelSettlementRead;
+};
+
+export type ReverseSettlementApiV1AdminMerchantSettlementsSettlementIdReversalPostResponse = ReverseSettlementApiV1AdminMerchantSettlementsSettlementIdReversalPostResponses[keyof ReverseSettlementApiV1AdminMerchantSettlementsSettlementIdReversalPostResponses];
 
 export type BrandsApiV1AdminBrandsGetData = {
     body?: never;
@@ -17010,6 +19760,12 @@ export type PublicProductsApiV1ProductsGetData = {
          * 商品名称关键词，忽略首尾空白
          */
         search?: string | null;
+        /**
+         * Merchant Id
+         *
+         * 在当前分类和搜索条件下筛选商家
+         */
+        merchant_id?: string | null;
     };
     url: '/api/v1/products';
 };

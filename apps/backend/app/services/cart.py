@@ -78,6 +78,7 @@ class CartService:
                 ConsumerCartItemRead(
                     **CartItemRead.model_validate(row).model_dump(),
                     product_id=found[1].id if found else None,
+                    merchant_id=found[1].merchant_id if found else None,
                     product_type=cast(Literal["physical", "virtual"], found[1].product_type) if found else None,
                     product_name=found[1].name if found else "已失效商品",
                     image_url=images[0] if images else None,

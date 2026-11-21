@@ -154,6 +154,7 @@ class DurableTaskService:
             )
         required_key = {
             "expire_order": "order_id",
+            "expire_redemption": "order_id",
             "payment_submit": "payment_attempt_id",
             "payment_query": "payment_attempt_id",
             "payment_close": "payment_attempt_id",

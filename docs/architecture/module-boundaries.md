@@ -39,6 +39,8 @@ Router
 
 数据库外键不等于代码写权限。一个领域可以保存另一个领域公开标识，但不能直接更新对方表。跨领域级联删除默认禁止，生命周期联动必须显式编排。
 
+到店能力通过 `app/services/local_actors.py`、`local_order_lifecycle.py`、`redemptions.py` 和 `merchant_finance.py` 组成明确应用用例，查询与写入准备在 `app/db/repositories/local_commerce.py`、`redemptions.py`、`merchant_finance.py`。积分域拥有物业来源账本及订单积分预占，商品域拥有商家标识与 SKU 上限，订单/履约域保留原金额与退款事实。核销编排持有整单事务，调用现有分佣公开服务安排结算；Router 仅声明协议与权限。Admin 与 Miniapp 各自新增 local-commerce Feature，小程序页面经公共 index 组合能力。
+
 ## 4. 查询边界
 
 普通写模型不得为了方便直接 JOIN 其他领域内部表并据此修改状态。

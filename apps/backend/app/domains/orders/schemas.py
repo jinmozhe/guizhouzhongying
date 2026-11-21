@@ -18,6 +18,9 @@ class CheckoutRequest(BaseModel):
     request_id: UUID
     items: list[CheckoutLine] = Field(min_length=1, max_length=50)
     address_id: UUID | None = None
+    points_to_use: int = Field(
+        default=0, ge=0, le=9999999999999, description="本次使用整数积分，受账户余额及逐件SKU上限约束"
+    )
     quote_fingerprint: str | None = Field(default=None, min_length=64, max_length=64)
 
 
@@ -38,6 +41,8 @@ class QuoteLine(BaseModel):
     quantity: int
     unit_price: Decimal
     line_amount: Decimal
+    points_deduction: int = 0
+    max_points_deduction: int = 0
     product_revision: int
     product_type: str
     price_snapshot: dict[str, object]
@@ -57,6 +62,13 @@ class CheckoutQuote(BaseModel):
     items_amount: Decimal
     freight_amount: Decimal
     total_amount: Decimal
+    order_gross_amount: Decimal
+    points_deduction: int
+    available_points: str
+    maximum_points: int
+    merchant_id: UUID
+    merchant_snapshot: dict[str, object]
+    fulfillment_mode: str
     address_id: UUID | None
     address_snapshot: dict[str, object] | None
     buyer_level_id: UUID | None
@@ -76,6 +88,7 @@ class OrderItemRead(BaseModel):
     quantity: int
     unit_price: Decimal
     line_amount: Decimal
+    points_deduction: int
     price_snapshot: dict[str, object]
 
 
@@ -88,6 +101,11 @@ class OrderRead(BaseModel):
     items_amount: Decimal
     freight_amount: Decimal
     total_amount: Decimal
+    order_gross_amount: Decimal
+    points_deduction: int
+    merchant_id: UUID | None
+    merchant_snapshot: dict[str, object] | None
+    fulfillment_mode: str
     address_snapshot: dict[str, object] | None
     shipping_snapshot: dict[str, object]
     buyer_level_snapshot: dict[str, object]
@@ -110,6 +128,10 @@ class OrderFact(BaseModel):
     items_amount: Decimal
     freight_amount: Decimal
     total_amount: Decimal
+    order_gross_amount: Decimal
+    points_deduction: int
+    merchant_id: UUID | None
+    fulfillment_mode: str
     expires_at: datetime
     created_at: datetime
     paid_at: datetime | None

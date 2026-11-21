@@ -6,6 +6,1735 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/merchants": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "当前分类及名称搜索范围内的去重商家列表",
+        "operationId": "category_merchants_api_v1_merchants_get",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category Id"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_list_PublicMerchantRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/business-roles": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "读取本人实时附加业务身份",
+        "operationId": "roles_api_v1_users_me_business_roles_get",
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_LocalRolesRead_"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/merchants/{merchant_id}": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "查看商家公开资料",
+        "operationId": "public_merchant_api_v1_merchants__merchant_id__get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Merchant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PublicMerchantRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/merchants": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "分页查看商家",
+        "operationId": "merchants_api_v1_admin_merchants_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从一开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从一开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页数量",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页数量"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_MerchantRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "创建商家并关联可信手机号用户",
+        "operationId": "create_merchant_api_v1_admin_merchants_post",
+        "parameters": [
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MerchantInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_MerchantRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/merchants/{merchant_id}": {
+      "put": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "修改商家资料与核销授权",
+        "operationId": "update_merchant_api_v1_admin_merchants__merchant_id__put",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MerchantUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_MerchantRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/merchants/status/batch": {
+      "patch": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "原子批量启停商家",
+        "operationId": "merchant_status_api_v1_admin_merchants_status_batch_patch",
+        "parameters": [
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActiveStatusBatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_BatchCompleted_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/property-operators": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "分页查看物业授权",
+        "operationId": "operators_api_v1_admin_property_operators_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从一开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从一开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页数量",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页数量"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_OperatorRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "创建物业手机号授权",
+        "operationId": "create_operator_api_v1_admin_property_operators_post",
+        "parameters": [
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperatorInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_OperatorRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/property-operators/{operator_id}": {
+      "put": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "编辑物业授权",
+        "operationId": "update_operator_api_v1_admin_property_operators__operator_id__put",
+        "parameters": [
+          {
+            "name": "operator_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Operator Id"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OperatorUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_OperatorRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/property-operators/status/batch": {
+      "patch": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "原子批量启停物业授权",
+        "operationId": "operator_status_api_v1_admin_property_operators_status_batch_patch",
+        "parameters": [
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActiveStatusBatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_BatchCompleted_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/property-operators/lookup-user": {
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "按完整手机号查询可绑定用户",
+        "operationId": "admin_lookup_api_v1_admin_property_operators_lookup_user_post",
+        "parameters": [
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneLookup"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PropertyTargetRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/property/points/lookup-user": {
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "物业按手机号查询发分目标",
+        "operationId": "lookup_api_v1_property_points_lookup_user_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhoneLookup"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PropertyTargetRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/property/points/grants": {
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "物业幂等发放积分，不累计升级资格",
+        "operationId": "grant_api_v1_property_points_grants_post",
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyGrantCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PropertyGrantRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "查询本人物业发放记录",
+        "operationId": "grants_api_v1_property_points_grants_get",
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从一开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从一开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页数量",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页数量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_PropertyGrantRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/property/points/grants/by-request/{request_id}": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "找回原积分发放请求结果",
+        "operationId": "grant_request_api_v1_property_points_grants_by_request__request_id__get",
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PropertyGrantRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/orders/{order_id}/redemption": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "买家读取本人整单核销凭证",
+        "operationId": "buyer_voucher_api_v1_orders__order_id__redemption_get",
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "order_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Order Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_VoucherRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/merchant/redemptions/preview": {
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "商家预览核销码，不执行核销",
+        "operationId": "redemption_preview_api_v1_merchant_redemptions_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedemptionPreviewInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_RedemptionPreviewRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/merchant/redemptions/confirm": {
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "所属商家确认整单核销",
+        "operationId": "redemption_confirm_api_v1_merchant_redemptions_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedemptionConfirmInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_VoucherRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/merchant/redemptions": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "查看本商家整单核销记录",
+        "operationId": "redemption_records_api_v1_merchant_redemptions_get",
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从一开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从一开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页数量",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页数量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_VoucherRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/merchant/receivables": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "商家查看本人全额应收",
+        "operationId": "own_receivables_api_v1_merchant_receivables_get",
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从一开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从一开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页数量",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页数量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_ReceivableRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/merchant/settlements": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "商家查看本人结算",
+        "operationId": "own_settlements_api_v1_merchant_settlements_get",
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从一开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从一开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页数量",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页数量"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_SettlementRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/merchant-receivables": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "后台商家全额应收台账",
+        "operationId": "receivables_api_v1_admin_merchant_receivables_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从一开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从一开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页数量",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页数量"
+          },
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_ReceivableRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/merchant-settlements": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "后台商家结算批次",
+        "operationId": "settlements_api_v1_admin_merchant_settlements_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从一开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从一开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页数量",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页数量"
+          },
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_SettlementRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "以完整未结算应收创建对账批次",
+        "operationId": "create_settlement_api_v1_admin_merchant_settlements_post",
+        "parameters": [
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettlementCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_SettlementRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/merchant-settlements/{settlement_id}/payment": {
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "登记线下全额打款事实",
+        "operationId": "pay_settlement_api_v1_admin_merchant_settlements__settlement_id__payment_post",
+        "parameters": [
+          {
+            "name": "settlement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Settlement Id"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettlementPayment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_SettlementRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/merchant-settlements/{settlement_id}/history": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "查看不可变付款及冲正历史",
+        "operationId": "settlement_history_api_v1_admin_merchant_settlements__settlement_id__history_get",
+        "parameters": [
+          {
+            "name": "settlement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Settlement Id"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_list_SettlementEventRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/merchant-settlements/{settlement_id}/reversal": {
+      "post": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "冲正错误付款登记，保留历史且不操作实际资金",
+        "operationId": "reverse_settlement_api_v1_admin_merchant_settlements__settlement_id__reversal_post",
+        "parameters": [
+          {
+            "name": "settlement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Settlement Id"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettlementReversal"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_SettlementRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/brands": {
       "get": {
         "tags": [
@@ -6621,6 +8350,25 @@
               "title": "Search"
             },
             "description": "商品名称关键词，忽略首尾空白"
+          },
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "在当前分类和搜索条件下筛选商家",
+              "title": "Merchant Id"
+            },
+            "description": "在当前分类和搜索条件下筛选商家"
           }
         ],
         "responses": {
@@ -16230,6 +17978,35 @@
             "title": "Total Amount",
             "description": "订单应付总金额，单位人民币元"
           },
+          "order_gross_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Order Gross Amount",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "points_deduction": {
+            "type": "integer",
+            "title": "Points Deduction",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "title": "Fulfillment Mode",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "expires_at": {
             "type": "string",
             "format": "date-time",
@@ -16296,6 +18073,10 @@
           "items_amount",
           "freight_amount",
           "total_amount",
+          "order_gross_amount",
+          "points_deduction",
+          "merchant_id",
+          "fulfillment_mode",
           "expires_at",
           "created_at",
           "paid_at",
@@ -18757,6 +20538,44 @@
             "title": "Total Amount",
             "description": "订单应付总金额，单位人民币元"
           },
+          "order_gross_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Order Gross Amount",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "points_deduction": {
+            "type": "integer",
+            "title": "Points Deduction",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "available_points": {
+            "type": "string",
+            "title": "Available Points",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "maximum_points": {
+            "type": "integer",
+            "title": "Maximum Points",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Merchant Snapshot",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "title": "Fulfillment Mode",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "address_id": {
             "anyOf": [
               {
@@ -18822,6 +20641,13 @@
           "items_amount",
           "freight_amount",
           "total_amount",
+          "order_gross_amount",
+          "points_deduction",
+          "available_points",
+          "maximum_points",
+          "merchant_id",
+          "merchant_snapshot",
+          "fulfillment_mode",
           "address_id",
           "address_snapshot",
           "buyer_level_id",
@@ -18861,6 +20687,14 @@
             ],
             "title": "Address Id",
             "description": "收货地址标识"
+          },
+          "points_to_use": {
+            "type": "integer",
+            "maximum": 9999999999999.0,
+            "minimum": 0.0,
+            "title": "Points To Use",
+            "description": "本次使用整数积分，受账户余额及逐件SKU上限约束",
+            "default": 0
           },
           "quote_fingerprint": {
             "anyOf": [
@@ -20137,6 +21971,19 @@
             "title": "Revision",
             "description": "资源并发控制版本"
           },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "product_id": {
             "anyOf": [
               {
@@ -20229,6 +22076,7 @@
           "quantity",
           "selected",
           "revision",
+          "merchant_id",
           "product_id",
           "product_type",
           "product_name",
@@ -20849,7 +22697,8 @@
               "order",
               "refund",
               "redemption",
-              "manual"
+              "manual",
+              "property"
             ],
             "title": "Source Type",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
@@ -21028,6 +22877,11 @@
       },
       "ConsumerRefundRead": {
         "properties": {
+          "points_returned": {
+            "type": "integer",
+            "title": "Points Returned",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -21173,6 +23027,7 @@
         },
         "type": "object",
         "required": [
+          "points_returned",
           "id",
           "order_id",
           "status",
@@ -21350,6 +23205,48 @@
             "title": "Total Amount",
             "description": "订单应付总金额，单位人民币元"
           },
+          "order_gross_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Order Gross Amount",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "points_deduction": {
+            "type": "integer",
+            "title": "Points Deduction",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_snapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Snapshot",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "title": "Fulfillment Mode",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "address_snapshot": {
             "anyOf": [
               {
@@ -21483,6 +23380,11 @@
           "items_amount",
           "freight_amount",
           "total_amount",
+          "order_gross_amount",
+          "points_deduction",
+          "merchant_id",
+          "merchant_snapshot",
+          "fulfillment_mode",
           "address_snapshot",
           "shipping_snapshot",
           "buyer_level_snapshot",
@@ -22519,6 +24421,48 @@
           "status"
         ],
         "title": "LiveStatus"
+      },
+      "LocalRolesRead": {
+        "properties": {
+          "member": {
+            "type": "boolean",
+            "title": "Member",
+            "default": true,
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "property_operator_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Operator Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          }
+        },
+        "type": "object",
+        "required": [
+          "merchant_id",
+          "property_operator_id"
+        ],
+        "title": "LocalRolesRead"
       },
       "LoginEventRead": {
         "properties": {
@@ -23849,6 +25793,307 @@
         ],
         "title": "MembershipQualificationEventRead"
       },
+      "MerchantInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "资源名称"
+          },
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "国际格式授权手机号，中国手机号填写 +86"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true,
+            "description": "资源当前是否启用"
+          },
+          "logo_asset_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Asset Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Description",
+            "default": "",
+            "description": "资源说明文本"
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Address",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "business_hours": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Business Hours",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "public_phone": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Public Phone",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "phone_e164"
+        ],
+        "title": "MerchantInput"
+      },
+      "MerchantRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "资源名称"
+          },
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "国际格式授权手机号，中国手机号填写 +86"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true,
+            "description": "资源当前是否启用"
+          },
+          "logo_asset_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Asset Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Description",
+            "default": "",
+            "description": "资源说明文本"
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Address",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "business_hours": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Business Hours",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "public_phone": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Public Phone",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "用户标识"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "phone_e164",
+          "id",
+          "user_id",
+          "revision"
+        ],
+        "title": "MerchantRead"
+      },
+      "MerchantUpdate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "资源名称"
+          },
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "国际格式授权手机号，中国手机号填写 +86"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true,
+            "description": "资源当前是否启用"
+          },
+          "logo_asset_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Asset Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Description",
+            "default": "",
+            "description": "资源说明文本"
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Address",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "business_hours": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Business Hours",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "public_phone": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Public Phone",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "phone_e164",
+          "revision"
+        ],
+        "title": "MerchantUpdate"
+      },
       "MiniappRegistrationPatch": {
         "properties": {
           "revision": {
@@ -23930,6 +26175,14 @@
             ],
             "title": "Price",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "max_points_deduction": {
+            "type": "integer",
+            "maximum": 9999999999999.0,
+            "minimum": 0.0,
+            "title": "Max Points Deduction",
+            "description": "单件积分上限，1积分抵1元",
+            "default": 0
           },
           "cost_price": {
             "anyOf": [
@@ -24035,6 +26288,130 @@
         ],
         "title": "OperationIntentRead"
       },
+      "OperatorInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "资源名称"
+          },
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "国际格式授权手机号，中国手机号填写 +86"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true,
+            "description": "资源当前是否启用"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "phone_e164"
+        ],
+        "title": "OperatorInput"
+      },
+      "OperatorRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "资源名称"
+          },
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "国际格式授权手机号，中国手机号填写 +86"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true,
+            "description": "资源当前是否启用"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "用户标识"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "phone_e164",
+          "id",
+          "user_id",
+          "revision"
+        ],
+        "title": "OperatorRead"
+      },
+      "OperatorUpdate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "资源名称"
+          },
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "国际格式授权手机号，中国手机号填写 +86"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true,
+            "description": "资源当前是否启用"
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "phone_e164",
+          "revision"
+        ],
+        "title": "OperatorUpdate"
+      },
       "OrderAcceptance": {
         "properties": {
           "revision": {
@@ -24100,6 +26477,11 @@
             "title": "Line Amount",
             "description": "订单明细金额，单位人民币元"
           },
+          "points_deduction": {
+            "type": "integer",
+            "title": "Points Deduction",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "price_snapshot": {
             "additionalProperties": true,
             "type": "object",
@@ -24117,6 +26499,7 @@
           "quantity",
           "unit_price",
           "line_amount",
+          "points_deduction",
           "price_snapshot"
         ],
         "title": "OrderItemRead"
@@ -24156,6 +26539,48 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Total Amount",
             "description": "订单应付总金额，单位人民币元"
+          },
+          "order_gross_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Order Gross Amount",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "points_deduction": {
+            "type": "integer",
+            "title": "Points Deduction",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_snapshot": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Snapshot",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "title": "Fulfillment Mode",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
           "address_snapshot": {
             "anyOf": [
@@ -24233,6 +26658,11 @@
           "items_amount",
           "freight_amount",
           "total_amount",
+          "order_gross_amount",
+          "points_deduction",
+          "merchant_id",
+          "merchant_snapshot",
+          "fulfillment_mode",
           "address_snapshot",
           "shipping_snapshot",
           "buyer_level_snapshot",
@@ -25528,6 +27958,100 @@
         ],
         "title": "PageResult[MembershipQualificationEventRead]"
       },
+      "PageResult_MerchantRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MerchantRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "当前页码，从 1 开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "每页资源数量"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "符合条件的资源总数"
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "description": "符合条件的总页数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PageResult[MerchantRead]"
+      },
+      "PageResult_OperatorRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OperatorRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "当前页码，从 1 开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "每页资源数量"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "符合条件的资源总数"
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "description": "符合条件的总页数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PageResult[OperatorRead]"
+      },
       "PageResult_PaymentAttemptRead_": {
         "properties": {
           "items": {
@@ -25763,6 +28287,53 @@
         ],
         "title": "PageResult[ProductReviewRead]"
       },
+      "PageResult_PropertyGrantRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyGrantRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "当前页码，从 1 开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "每页资源数量"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "符合条件的资源总数"
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "description": "符合条件的总页数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PageResult[PropertyGrantRead]"
+      },
       "PageResult_PublicProductRead_": {
         "properties": {
           "items": {
@@ -25809,6 +28380,53 @@
           "total_pages"
         ],
         "title": "PageResult[PublicProductRead]"
+      },
+      "PageResult_ReceivableRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReceivableRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "当前页码，从 1 开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "每页资源数量"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "符合条件的资源总数"
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "description": "符合条件的总页数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PageResult[ReceivableRead]"
       },
       "PageResult_ReconciliationRecordRead_": {
         "properties": {
@@ -26092,6 +28710,53 @@
         ],
         "title": "PageResult[SessionRead]"
       },
+      "PageResult_SettlementRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SettlementRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "当前页码，从 1 开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "每页资源数量"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "符合条件的资源总数"
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "description": "符合条件的总页数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PageResult[SettlementRead]"
+      },
       "PageResult_ShippingTemplateRead_": {
         "properties": {
           "items": {
@@ -26138,6 +28803,53 @@
           "total_pages"
         ],
         "title": "PageResult[ShippingTemplateRead]"
+      },
+      "PageResult_VoucherRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/VoucherRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "当前页码，从 1 开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "每页资源数量"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "符合条件的资源总数"
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "description": "符合条件的总页数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PageResult[VoucherRead]"
       },
       "PageResult_WalletLedgerRead_": {
         "properties": {
@@ -26530,6 +29242,22 @@
         ],
         "title": "PermissionRead"
       },
+      "PhoneLookup": {
+        "properties": {
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "phone_e164"
+        ],
+        "title": "PhoneLookup"
+      },
       "PointsAccountRead": {
         "properties": {
           "id": {
@@ -26834,6 +29562,29 @@
             "title": "Brand Id",
             "description": "可选品牌"
           },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "唯一到店消费商家"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "enum": [
+              "legacy",
+              "local"
+            ],
+            "title": "Fulfillment Mode",
+            "description": "当前新增售卖使用到店核销；legacy保留历史商品",
+            "default": "local"
+          },
           "purchase_limit_quantity": {
             "type": "integer",
             "maximum": 2147483647.0,
@@ -26917,6 +29668,29 @@
             ],
             "title": "Brand Id",
             "description": "可选品牌"
+          },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "唯一到店消费商家"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "enum": [
+              "legacy",
+              "local"
+            ],
+            "title": "Fulfillment Mode",
+            "description": "当前新增售卖使用到店核销；legacy保留历史商品",
+            "default": "local"
           },
           "purchase_limit_quantity": {
             "type": "integer",
@@ -27161,6 +29935,29 @@
             ],
             "title": "Brand Id",
             "description": "可选品牌"
+          },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "唯一到店消费商家"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "enum": [
+              "legacy",
+              "local"
+            ],
+            "title": "Fulfillment Mode",
+            "description": "当前新增售卖使用到店核销；legacy保留历史商品",
+            "default": "local"
           },
           "purchase_limit_quantity": {
             "type": "integer",
@@ -27489,6 +30286,29 @@
             "title": "Brand Id",
             "description": "可选品牌"
           },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "唯一到店消费商家"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "enum": [
+              "legacy",
+              "local"
+            ],
+            "title": "Fulfillment Mode",
+            "description": "当前新增售卖使用到店核销；legacy保留历史商品",
+            "default": "local"
+          },
           "purchase_limit_quantity": {
             "type": "integer",
             "maximum": 2147483647.0,
@@ -27535,6 +30355,153 @@
         ],
         "title": "ProductUpdate"
       },
+      "PropertyGrantCreate": {
+        "properties": {
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": "用户标识"
+          },
+          "phone_verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Phone Verified At",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "points": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "title": "Points",
+            "description": "正整数积分字符串，避免客户端大整数丢失"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Note",
+            "default": "",
+            "description": "操作说明或核对备注"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "phone_e164",
+          "request_id",
+          "user_id",
+          "phone_verified_at",
+          "points"
+        ],
+        "title": "PropertyGrantCreate"
+      },
+      "PropertyGrantRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": "用户标识"
+          },
+          "points": {
+            "type": "string",
+            "title": "Points",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "description": "操作说明或核对备注"
+          },
+          "ledger_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Ledger Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "创建时间"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "request_id",
+          "user_id",
+          "points",
+          "note",
+          "ledger_id",
+          "created_at"
+        ],
+        "title": "PropertyGrantRead"
+      },
+      "PropertyTargetRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "展示名称"
+          },
+          "phone_masked": {
+            "type": "string",
+            "title": "Phone Masked",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "phone_verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Phone Verified At",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "display_name",
+          "phone_masked",
+          "phone_verified_at"
+        ],
+        "title": "PropertyTargetRead"
+      },
       "PublicDetailImageRead": {
         "properties": {
           "url": {
@@ -27562,6 +30529,76 @@
           "height"
         ],
         "title": "PublicDetailImageRead"
+      },
+      "PublicMerchantRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "资源名称"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "资源说明文本"
+          },
+          "description_format": {
+            "type": "string",
+            "const": "restricted_html_v1",
+            "title": "Description Format",
+            "default": "restricted_html_v1",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "business_hours": {
+            "type": "string",
+            "title": "Business Hours",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "public_phone": {
+            "type": "string",
+            "title": "Public Phone",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "资源当前是否启用"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "address",
+          "business_hours",
+          "public_phone",
+          "is_active"
+        ],
+        "title": "PublicMerchantRead"
       },
       "PublicProductDetailRead": {
         "properties": {
@@ -27618,6 +30655,28 @@
             "title": "Brand Id",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "enum": [
+              "legacy",
+              "local"
+            ],
+            "title": "Fulfillment Mode",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "images": {
             "items": {
               "type": "string"
@@ -27660,6 +30719,8 @@
           "product_type",
           "category_id",
           "brand_id",
+          "merchant_id",
+          "fulfillment_mode",
           "images",
           "skus",
           "attributes",
@@ -27722,6 +30783,28 @@
             "title": "Brand Id",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
+          "merchant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "fulfillment_mode": {
+            "type": "string",
+            "enum": [
+              "legacy",
+              "local"
+            ],
+            "title": "Fulfillment Mode",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "images": {
             "items": {
               "type": "string"
@@ -27756,6 +30839,8 @@
           "product_type",
           "category_id",
           "brand_id",
+          "merchant_id",
+          "fulfillment_mode",
           "images",
           "skus",
           "attributes"
@@ -27792,6 +30877,11 @@
             "type": "string",
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Price",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "max_points_deduction": {
+            "type": "integer",
+            "title": "Max Points Deduction",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
           "market_price": {
@@ -27840,6 +30930,7 @@
           "sku_no",
           "specifications",
           "price",
+          "max_points_deduction",
           "market_price",
           "wholesale_prices",
           "weight_grams",
@@ -27919,6 +31010,18 @@
             "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
             "title": "Line Amount",
             "description": "订单明细金额，单位人民币元"
+          },
+          "points_deduction": {
+            "type": "integer",
+            "title": "Points Deduction",
+            "default": 0,
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "max_points_deduction": {
+            "type": "integer",
+            "title": "Max Points Deduction",
+            "default": 0,
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
           "product_revision": {
             "type": "integer",
@@ -28112,6 +31215,77 @@
           "revision"
         ],
         "title": "ReceiptConfirm"
+      },
+      "ReceivableRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "merchant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "order_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Order Id",
+            "description": "订单标识"
+          },
+          "gross_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Gross Amount",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "cash_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Cash Amount",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "points_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Points Amount",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "settlement_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settlement Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "创建时间"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "merchant_id",
+          "order_id",
+          "gross_amount",
+          "cash_amount",
+          "points_amount",
+          "settlement_id",
+          "created_at"
+        ],
+        "title": "ReceivableRead"
       },
       "ReconciliationRecordCreate": {
         "properties": {
@@ -28391,6 +31565,113 @@
         ],
         "title": "ReconciliationResolve"
       },
+      "RedemptionConfirmInput": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 32,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          },
+          "order_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Order Id",
+            "description": "订单标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "request_id",
+          "order_id"
+        ],
+        "title": "RedemptionConfirmInput"
+      },
+      "RedemptionPreviewInput": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 32,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Code",
+            "description": "稳定程序代码"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "RedemptionPreviewInput"
+      },
+      "RedemptionPreviewRead": {
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Order Id",
+            "description": "订单标识"
+          },
+          "merchant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_name": {
+            "type": "string",
+            "title": "Merchant Name",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "order_gross_amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Order Gross Amount",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At",
+            "description": "凭据过期时间"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "当前状态代码"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_id",
+          "merchant_id",
+          "merchant_name",
+          "items",
+          "order_gross_amount",
+          "expires_at",
+          "status"
+        ],
+        "title": "RedemptionPreviewRead"
+      },
       "RedisHealthRead": {
         "properties": {
           "status": {
@@ -28655,6 +31936,11 @@
       },
       "RefundRequestRead": {
         "properties": {
+          "points_returned": {
+            "type": "integer",
+            "title": "Points Returned",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -28757,6 +32043,7 @@
         },
         "type": "object",
         "required": [
+          "points_returned",
           "id",
           "order_id",
           "status",
@@ -30230,6 +33517,38 @@
         ],
         "title": "ResponseModel[InventoryRead]"
       },
+      "ResponseModel_LocalRolesRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LocalRolesRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[LocalRolesRead]"
+      },
       "ResponseModel_MemberLevelConditionRead_": {
         "properties": {
           "code": {
@@ -30325,6 +33644,38 @@
           "request_id"
         ],
         "title": "ResponseModel[MemberPriceRuleRead]"
+      },
+      "ResponseModel_MerchantRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MerchantRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[MerchantRead]"
       },
       "ResponseModel_MiniappRegistrationRead_": {
         "properties": {
@@ -30422,6 +33773,38 @@
           "request_id"
         ],
         "title": "ResponseModel[OperationIntentRead]"
+      },
+      "ResponseModel_OperatorRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OperatorRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[OperatorRead]"
       },
       "ResponseModel_OrderRead_": {
         "properties": {
@@ -31287,6 +34670,70 @@
         ],
         "title": "ResponseModel[PageResult[MembershipQualificationEventRead]]"
       },
+      "ResponseModel_PageResult_MerchantRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResult_MerchantRead_",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PageResult[MerchantRead]]"
+      },
+      "ResponseModel_PageResult_OperatorRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResult_OperatorRead_",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PageResult[OperatorRead]]"
+      },
       "ResponseModel_PageResult_PaymentAttemptRead__": {
         "properties": {
           "code": {
@@ -31447,6 +34894,38 @@
         ],
         "title": "ResponseModel[PageResult[ProductReviewRead]]"
       },
+      "ResponseModel_PageResult_PropertyGrantRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResult_PropertyGrantRead_",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PageResult[PropertyGrantRead]]"
+      },
       "ResponseModel_PageResult_PublicProductRead__": {
         "properties": {
           "code": {
@@ -31478,6 +34957,38 @@
           "request_id"
         ],
         "title": "ResponseModel[PageResult[PublicProductRead]]"
+      },
+      "ResponseModel_PageResult_ReceivableRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResult_ReceivableRead_",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PageResult[ReceivableRead]]"
       },
       "ResponseModel_PageResult_ReconciliationRecordRead__": {
         "properties": {
@@ -31671,6 +35182,38 @@
         ],
         "title": "ResponseModel[PageResult[SessionRead]]"
       },
+      "ResponseModel_PageResult_SettlementRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResult_SettlementRead_",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PageResult[SettlementRead]]"
+      },
       "ResponseModel_PageResult_ShippingTemplateRead__": {
         "properties": {
           "code": {
@@ -31702,6 +35245,38 @@
           "request_id"
         ],
         "title": "ResponseModel[PageResult[ShippingTemplateRead]]"
+      },
+      "ResponseModel_PageResult_VoucherRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResult_VoucherRead_",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PageResult[VoucherRead]]"
       },
       "ResponseModel_PageResult_WalletLedgerRead__": {
         "properties": {
@@ -31959,6 +35534,102 @@
         ],
         "title": "ResponseModel[ProductReviewRead]"
       },
+      "ResponseModel_PropertyGrantRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PropertyGrantRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PropertyGrantRead]"
+      },
+      "ResponseModel_PropertyTargetRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PropertyTargetRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PropertyTargetRead]"
+      },
+      "ResponseModel_PublicMerchantRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PublicMerchantRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PublicMerchantRead]"
+      },
       "ResponseModel_PublicProductDetailRead_": {
         "properties": {
           "code": {
@@ -32022,6 +35693,38 @@
           "request_id"
         ],
         "title": "ResponseModel[ReconciliationRecordRead]"
+      },
+      "ResponseModel_RedemptionPreviewRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RedemptionPreviewRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[RedemptionPreviewRead]"
       },
       "ResponseModel_RefreshSessionOut_": {
         "properties": {
@@ -32118,6 +35821,38 @@
           "request_id"
         ],
         "title": "ResponseModel[RoleRead]"
+      },
+      "ResponseModel_SettlementRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SettlementRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[SettlementRead]"
       },
       "ResponseModel_ShippingTemplateRead_": {
         "properties": {
@@ -32342,6 +36077,38 @@
           "request_id"
         ],
         "title": "ResponseModel[UserPrincipalOut]"
+      },
+      "ResponseModel_VoucherRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/VoucherRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[VoucherRead]"
       },
       "ResponseModel_WechatReceiptRead_": {
         "properties": {
@@ -32728,6 +36495,42 @@
         ],
         "title": "ResponseModel[list[PermissionRead]]"
       },
+      "ResponseModel_list_PublicMerchantRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PublicMerchantRead"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[list[PublicMerchantRead]]"
+      },
       "ResponseModel_list_PublicProductRead__": {
         "properties": {
           "code": {
@@ -32763,6 +36566,42 @@
           "request_id"
         ],
         "title": "ResponseModel[list[PublicProductRead]]"
+      },
+      "ResponseModel_list_SettlementEventRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SettlementEventRead"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[list[SettlementEventRead]]"
       },
       "ResponseModel_list_StandardValueRead__": {
         "properties": {
@@ -33203,6 +37042,274 @@
           "revoked_at"
         ],
         "title": "SessionRead"
+      },
+      "SettlementCreate": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          },
+          "merchant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "receivable_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Receivable Ids",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "merchant_id",
+          "receivable_ids"
+        ],
+        "title": "SettlementCreate"
+      },
+      "SettlementEventRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "description": "业务金额，单位人民币元"
+          },
+          "payment_reference": {
+            "type": "string",
+            "title": "Payment Reference",
+            "description": "已确认支付参考号"
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Paid At",
+            "description": "可信支付确认时间"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "申请原因"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "创建时间"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "request_id",
+          "revision",
+          "kind",
+          "amount",
+          "payment_reference",
+          "paid_at",
+          "reason",
+          "created_at"
+        ],
+        "title": "SettlementEventRead"
+      },
+      "SettlementPayment": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*(?:\\d{0,13}|(?=[\\d.]{1,16}0*$)\\d{0,13}\\.\\d{0,2}0*$)"
+              }
+            ],
+            "title": "Amount",
+            "description": "业务金额，单位人民币元"
+          },
+          "payment_reference": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Payment Reference",
+            "description": "已确认支付参考号"
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Paid At",
+            "description": "可信支付确认时间"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "revision",
+          "amount",
+          "payment_reference",
+          "paid_at"
+        ],
+        "title": "SettlementPayment"
+      },
+      "SettlementRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "merchant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Amount",
+            "description": "业务金额，单位人民币元"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "当前状态代码"
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          },
+          "payment_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Reference",
+            "description": "已确认支付参考号"
+          },
+          "paid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paid At",
+            "description": "可信支付确认时间"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "创建时间"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "merchant_id",
+          "amount",
+          "status",
+          "request_id",
+          "payment_reference",
+          "paid_at",
+          "revision",
+          "created_at"
+        ],
+        "title": "SettlementRead"
+      },
+      "SettlementReversal": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          },
+          "revision": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Reason",
+            "description": "申请原因"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "revision",
+          "reason"
+        ],
+        "title": "SettlementReversal"
       },
       "ShipmentCreate": {
         "properties": {
@@ -33939,6 +38046,14 @@
             "title": "Price",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
+          "max_points_deduction": {
+            "type": "integer",
+            "maximum": 9999999999999.0,
+            "minimum": 0.0,
+            "title": "Max Points Deduction",
+            "description": "单件积分上限，1积分抵1元",
+            "default": 0
+          },
           "cost_price": {
             "anyOf": [
               {
@@ -34112,6 +38227,14 @@
             ],
             "title": "Price",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "max_points_deduction": {
+            "type": "integer",
+            "maximum": 9999999999999.0,
+            "minimum": 0.0,
+            "title": "Max Points Deduction",
+            "description": "单件积分上限，1积分抵1元",
+            "default": 0
           },
           "cost_price": {
             "anyOf": [
@@ -35073,6 +39196,100 @@
           "revision"
         ],
         "title": "VirtualDeliveryCreate"
+      },
+      "VoucherRead": {
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Order Id",
+            "description": "订单标识"
+          },
+          "merchant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Merchant Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "当前状态代码"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "仅买家本人且待核销时返回"
+          },
+          "qr_data_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qr Data Url",
+            "description": "仅买家本人待核销凭证的二维码PNG"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At",
+            "description": "凭据过期时间"
+          },
+          "redeemed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redeemed At",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "核销记录的订单商品快照"
+          },
+          "order_gross_amount": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Gross Amount",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_id",
+          "merchant_id",
+          "status",
+          "expires_at",
+          "redeemed_at"
+        ],
+        "title": "VoucherRead"
       },
       "WalletLedgerRead": {
         "properties": {

@@ -18,10 +18,12 @@ from app.core.security import create_access_token, new_opaque_token, token_diges
 from app.db.models import User, UserRefreshToken, UserSession
 from app.db.repositories import SecurityRepository, SessionRepository, SystemSettingRepository, UserRepository
 from app.db.repositories.external_identity import WechatIdentityRepository
+from app.db.repositories.local_commerce import LocalActorsRepository
 from app.db.transaction import transaction_scope
 from app.domains.auth.schemas import ConsumerSessionRead, ConsumerUserRead
 from app.domains.settings.schemas import MiniappRegistrationValue
 from app.services.customer_accounts import CustomerAccountsService
+from app.services.local_actors import LocalActorsService
 from app.services.security_events import SecurityEventWriter, login_event
 
 _EXCHANGE_FAILURES = (httpx.HTTPError, TimeoutError, ValueError)
@@ -167,6 +169,7 @@ class ConsumerAuthService:
         if app_id is None:
             raise RuntimeError("Enabled WeChat login requires an app id")
         async with transaction_scope(self.session):
+            await LocalActorsRepository(self.session).lock_bindings()
             await self.identities.lock_subject(app_id, identity.openid)
             binding = await self.identities.identity(app_id, identity.openid)
             if binding is None:
@@ -210,6 +213,7 @@ class ConsumerAuthService:
                 user = found
             if not user.is_active or user.deleted_at is not None:
                 raise AppException(status_code=403, code=ErrorCode.AUTH_ACCOUNT_DISABLED, message="账户已停用")
+            await LocalActorsService(self.session).synchronize_phone_in_open_transaction(user)
             await CustomerAccountsService(self.session).initialize_in_open_transaction(user.id)
             now = datetime.now(UTC)
             absolute = now + timedelta(days=self.settings.session_absolute_ttl_days)

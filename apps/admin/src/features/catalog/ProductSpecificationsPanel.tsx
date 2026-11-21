@@ -81,6 +81,7 @@ type CandidateFormValues = {
 };
 
 type SkuFormValues = {
+  max_points_deduction?: number;
   code?: string;
   cost_price?: number | string | null;
   is_active?: boolean;
@@ -303,6 +304,7 @@ function SkuEditorModal({
     form.setFieldsValue({
       code: sku?.code,
       price: sku?.price ?? "0",
+      max_points_deduction: sku?.max_points_deduction ?? 0,
       cost_price: sku?.cost_price ?? null,
       market_price: sku?.market_price ?? null,
       weight_grams: sku?.weight_grams ?? null,
@@ -320,6 +322,7 @@ function SkuEditorModal({
     const input: SkuUpdate = {
       code,
       price: textValue(values.price) ?? "0",
+      max_points_deduction: values.max_points_deduction ?? 0,
       cost_price: textValue(values.cost_price),
       market_price: textValue(values.market_price),
       weight_grams: values.weight_grams ?? null,
@@ -353,6 +356,9 @@ function SkuEditorModal({
           </Form.Item>
           <Form.Item name="price" label="售价" tooltip="顾客在小程序下单购买该规格时实付的基础单价（元）" rules={[{ required: true, message: "请填写售价" }]}>
             <InputNumber min={0} precision={2} stringMode prefix="¥" placeholder="售价" style={{ width: 140 }} />
+          </Form.Item>
+          <Form.Item name="max_points_deduction" label="单件最多抵扣积分" tooltip="1积分抵1元，实际抵扣同时受成交单价和会员积分余额限制">
+            <InputNumber min={0} max={9999999999999} precision={0} />
           </Form.Item>
           <Form.Item name="market_price" label="划线价" tooltip="市场划线参考原价（元），用于小程序前台展示划线优惠对比，选填">
             <InputNumber min={0} precision={2} stringMode prefix="¥" placeholder="划线价 (选填)" style={{ width: 140 }} />

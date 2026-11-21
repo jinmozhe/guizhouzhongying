@@ -71,7 +71,11 @@ class WechatShippingService:
             ).hexdigest() != payment.channel_context.get("payer_hash"):
                 raise PayProtocolError("履约支付者身份不匹配", status=409)
             line: dict[str, object] = {"item_desc": "商城订单商品"}
-            if fulfillment.product_type == "physical":
+            if order.fulfillment_mode == "local":
+                if fulfillment.status != "delivered" or fulfillment.delivered_at is None:
+                    raise PayProtocolError("到店订单尚未核销", status=409)
+                occurred_at = fulfillment.delivered_at
+            elif fulfillment.product_type == "physical":
                 carrier = self.settings.wechat_shipping_carriers.get(fulfillment.carrier or "")
                 if not carrier or not fulfillment.tracking_number or not fulfillment.shipped_at:
                     raise PayProtocolError("请配置承运人对应的微信物流公司编码并核实运单", status=409)
@@ -87,7 +91,9 @@ class WechatShippingService:
                 occurred_at = fulfillment.delivered_at
             payload: dict[str, object] = {
                 "order_key": {"order_number_type": 2, "transaction_id": payment.channel_transaction_id},
-                "logistics_type": 1 if fulfillment.product_type == "physical" else 3,
+                "logistics_type": 4
+                if order.fulfillment_mode == "local"
+                else (1 if fulfillment.product_type == "physical" else 3),
                 "delivery_mode": 1,
                 "shipping_list": [line],
                 "upload_time": occurred_at.isoformat(),

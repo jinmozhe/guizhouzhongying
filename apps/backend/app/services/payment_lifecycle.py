@@ -22,6 +22,8 @@ from app.db.models.commerce_lifecycle import (
     RefundItem,
     RefundRequest,
 )
+from app.db.repositories.local_commerce import LocalActorsRepository
+from app.db.repositories.redemptions import RedemptionRepository
 from app.db.transaction import transaction_scope
 from app.domains.distribution import DistributionService
 from app.domains.durable_tasks import DurableTaskService
@@ -50,6 +52,7 @@ from app.domains.orders import OrderAcceptance, OrderQueryService, OrderRead
 from app.domains.products import ProductService
 from app.domains.purchases import PurchaseLimitService
 from app.domains.users import UserAccessService
+from app.services.local_order_lifecycle import LocalOrderLifecycle
 from app.services.orders import OrderService
 
 
@@ -223,9 +226,15 @@ class LifecycleService:
 
     async def _confirm_order_from_payment_in_open_transaction(self, payment_attempt_id: UUID) -> None:
         await self.distribution.lock_referral_changes()
+        actors = LocalActorsRepository(self.session)
+        await actors.lock_bindings()
         attempt = await self.repository.payment(payment_attempt_id)
         if attempt is None:
             raise AppException(status_code=404, code=ErrorCode.ORDER_NOT_FOUND, message="支付意图不存在")
+        observed_order = await self.orders.order(attempt.order_id)
+        if observed_order is not None:
+            # A paid fact must still finish for a disabled buyer; only serialize their row here.
+            await actors.user(observed_order.user_id, lock=True)
         order = await self.orders.order(attempt.order_id, lock=True)
         attempt = await self.repository.payment(payment_attempt_id, lock=True)
         if order is None or attempt is None:
@@ -354,7 +363,12 @@ class LifecycleService:
         if order is None:
             raise AppException(status_code=404, code=ErrorCode.ORDER_NOT_FOUND, message="订单不存在")
         fulfillment = await self.repository.fulfillment(order.id, lock=True)
-        if fulfillment is None or order.status != "paid" or order.product_type != "physical":
+        if (
+            fulfillment is None
+            or order.status != "paid"
+            or order.product_type != "physical"
+            or order.fulfillment_mode == "local"
+        ):
             raise AppException(status_code=409, code=ErrorCode.ORDER_STATE_CONFLICT, message="当前订单不能发货")
         if order.acceptance_status != "accepted":
             raise AppException(status_code=409, code=ErrorCode.ORDER_STATE_CONFLICT, message="订单尚未接单，不能发货")
@@ -399,7 +413,12 @@ class LifecycleService:
         if order is None:
             raise AppException(status_code=404, code=ErrorCode.ORDER_NOT_FOUND, message="订单不存在")
         fulfillment = await self.repository.fulfillment(order.id, lock=True)
-        if fulfillment is None or order.status != "paid" or order.product_type != "virtual":
+        if (
+            fulfillment is None
+            or order.status != "paid"
+            or order.product_type != "virtual"
+            or order.fulfillment_mode == "local"
+        ):
             raise AppException(status_code=409, code=ErrorCode.ORDER_STATE_CONFLICT, message="当前订单不能进行虚拟交付")
         if order.acceptance_status != "accepted":
             raise AppException(
@@ -533,10 +552,13 @@ class LifecycleService:
         await self.distribution.schedule_settlement_for_delivery_in_open_transaction(order.id, now)
         return locked_fulfillment
 
-    async def create_refund(self, user_id: UUID, order_id: UUID, data: RefundRequestCreate) -> RefundRequestRead:
+    async def create_refund(
+        self, user_id: UUID, order_id: UUID, data: RefundRequestCreate, *, expired_voucher: bool = False
+    ) -> RefundRequestRead:
         request_hash = self._request_hash({"reason": data.reason})
         async with transaction_scope(self.session):
-            await self.access.require_active_user(user_id)
+            if not expired_voucher:
+                await self.access.require_active_user(user_id)
             order = await self.orders.user_order(user_id, order_id, lock=True)
             if order is None:
                 raise AppException(status_code=404, code=ErrorCode.ORDER_NOT_FOUND, message="订单不存在")
@@ -547,8 +569,20 @@ class LifecycleService:
                         status_code=409, code=ErrorCode.ORDER_REQUEST_CONFLICT, message="退款请求号已用于其他退款申请"
                     )
                 return self._refund_read(existing)
+            if expired_voucher:
+                voucher = await RedemptionRepository(self.session).for_order(order.id, lock=True)
+                if voucher is None or voucher.expires_at > datetime.now(UTC) or order.fulfillment_mode != "local":
+                    raise AppException(status_code=409, code=ErrorCode.ORDER_STATE_CONFLICT, message="核销凭证尚未到期")
+                refunds = await self.repository.refunds_for_order(order.id, lock=True)
+                active_refund = next((row for row in refunds if row.status != "rejected"), None)
+                if active_refund is not None:
+                    return self._refund_read(active_refund)
             fulfillment = await self.repository.fulfillment(order.id, lock=True)
-            allowed_status = "awaiting_shipment" if order.product_type == "physical" else "awaiting_delivery"
+            allowed_status = (
+                "awaiting_shipment"
+                if order.product_type == "physical" and order.fulfillment_mode != "local"
+                else "awaiting_delivery"
+            )
             if order.status != "paid" or fulfillment is None or fulfillment.status != allowed_status:
                 raise AppException(
                     status_code=409,
@@ -566,8 +600,12 @@ class LifecycleService:
                 raise AppException(
                     status_code=409, code=ErrorCode.ORDER_STATE_CONFLICT, message="订单退款商品金额快照异常"
                 )
-            amount = (items_amount + order.freight_amount).quantize(Decimal("0.01"))
-            review_mode = "automatic" if order.acceptance_status == "pending" else "manual"
+            if order.fulfillment_mode == "local":
+                await LocalOrderLifecycle(self.session).begin_refund_in_open_transaction(order.id)
+            amount = order.total_amount
+            review_mode = (
+                "automatic" if order.fulfillment_mode == "local" or order.acceptance_status == "pending" else "manual"
+            )
             refund = RefundRequest(
                 id=new_uuid7(),
                 order_id=order.id,
@@ -579,6 +617,7 @@ class LifecycleService:
                 items_amount=items_amount,
                 freight_amount=order.freight_amount,
                 amount=amount,
+                points_returned=order.points_deduction,
                 currency=order.currency,
                 reason=data.reason,
                 fulfillment_status_snapshot=fulfillment.status,
@@ -604,13 +643,13 @@ class LifecycleService:
                     revision=1,
                     from_status=None,
                     to_status="requested",
-                    actor_type="user",
-                    actor_id=user_id,
-                    reason="用户申请退款",
+                    actor_type="system" if expired_voucher else "user",
+                    actor_id=None if expired_voucher else user_id,
+                    reason="核销凭证到期自动退款" if expired_voucher else "用户申请退款",
                 )
             )
             if review_mode == "automatic":
-                await self._approve_refund_in_open_transaction(refund, note="未接单订单自动审核通过", actor_id=None)
+                await self._approve_refund_in_open_transaction(refund, note="整单未履约退款自动审核通过", actor_id=None)
             return self._refund_read(refund)
 
     async def _approve_refund_in_open_transaction(
@@ -714,6 +753,8 @@ class LifecycleService:
             for item_id, (_, quantity, amount) in expected.items()
         ):
             raise AppException(status_code=409, code=ErrorCode.ORDER_STATE_CONFLICT, message="退款明细未完整覆盖原订单")
+        await self.products.lock_changes()
+        await LocalOrderLifecycle(self.session).complete_refund_in_open_transaction(order_id)
         archived_sku_ids = await self.products.archived_sku_ids([item.sku_id for item in order_items])
         await self.inventory.restock_from_refund_in_open_transaction(
             [

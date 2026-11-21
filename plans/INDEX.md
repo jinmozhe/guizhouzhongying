@@ -17,6 +17,7 @@
 
 | 路径 | 状态 | 结果 | 影响范围 | 用途 |
 | --- | --- | --- | --- | --- |
+| `plans/2026-11-21_商家核销与物业积分消费全栈计划.md` | 已结束 | 已完成；本地实现、轻量检查、开发库迁移及权限目录同步完成，平台及重型业务验收未执行 | Backend、Admin、Miniapp、API Client、Database、Deployment、Documentation | 商家、物业积分、整单核销退款和全额应收；开发库已升至 20261121_01，六项权限同步且复查无差异，初始超级管理员 pinjie 已创建，仓库外加密备份保留 |
 | `plans/2026-11-20_1Panel源码部署计划.md` | 已结束 | 已完成；本地部署入口、Admin 反代配置和运行手册已交付，生产尚未部署 | Backend、Admin、Database、Deployment、Documentation | 以 1Panel 单一 Python 环境运行宿主机源码 |
 | `plans/2026-11-20_GitHub首次推送准备计划.md` | 已结束 | 已完成；首次推送基线、Redis 模板和开发文档已同步，首提交预览及轻量门禁通过 | Backend、Miniapp、Web 门禁、Deployment、Documentation | 修复首次推送基线并完成本地推送前核对 |
 | `plans/2026-11-20_贵州众赢独立项目初始化计划.md` | 已结束 | 已完成；名称、运行配置、契约、依赖锁文件和适用文档已同步，历史数据库证据边界与本项目未初始化状态已明确，静态门禁通过 | Backend、Admin、Miniapp、API Client、Deployment、Documentation | 初始化贵州众赢独立项目身份与配置 |

@@ -345,9 +345,12 @@ async def public_products(
     page_size: PageSize = 20,
     category_id: Annotated[UUID | None, Query(description="公开分类 ID，包含启用的下级分类商品")] = None,
     search: Annotated[str | None, Query(max_length=200, description="商品名称关键词，忽略首尾空白")] = None,
+    merchant_id: Annotated[UUID | None, Query(description="在当前分类和搜索条件下筛选商家")] = None,
 ) -> ResponseModel[PageResult[PublicProductRead]]:
     return success_response(
-        data=await service.public_product_page(page, page_size, category_id=category_id, search=search),
+        data=await service.public_product_page(
+            page, page_size, category_id=category_id, search=search, merchant_id=merchant_id
+        ),
         request_id=current_request_id(),
     )
 

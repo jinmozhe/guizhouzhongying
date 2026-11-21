@@ -139,6 +139,11 @@ class ConsumerTradeQueryService:
                     items_amount=order.items_amount,
                     freight_amount=order.freight_amount,
                     total_amount=order.total_amount,
+                    order_gross_amount=order.order_gross_amount,
+                    points_deduction=order.points_deduction,
+                    merchant_id=order.merchant_id,
+                    merchant_snapshot=order.merchant_snapshot,
+                    fulfillment_mode=order.fulfillment_mode,
                     address_snapshot=order.address_snapshot,
                     shipping_snapshot=order.shipping_snapshot,
                     buyer_level_snapshot=order.buyer_level_snapshot,
@@ -153,7 +158,12 @@ class ConsumerTradeQueryService:
                     fulfillment=FulfillmentRead.model_validate(fulfillment) if fulfillment is not None else None,
                     can_confirm_receipt=order.product_type == "physical" and state == "shipped",
                     can_refund=(
-                        state == ("awaiting_shipment" if order.product_type == "physical" else "awaiting_delivery")
+                        state
+                        == (
+                            "awaiting_shipment"
+                            if order.product_type == "physical" and order.fulfillment_mode != "local"
+                            else "awaiting_delivery"
+                        )
                         and order.id not in blocked
                     ),
                     item_reviews=[

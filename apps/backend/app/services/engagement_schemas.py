@@ -38,5 +38,5 @@ class ConsumerPointsLedgerRead(BaseModel):
     available_delta: PointsValue
     frozen_delta: PointsValue
     debt_delta: PointsValue
-    source_type: Literal["invite", "order", "refund", "redemption", "manual"]
+    source_type: Literal["invite", "order", "refund", "redemption", "manual", "property"]
     created_at: datetime

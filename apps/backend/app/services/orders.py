@@ -2,6 +2,7 @@ import hashlib
 import json
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,8 +11,10 @@ from app.core.error_codes import ErrorCode
 from app.core.exceptions import AppException
 from app.core.identifiers import new_uuid7
 from app.core.pagination import PageResult
+from app.core.redemption_code import cipher
 from app.db.models.commerce_lifecycle import Fulfillment, FulfillmentEvent
 from app.db.models.order import Order, OrderEvent, OrderItem
+from app.db.repositories.local_commerce import LocalActorsRepository
 from app.db.transaction import transaction_scope
 from app.domains.addresses.repository import AddressRepository
 from app.domains.addresses.service import AddressService
@@ -33,11 +36,14 @@ from app.domains.orders.schemas import (
     OrderRead,
     QuoteLine,
 )
+from app.domains.points import PointsService
 from app.domains.products.repository import ProductRepository
 from app.domains.products.service import ProductService
 from app.domains.purchases.repository import PurchaseLimitRepository
 from app.domains.purchases.service import PurchaseLimitService
 from app.domains.users import UserAccessService
+from app.services.local_actors import LocalActorsService
+from app.services.local_order_lifecycle import LocalOrderLifecycle
 
 
 class OrderService:
@@ -70,24 +76,21 @@ class OrderService:
     async def _quote(self, user_id: UUID, data: CheckoutRequest) -> CheckoutQuote:
         normalized = self._normalize(data)
         catalog = await self.products.checkout_skus([sku_id for sku_id, _ in normalized])
+        merchant_id = catalog[0].merchant_id
+        if merchant_id is None or any(
+            item.fulfillment_mode != "local" or item.merchant_id != merchant_id for item in catalog
+        ):
+            raise AppException(
+                status_code=422, code=ErrorCode.CHECKOUT_INVALID, message="仅支持同一商家的到店商品，请按商家分开下单"
+            )
+        merchant = await LocalActorsService(self.session).public_merchant(merchant_id)
+        if not merchant.is_active:
+            raise AppException(status_code=409, code=ErrorCode.CHECKOUT_INVALID, message="商家已停用")
         product_type = catalog[0].product_type
-        if any(item.product_type != product_type for item in catalog):
-            raise AppException(status_code=422, code=ErrorCode.CHECKOUT_INVALID, message="实物和虚拟商品必须分开下单")
         address_snapshot: dict[str, object] | None = None
         province_code: str | None = None
-        if product_type == "physical":
-            if data.address_id is None:
-                raise AppException(status_code=422, code=ErrorCode.CHECKOUT_INVALID, message="实物订单必须选择收货地址")
-            address = await self.addresses.snapshot(user_id, data.address_id)
-            address_snapshot = {
-                "schema_version": 1,
-                "source_address_id": str(address.id),
-                "source_address_revision": address.revision,
-                **address.model_dump(mode="json", exclude={"id", "revision", "is_default"}),
-            }
-            province_code = address.province_code
-        elif data.address_id is not None:
-            raise AppException(status_code=422, code=ErrorCode.CHECKOUT_INVALID, message="虚拟订单不能填写收货地址")
+        if data.address_id is not None:
+            raise AppException(status_code=422, code=ErrorCode.CHECKOUT_INVALID, message="到店核销订单无需收货地址")
         pricing = await self.membership.quote(
             user_id,
             CommerceQuoteRequest(
@@ -125,7 +128,8 @@ class OrderService:
                     unit_price=priced.unit_price,
                     line_amount=priced.line_amount,
                     product_revision=product.revision,
-                    product_type=product_type,
+                    product_type=product.product_type,
+                    max_points_deduction=min(sku.max_points_deduction, int(priced.unit_price)) * priced.quantity,
                     weight_grams=sku.weight_grams,
                     purchase_limit_quantity=product.purchase_limit_quantity,
                     price_snapshot=priced.pricing_snapshot,
@@ -149,12 +153,28 @@ class OrderService:
                 )
             )
         lines.sort(key=lambda item: item.sku_id.hex)
-        shipping = pricing.shipping_snapshot
+        available_points = await PointsService(session=self.session).available(user_id)
+        maximum_points = min(sum(line.max_points_deduction for line in lines), available_points, 9999999999999)
+        if data.points_to_use > maximum_points:
+            raise AppException(
+                status_code=409, code=ErrorCode.CHECKOUT_STALE_QUOTE, message="所用积分超过余额或商品上限，请重新选择"
+            )
+        remaining = data.points_to_use
+        allocated: list[QuoteLine] = []
+        for line in lines:
+            points = min(remaining, line.max_points_deduction)
+            allocated.append(line.model_copy(update={"points_deduction": points}))
+            remaining -= points
+        lines = allocated
+        shipping: dict[str, object] = {"schema_version": 1, "mode": "local", "freight_amount": "0.00"}
+        merchant_snapshot = merchant.model_dump(mode="json")
         payload = {
             "lines": [line.model_dump(mode="json") for line in lines],
             "shipping": shipping,
             "address": address_snapshot,
             "level": level_snapshot,
+            "merchant": merchant_snapshot,
+            "points_deduction": data.points_to_use,
         }
         fingerprint = hashlib.sha256(
             json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode()
@@ -164,8 +184,15 @@ class OrderService:
             shipping_snapshot=shipping,
             product_type=product_type,
             items_amount=pricing.items_amount,
-            freight_amount=pricing.freight_amount,
-            total_amount=pricing.total_amount,
+            freight_amount=Decimal("0.00"),
+            total_amount=pricing.items_amount - Decimal(data.points_to_use),
+            order_gross_amount=pricing.items_amount,
+            points_deduction=data.points_to_use,
+            available_points=str(available_points),
+            maximum_points=maximum_points,
+            merchant_id=merchant_id,
+            merchant_snapshot=merchant_snapshot,
+            fulfillment_mode="local",
             address_id=data.address_id,
             address_snapshot=address_snapshot,
             buyer_level_id=pricing.buyer_level_id,
@@ -182,6 +209,8 @@ class OrderService:
 
     async def create(self, user_id: UUID, data: CheckoutRequest) -> OrderRead:
         async with transaction_scope(self.session):
+            await DistributionService(self.session).lock_referral_changes()
+            await LocalActorsRepository(self.session).lock_bindings()
             await self.access.require_active_user(user_id)
             await self.repository.lock_user_checkout(user_id)
             normalized = self._normalize(data)
@@ -190,6 +219,7 @@ class OrderService:
                     {
                         "items": [(str(sku), quantity) for sku, quantity in normalized],
                         "address_id": str(data.address_id) if data.address_id else None,
+                        "points_to_use": data.points_to_use,
                     },
                     sort_keys=True,
                 ).encode()
@@ -201,6 +231,7 @@ class OrderService:
                         status_code=409, code=ErrorCode.ORDER_REQUEST_CONFLICT, message="请求号已用于其他订单"
                     )
                 return await self._read(existing)
+            cipher()
             await self.products.lock_changes()
             quote = await self._quote(user_id, data)
             if data.quote_fingerprint != quote.fingerprint:
@@ -219,6 +250,11 @@ class OrderService:
                 items_amount=quote.items_amount,
                 freight_amount=quote.freight_amount,
                 total_amount=quote.total_amount,
+                order_gross_amount=quote.order_gross_amount,
+                points_deduction=quote.points_deduction,
+                merchant_id=quote.merchant_id,
+                merchant_snapshot=quote.merchant_snapshot,
+                fulfillment_mode=quote.fulfillment_mode,
                 address_snapshot=quote.address_snapshot,
                 shipping_snapshot=quote.shipping_snapshot,
                 buyer_level_id=quote.buyer_level_id,
@@ -244,6 +280,7 @@ class OrderService:
                         quantity=line.quantity,
                         unit_price=line.unit_price,
                         line_amount=line.line_amount,
+                        points_deduction=line.points_deduction,
                         price_snapshot=line.price_snapshot,
                         commission_snapshot=line.commission_snapshot,
                         category_snapshot=line.category_snapshot,
@@ -252,6 +289,9 @@ class OrderService:
                         product_revision=line.product_revision,
                     )
                 )
+            await PointsService(session=self.session).reserve_in_open_transaction(
+                user_id, order.id, quote.points_deduction
+            )
             await self.inventory.reserve(order.id, {line.sku_id: line.quantity for line in quote.items})
             await self.purchases.reserve(
                 order.id,
@@ -312,6 +352,10 @@ class OrderService:
         order = await self.repository.order_by_id(order_id, lock=True)
         if order is None:
             raise AppException(status_code=404, code=ErrorCode.ORDER_NOT_FOUND, message="订单不存在")
+        if order.fulfillment_mode == "local":
+            raise AppException(
+                status_code=409, code=ErrorCode.ORDER_STATE_CONFLICT, message="到店订单无需接单，请由所属商家核销"
+            )
         if order.acceptance_status == "accepted":
             return await self._read(order)
         if order.status != "paid" or order.acceptance_status != "pending" or order.revision != revision:
@@ -348,6 +392,8 @@ class OrderService:
         ):
             raise AppException(status_code=409, code=ErrorCode.ORDER_STATE_CONFLICT, message="支付确认时间无效")
         items = await self.repository.items(order.id)
+        await self.products.lock_changes()
+        await PointsService(session=self.session).transition_order_in_open_transaction(order.id, "spent")
         await self.inventory.transition_reservations(
             order.id, {item.sku_id: item.quantity for item in items}, "confirmed", archived_sku_ids=set()
         )
@@ -359,7 +405,12 @@ class OrderService:
         )
         order.revision += 1
         await self.repository.save(order)
-        fulfillment_status = "awaiting_shipment" if order.product_type == "physical" else "awaiting_delivery"
+        await LocalOrderLifecycle(self.session).confirm_in_open_transaction(order)
+        fulfillment_status = (
+            "awaiting_shipment"
+            if order.product_type == "physical" and order.fulfillment_mode != "local"
+            else "awaiting_delivery"
+        )
         fulfillment = Fulfillment(
             id=new_uuid7(), order_id=order.id, product_type=order.product_type, status=fulfillment_status, revision=1
         )
@@ -445,6 +496,8 @@ class OrderService:
                 await self._cancel(order, "待付款超时", "system", None)
 
     async def _cancel(self, order: Order, reason: str, actor_type: str, actor_id: UUID | None) -> None:
+        await self.products.lock_changes()
+        await PointsService(session=self.session).transition_order_in_open_transaction(order.id, "released")
         items = await self.repository.items(order.id)
         await self.inventory.transition_reservations(
             order.id,
@@ -529,6 +582,11 @@ class OrderService:
             items_amount=order.items_amount,
             freight_amount=order.freight_amount,
             total_amount=order.total_amount,
+            order_gross_amount=order.order_gross_amount,
+            points_deduction=order.points_deduction,
+            merchant_id=order.merchant_id,
+            merchant_snapshot=order.merchant_snapshot,
+            fulfillment_mode=order.fulfillment_mode,
             address_snapshot=order.address_snapshot,
             shipping_snapshot=order.shipping_snapshot,
             buyer_level_snapshot=order.buyer_level_snapshot,

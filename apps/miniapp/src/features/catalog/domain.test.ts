@@ -5,10 +5,12 @@ import { categoryPath, nextProductPage, productPrice, uniqueProducts } from './d
 const sku = (price: string, market: string | null = null): PublicSkuRead => ({
   id: price, code: price, sku_no: 1, specifications: {}, price, market_price: market,
   wholesale_prices: [], weight_grams: null, is_active: true,
+  max_points_deduction: 0,
 })
 const product = (id: string, skus: PublicSkuRead[] = []): PublicProductRead => ({
   id, name: id, description: '', description_format: 'legacy', product_type: 'physical',
   category_id: 'leaf', brand_id: null, images: [], skus, attributes: [],
+  merchant_id: 'merchant', fulfillment_mode: 'local',
 })
 const page = (number: number, ids: string[], total: number): PageResultPublicProductRead => ({
   page: number, page_size: 20, total, total_pages: Math.ceil(total / 20), items: ids.map((id) => product(id)),

@@ -502,7 +502,9 @@ class MembershipService:
         by_sku = {rule.sku_id: rule for rule in rules if rule.scope_type == "sku"}
         by_product = {rule.product_id: rule for rule in rules if rule.scope_type == "product"}
         by_category = {rule.category_id: rule for rule in rules if rule.scope_type == "category"}
-        product_types = {product.product_type for _, product in catalog}
+        product_types = {
+            "local" if product.fulfillment_mode == "local" else product.product_type for _, product in catalog
+        }
         if len(product_types) != 1:
             raise AppException(status_code=422, code=ErrorCode.CHECKOUT_INVALID, message="实物和虚拟商品不能混合报价")
         lines: list[QuoteLineRead] = []
@@ -578,7 +580,7 @@ class MembershipService:
     async def _freight(
         self, product_type: str, items_amount: Decimal, province_code: str | None
     ) -> tuple[Decimal, UUID | None, dict[str, object]]:
-        if product_type == "virtual":
+        if product_type in {"virtual", "local"}:
             return Decimal("0.00"), None, {"schema_version": 1, "mode": "virtual", "freight_amount": "0.00"}
         if province_code is None:
             raise AppException(status_code=422, code=ErrorCode.CHECKOUT_INVALID, message="实物商品报价需要省级行政编码")

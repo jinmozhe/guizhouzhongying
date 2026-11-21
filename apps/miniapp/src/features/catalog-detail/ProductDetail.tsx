@@ -17,6 +17,7 @@ import { phoneReady, sessionScope } from '@/lib/session'
 import { beginAuthentication, consumeProductIntent } from '@/lib/auth-navigation'
 import { addToCart } from '@/features/cart'
 import { startCheckout } from '@/features/checkout'
+import { MerchantCard } from '@/features/local-commerce'
 import { canSelect, matchingSkus, resolvedSku, specGroups } from './domain/sku'
 import type { Selection } from './domain/sku'
 import './detail.scss'
@@ -112,7 +113,8 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
         <View className='price'>{price}</View>
         {displaySku?.market_price && <View className='muted'>参考划线价 ¥{displaySku.market_price}</View>}
         <View className='title'>{product.name}</View>
-        <Text className='label'>{product.product_type === 'physical' ? '实物商品 · 需配送' : '虚拟商品 · 无需配送'}</Text>
+        <Text className='label'>到店消费 · 整单核销</Text>
+        {displaySku && <View className='muted'>每件最多可用 {displaySku.max_points_deduction} 积分，1积分抵1元</View>}
         <View className='muted'>公开基础价格仅供浏览，库存与成交价格以服务端确认为准。</View>
         {!canSell && <View className='note'>当前暂无可售规格</View>}
       </View>
@@ -122,6 +124,7 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
           <View className='icon-label'><Text>{canSell ? '选择' : '不可售'}</Text>{canSell && <Icon name='ArrowRight' size={24} />}</View>
         </View>
       </View>
+      {product.merchant_id && <MerchantCard merchantId={product.merchant_id} />}
       {product.attributes.some((item) => !item.is_variant) && <View className='surface'>
         <View className='section-title'>商品参数</View>
         {product.attributes.filter((item) => !item.is_variant).map((item) => <View className='attribute-row' key={item.id}>

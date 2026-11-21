@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import PointsAccount, PointsLedger
+from app.db.models import OrderPointsReservation, PointsAccount, PointsLedger
 
 
 class PointsRepository:
@@ -58,7 +58,7 @@ class PointsRepository:
     async def reversal_total(self, ledger_id: UUID) -> int:
         return int(
             await self.session.scalar(
-                select(func.coalesce(func.sum(PointsLedger.available_delta), 0)).where(
+                select(func.coalesce(func.sum(PointsLedger.available_delta - PointsLedger.debt_delta), 0)).where(
                     PointsLedger.reverses_ledger_id == ledger_id
                 )
             )
@@ -86,6 +86,16 @@ class PointsRepository:
 
     async def flush(self) -> None:
         await self.session.flush()
+
+    async def reservation(self, order_id: UUID, *, lock: bool = False) -> OrderPointsReservation | None:
+        query = (
+            select(OrderPointsReservation)
+            .where(OrderPointsReservation.order_id == order_id)
+            .execution_options(populate_existing=True)
+        )
+        if lock:
+            query = query.with_for_update()
+        return (await self.session.scalars(query)).one_or_none()
 
 
 __all__ = ["PointsRepository"]

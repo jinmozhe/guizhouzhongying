@@ -24,6 +24,12 @@ _SENSITIVE_ROUTES = frozenset(
     }
 )
 _COMMERCE_PRIVATE_PREFIXES = (
+    "/api/v1/merchant",
+    "/api/v1/property",
+    "/api/v1/admin/merchants",
+    "/api/v1/admin/property-operators",
+    "/api/v1/admin/merchant-receivables",
+    "/api/v1/admin/merchant-settlements",
     "/api/v1/auth",
     "/api/v1/users/me",
     "/api/v1/cart-items",

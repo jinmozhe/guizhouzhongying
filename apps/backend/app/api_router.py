@@ -6,6 +6,7 @@ from app.api.commerce_router import router as commerce_router
 from app.api.commissioning_router import router as commissioning_router
 from app.api.distribution_router import router as distribution_router
 from app.api.lifecycle_router import router as lifecycle_router
+from app.api.local_commerce_router import router as local_commerce_router
 from app.api.membership_router import router as membership_router
 from app.api.transaction_router import router as transaction_router
 from app.api.wechat_pay_router import router as wechat_pay_router
@@ -19,6 +20,7 @@ from app.domains.system.router import router as system_router
 from app.domains.users.router import router as users_router
 
 api_router = APIRouter()
+api_router.include_router(local_commerce_router)
 api_router.include_router(catalog_router)
 api_router.include_router(commerce_reporting_router)
 api_router.include_router(commerce_router)
