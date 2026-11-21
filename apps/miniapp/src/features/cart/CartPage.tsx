@@ -64,7 +64,9 @@ function Content() {
   const checkout = useMutation({ mutationFn: () => {
     const items = (query.data ?? []).filter((item) => item.selected && !item.invalid_reason)
     const type = items[0]?.product_type
-    if (!type || items.some((item) => item.product_type !== type)) throw new Error('实物与虚拟商品请分开结算')
+    if (!type) throw new Error('请选择同一商家的商品进行结算')
+    const merchant = items[0]?.merchant_id
+    if (!merchant || items.some((item) => item.merchant_id !== merchant)) throw new Error('请仅选择同一商家的商品，跨商家需分开下单')
     return startCheckout(items.map((item) => ({ sku_id: item.sku_id, quantity: item.quantity })), type)
   } })
   useDidShow(() => { void query.refetch() })

@@ -8,9 +8,11 @@ from app.core.exceptions import AppException
 from app.core.rate_limit import enforce_rate_limit
 from app.core.security import token_digest
 from app.db.repositories import SecurityRepository
+from app.db.repositories.local_commerce import LocalActorsRepository
 from app.db.transaction import transaction_scope
 from app.domains.auth.schemas import ConsumerUserRead
 from app.services.consumer_auth import ConsumerAuthService, bearer_error
+from app.services.local_actors import LocalActorsService
 from app.services.security_events import login_event
 from app.services.wechat_phone import WechatPhoneClient
 
@@ -48,6 +50,7 @@ class ConsumerPhoneService:
         phone = await WechatPhoneClient(auth.settings, auth.redis, auth.http).exchange(code, openid)
         try:
             async with transaction_scope(auth.session):
+                await LocalActorsRepository(auth.session).lock_bindings()
                 await auth.users.lock_phone(phone)
                 user = await auth.users.get(user_id, for_update=True)
                 current = await auth.sessions.get_web(session_id, for_update=True)
@@ -81,6 +84,7 @@ class ConsumerPhoneService:
                 if not user.phone_bound:
                     user.phone_e164, user.phone_verified_at = phone, now
                     user.phone_verification_source = "wechat_phone_quick"
+                await LocalActorsService(auth.session).synchronize_phone_in_open_transaction(user)
                 SecurityRepository(auth.session).add_login_event(
                     login_event(
                         principal_type="user",

@@ -51,7 +51,8 @@ function OrderDetail({ id, close }: { id: string; close: () => void }) {
     })()} onRetry={() => { void order.refetch(); void fulfillment.refetch(); }} />
     {order.data && <>
       <Descriptions column={{ xs: 1, sm: 2 }} items={[{ key: "id", label: "订单号", children: order.data.id }, { key: "status", label: "状态", children: order.data.status }, { key: "type", label: "类型", children: order.data.product_type === "physical" ? "实物" : "虚拟" }, { key: "amount", label: "应付金额", children: `¥${order.data.total_amount}` }, { key: "created", label: "创建时间", children: formatTime(order.data.created_at) }, { key: "address", label: "收货快照", children: order.data.address_snapshot ? JSON.stringify(order.data.address_snapshot) : "虚拟订单无地址" }]} />
-      {order.data && order.data.status === "paid" && order.data.acceptance_status === "pending" && canAccess(admin, "orders:accept") && (
+      {order.data.fulfillment_mode === "local" && <Alert type="info" title={`到店整单核销 · 成交总额 ¥${order.data.order_gross_amount} · 积分抵扣 ${order.data.points_deduction} · 微信应付 ¥${order.data.total_amount}`} description="由所属商家核销，未核销七天自动整单退款。" />}
+      {order.data && order.data.fulfillment_mode !== "local" && order.data.status === "paid" && order.data.acceptance_status === "pending" && canAccess(admin, "orders:accept") && (
         <Button
           loading={accepting}
           onClick={async () => {
@@ -70,7 +71,7 @@ function OrderDetail({ id, close }: { id: string; close: () => void }) {
           接单
         </Button>
       )}
-      {fulfillment.data && <Alert type="info" showIcon title={`履约状态：${fulfillment.data.status}`} action={canAccess(admin, fulfillment.data.product_type === "physical" ? "fulfillments:ship" : "fulfillments:deliver-virtual") && ["awaiting_shipment", "awaiting_delivery"].includes(fulfillment.data.status) ? <Button icon={<SendOutlined />} onClick={() => { if (order.data && fulfillment.data) setEdit({ order: order.data, current: fulfillment.data }); }}>{fulfillment.data.product_type === "physical" ? "发货" : "完成交付"}</Button> : undefined} />}
+      {fulfillment.data && <Alert type="info" showIcon title={`履约状态：${order.data.fulfillment_mode === "local" && fulfillment.data.status === "awaiting_delivery" ? "待到店核销" : fulfillment.data.status}`} action={order.data.fulfillment_mode !== "local" && canAccess(admin, fulfillment.data.product_type === "physical" ? "fulfillments:ship" : "fulfillments:deliver-virtual") && ["awaiting_shipment", "awaiting_delivery"].includes(fulfillment.data.status) ? <Button icon={<SendOutlined />} onClick={() => { if (order.data && fulfillment.data) setEdit({ order: order.data, current: fulfillment.data }); }}>{fulfillment.data.product_type === "physical" ? "发货" : "完成交付"}</Button> : undefined} />}
       <ResourceTable title="订单明细" rows={order.data.items} loading={false} retry={order.refetch} columns={[{ title: "商品", dataIndex: "product_name" }, { title: "SKU", dataIndex: "sku_code" }, { title: "规格", render: (_, row) => Object.entries(row.specifications ?? {}).map(([k, v]) => `${k}：${v}`).join(" / ") || "默认" }, { title: "数量", dataIndex: "quantity" }, { title: "单价", render: (_, row) => `¥${row.unit_price}` }, { title: "小计", render: (_, row) => `¥${row.line_amount}` }]} />
     </>}
     {edit && <FulfillmentEditor order={edit.order} current={edit.current} close={() => setEdit(undefined)} done={refresh} />}

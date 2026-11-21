@@ -38,6 +38,7 @@ import { PageContainer } from "@ant-design/pro-components";
 import { ProductImageGallery, type GalleryState } from "./ProductImageGallery";
 import { ProductDetailPreview } from "./ProductDetailPreview";
 import { validateGallery } from "./product-image-policy";
+import { MerchantField } from "./MerchantField";
 import {
   ProductSpecificationForm,
   type ProductSpecificationFormHandle,
@@ -220,6 +221,8 @@ function ProductEditorPageInner({
           category_id: values.category_id,
           product_type: target.product_type,
           brand_id: target.brand_id,
+          merchant_id: values.merchant_id,
+          fulfillment_mode: values.merchant_id ? "local" : target.fulfillment_mode,
           purchase_limit_quantity: target.purchase_limit_quantity,
           description: values.description?.trim() || "",
           image_asset_ids: images.map((img) => img.asset_id),
@@ -245,6 +248,8 @@ function ProductEditorPageInner({
           category_id: values.category_id,
           category_revision: specification.categoryRevision,
           product_type: values.product_type,
+          merchant_id: values.merchant_id,
+          fulfillment_mode: "local",
           description: values.description?.trim() || "",
           image_asset_ids: images.map((img) => img.asset_id),
           detail_image_asset_ids: details.map((img) => img.asset_id),
@@ -300,13 +305,14 @@ function ProductEditorPageInner({
             rules={[{ required: true }]}
           >
             <Radio.Group>
-              <Radio value="physical">实物商品 (需发货)</Radio>
-              <Radio value="virtual">虚拟服务 (自动交付)</Radio>
+              <Radio value="physical">到店实物商品</Radio>
+              <Radio value="virtual">到店服务</Radio>
             </Radio.Group>
           </Form.Item>
         )}
       </Space>
 
+      <MerchantField required={!target || target.fulfillment_mode === "local"} />
       <Form.Item name="description" label="商品文字说明">
         <RichTextEditor
           placeholder="商品简要说明（选填）"
@@ -472,6 +478,7 @@ function ProductEditorPageInner({
               ? {
                   name: target.name,
                   category_id: target.category_id,
+                  merchant_id: target.merchant_id,
                   description: target.description,
                 }
               : {

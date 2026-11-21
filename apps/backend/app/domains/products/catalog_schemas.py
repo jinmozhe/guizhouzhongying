@@ -225,6 +225,7 @@ class WholesalePrice(CatalogInput):
 class SkuFields(CatalogInput):
     code: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")
     price: Money
+    max_points_deduction: int = Field(default=0, ge=0, le=9999999999999, description="单件积分上限，1积分抵1元")
     cost_price: Money | None = None
     market_price: Money | None = None
     wholesale_prices: list[WholesalePrice] = Field(default_factory=list, max_length=10)

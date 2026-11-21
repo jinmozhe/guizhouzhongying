@@ -64,3 +64,10 @@
 .category-page .category-empty-primary { margin-top: 24px; padding: 20px 16px; min-height: 88px; border-radius: 12px; background: $primary; color: $surface; font-size: 26px; }
 .category-warning { flex: none; padding: 12px 24px; font-size: 24px; background: $primary-soft; color: $primary; overflow-wrap: anywhere; }
 .category-no-categories { padding: 12px 20px; color: $secondary; font-size: 24px; }
+.category-merchants { padding: 20rpx 16rpx; }
+.category-merchant-title { font-size: 24rpx; margin-bottom: 16rpx; }
+.category-merchant-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16rpx 8rpx; }
+.category-merchant { min-width: 0; padding: 8rpx 4rpx; border: 2rpx solid transparent; border-radius: 12rpx; text-align: center; }
+.category-merchant.is-selected { border-color: #b42318; background: #fff5f4; }
+.category-merchant-logo { width: 76rpx; height: 76rpx; margin: 0 auto 8rpx; overflow: hidden; border-radius: 12rpx; }
+.category-merchant-name { display: block; font-size: 22rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

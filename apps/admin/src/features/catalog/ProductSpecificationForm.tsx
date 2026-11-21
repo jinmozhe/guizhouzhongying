@@ -77,6 +77,7 @@ function generateSkuCode(index: number, timestampPrefix?: string): string {
 }
 
 type DraftSku = {
+  max_points_deduction?: number;
   code?: string;
   cost_price?: string | number | null;
   enabled?: boolean;
@@ -393,6 +394,7 @@ export const ProductSpecificationForm = forwardRef<ProductSpecificationFormHandl
         enabled: prior ? true : mode === "create",
         code: prior?.code || generateSkuCode(index, batchPrefix),
         price: prior?.price ?? "0",
+        max_points_deduction: prior?.max_points_deduction ?? 0,
         cost_price: prior?.cost_price ?? null,
         market_price: prior?.market_price ?? null,
         weight_grams: prior?.weight_grams ?? null,
@@ -508,6 +510,7 @@ export const ProductSpecificationForm = forwardRef<ProductSpecificationFormHandl
         return {
           code,
           price: row.price ?? "0",
+          max_points_deduction: row.max_points_deduction ?? 0,
           cost_price: row.cost_price ?? null,
           market_price: row.market_price ?? null,
           weight_grams: row.weight_grams ?? null,
@@ -682,6 +685,11 @@ export const ProductSpecificationForm = forwardRef<ProductSpecificationFormHandl
                 render: (fieldName: number, _, index: number) => (
                   <SkuPriceCell fieldName={fieldName} index={index} />
                 ),
+              },
+              {
+                title: "单件积分上限", dataIndex: "name", key: "max_points_deduction", width: 150,
+                onHeaderCell: tableHeaderCellStyle, onCell: tableBodyCellStyle,
+                render: (fieldName: number) => <Form.Item name={[fieldName, "max_points_deduction"]} className="mb-0"><InputNumber min={0} max={9999999999999} precision={0} placeholder="0" /></Form.Item>,
               },
               {
                 title: (

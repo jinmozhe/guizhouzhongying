@@ -279,6 +279,7 @@ class SpecificationService(CatalogService):
             data.market_price,
         )
         row.wholesale_prices = [tier.model_dump(mode="json") for tier in data.wholesale_prices]
+        row.max_points_deduction = data.max_points_deduction
         row.weight_grams, row.is_active = data.weight_grams, data.is_active
 
     async def insert_sku(self, product_id: UUID, data: SkuFields, selected: list[UUID], sku_no: int) -> ProductSku:

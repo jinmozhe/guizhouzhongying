@@ -196,7 +196,8 @@ class PointsLedger(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             "entry_type IN ('grant', 'spend', 'freeze', 'release', 'reverse', 'expire')", name="ck_points_ledger_type"
         ),
         CheckConstraint(
-            "source_type IN ('invite', 'order', 'refund', 'redemption', 'manual')", name="ck_points_ledger_source"
+            "source_type IN ('invite', 'order', 'refund', 'redemption', 'manual', 'property')",
+            name="ck_points_ledger_source",
         ),
         CheckConstraint("available_delta <> 0 OR frozen_delta <> 0 OR debt_delta <> 0", name="ck_points_ledger_delta"),
         Index("ix_points_ledger_account", "account_id", "id"),

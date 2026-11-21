@@ -2497,3 +2497,29 @@ PostgreSQL 语义核验来源：[约束与 NULL 规则](https://www.postgresql.o
 6. 生产变更独立授权，具备数据备份、不可变版本追溯及前向修复方案；已经产生新业务事实后禁止用破坏性降级删除新事件或财务表。
 
 长期维护规则：每次变更同步“模块表数、表条目、约束、JSON、状态、事务、用例、当前差异”八个位置中受影响项；未变项不机械复制。表名/字段机械盘点可证明登记，运行 schema diff 与行为测试分别证明物理一致和业务正确，三类证据分别记录。
+
+### 13.5 到店商家、物业积分、核销及结算
+
+迁移 `20261121_01` 基于 `20261120_01` 新增九张表。当前源码增加商家和物业附加身份、逐 SKU 积分上限、到店整单凭证及商家财务事实。2026-11-21 本机开发库 `guizhouzhongying_dev` 已升级至该版本，当前共 78 张业务表及 1 张版本表；Alembic check 未发现结构漂移，原有 69 张业务表按原字段的数据摘要一致。备份与权限同步结果见[全栈计划](../../plans/2026-11-21_商家核销与物业积分消费全栈计划.md#153-本机开发库迁移与权限同步)。测试库、生产库及真实业务约束/并发验证未执行。
+
+| 表 | 所有者与主要字段 | 唯一键、状态与金额 |
+| --- | --- | --- |
+| merchants | 商家应用服务；名称、授权 phone_e164、可空 user_id、LOGO、公开资料、is_active、revision | 授权手机号和用户各自唯一；公开投影排除授权手机号 |
+| property_operators | 物业应用服务；名称、授权手机号、可空用户、启用状态及版本 | 手机号和用户各自唯一；无业务额度字段 |
+| local_binding_events | 业务身份服务；role、resource_id、原用户、新用户、操作者与原因 | 追加关联历史；会员身份与等级独立 |
+| property_grants | 物业应用服务；操作者、目标、请求号、内容摘要、BIGINT 积分及流水 | U(operator_id,request_id)、U(ledger_id)，积分必须正数 |
+| order_points_reservations | 积分域；order_id、user_id、points、status | U(order_id)，frozen/spent/released/refunded |
+| redemption_vouchers | 核销应用服务；订单、商家、摘要、密文、截止、实际核销人及请求号 | U(order_id)、U(code_digest)、U(request_id)，available/redeemed/refunding/refunded；过期为时间派生状态 |
+| merchant_receivables | 商家财务服务；原订单、凭证、完整应收、现金、积分金额、结算批次 | U(order_id)、U(voucher_id)，gross=cash+points，不扣佣金 |
+| merchant_settlements | 商家财务服务；固定应收合计、组批请求、付款凭据、付款时间和版本 | U(request_id)、U(payment_reference)，open/paid，整批全额登记 |
+| merchant_payment_events | 商家财务服务；批次、请求号、版本、付款或冲正类型、原金额凭据时间、操作者及原因 | U(request_id)、U(settlement_id,revision)，不可变追加历史 |
+
+新增列：products.merchant_id/fulfillment_mode，product_skus.max_points_deduction，orders.order_gross_amount/points_deduction/merchant_id/merchant_snapshot/fulfillment_mode，order_items.points_deduction，refund_requests.points_returned。积分账本来源新增 property；原表所有者继续负责其字段及状态转换。商家快照仅保存公开资料，历史订单不回填推测商家。
+
+订单 `total_amount` 明确表示现金应付；`order_gross_amount = items_amount + freight_amount`，`total_amount = order_gross_amount - points_deduction`。到店订单地址为空且运费为零；legacy 订单积分必须为零，保留原地址约束。原订单 gross 回填为原 total，原商品和订单履约模式回填 legacy，SKU 积分上限及各积分金额回填零。
+
+退款 `amount = items_amount + freight_amount - points_returned`，明细仍保存原完整行金额供权益冲回。已退款订单保留 paid 事实；凭证和退款申请独立记录过程。纯积分无需渠道付款事实，核销应收与返佣/消费贡献使用原完整金额。
+
+九张新表遵循 id、业务列、created_at、updated_at 的列序。对原表新增列使用普通 ADD COLUMN，物理列位于末尾；本次不重建存在历史业务数据的原表，也不宣称原表新增列后的物理顺序已重排。字段逻辑顺序以 ORM 为准，物理顺序差异在此显式登记。
+
+迁移为静态 DDL 快照，包含外键、唯一键、约束、索引和中文业务注释，不导入运行模型。downgrade 检测到商家、物业、到店订单或非零 SKU 积分设置时拒绝破坏性退回，已有业务事实只能先评估前向修复。事务、锁序及恢复入口见[到店操作手册](../operations/local-commerce.md#6-数据与锁序)。

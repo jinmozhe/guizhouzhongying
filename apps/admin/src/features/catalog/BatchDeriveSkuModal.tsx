@@ -44,6 +44,7 @@ type VariantDimension = {
 };
 
 type BatchSkuDraft = {
+  max_points_deduction?: number;
   code: string;
   cost_price?: string | null;
   initial_quantity: number;
@@ -503,6 +504,7 @@ function BatchDeriveSkuForm({
     await continueJob({ version: 1, rows: selectedRows.map((row) => ({
       input: {
         code: row.code.trim(), price: String(row.price),
+        max_points_deduction: row.max_points_deduction ?? 0,
         cost_price: row.cost_price ? String(row.cost_price) : null,
         market_price: row.market_price ? String(row.market_price) : null,
         weight_grams: row.weight_grams ?? null, is_active: row.is_active,
@@ -640,6 +642,12 @@ function BatchDeriveSkuForm({
           style={{ width: "100%" }}
         />
       ),
+    },
+    {
+      title: "单件积分上限",
+      dataIndex: "max_points_deduction",
+      width: 140,
+      render: (_, row) => <InputNumber min={0} max={9999999999999} precision={0} value={row.max_points_deduction ?? 0} disabled={submitting} onChange={(value) => updateDraftRow(row.key, { max_points_deduction: value ?? 0 })} />,
     },
     {
       title: "初始库存 (件)",

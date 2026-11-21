@@ -4,6 +4,10 @@ export default function access(initialState?: AdminInitialState) {
   const admin = initialState?.currentAdmin;
   const has = (permission: string) => Boolean(admin && (admin.is_superuser || admin.permissions.includes(permission)));
   return {
+    canLocalCommerce: ["merchants:read", "property-operators:read", "merchant-settlements:read"].some(has),
+    canMerchants: has("merchants:read"),
+    canPropertyOperators: has("property-operators:read"),
+    canMerchantSettlements: has("merchant-settlements:read"),
     canCatalog: [
       "products:read",
       "product-categories:read",

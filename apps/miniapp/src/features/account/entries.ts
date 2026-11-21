@@ -3,8 +3,8 @@ import type { IconName } from '@/components/Icon'
 type Entry = { label: string; icon: IconName; path: string }
 export const orderEntries: Entry[] = [
   { label: '待付款', icon: 'ToPay', path: '/subpackages/trade/orders/index?status=pending_payment' },
-  { label: '待发货', icon: 'ToReceive', path: '/subpackages/trade/orders/index?status=awaiting_shipment' },
-  { label: '待收货', icon: 'Transit', path: '/subpackages/trade/orders/index?status=shipped' },
+  { label: '待核销', icon: 'ToReceive', path: '/subpackages/trade/orders/index?status=awaiting_delivery' },
+  { label: '已完成', icon: 'Check', path: '/subpackages/trade/orders/index?status=delivered' },
   { label: '售后服务', icon: 'Refund', path: '/subpackages/service/refunds/index' },
   { label: '全部订单', icon: 'Order', path: '/subpackages/trade/orders/index' },
 ]

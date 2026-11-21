@@ -11,6 +11,12 @@ class PermissionDefinition:
 
 
 class PermissionCode(StrEnum):
+    MERCHANTS_READ = "merchants:read"
+    MERCHANTS_UPDATE = "merchants:update"
+    PROPERTY_OPERATORS_READ = "property-operators:read"
+    PROPERTY_OPERATORS_UPDATE = "property-operators:update"
+    MERCHANT_SETTLEMENTS_READ = "merchant-settlements:read"
+    MERCHANT_SETTLEMENTS_UPDATE = "merchant-settlements:update"
     BRANDS_READ = "brands:read"
     BRANDS_CREATE = "brands:create"
     BRANDS_UPDATE = "brands:update"
@@ -110,6 +116,12 @@ class PermissionCode(StrEnum):
 
 
 PERMISSION_CATALOG: tuple[PermissionDefinition, ...] = (
+    PermissionDefinition("merchants:read", "查看商家", "查看线下商家及授权资料"),
+    PermissionDefinition("merchants:update", "维护商家", "创建、编辑、改绑及批量启停商家"),
+    PermissionDefinition("property-operators:read", "查看物业授权", "查看物业发放积分授权及手机号匹配用户"),
+    PermissionDefinition("property-operators:update", "维护物业授权", "创建、编辑、改绑及批量启停物业授权"),
+    PermissionDefinition("merchant-settlements:read", "查看商家应收", "查看核销应收与结算对账"),
+    PermissionDefinition("merchant-settlements:update", "商家对账结算", "应收组批及线下打款登记"),
     PermissionDefinition("brands:read", "查看品牌", "查看商品品牌资料"),
     PermissionDefinition("brands:create", "创建品牌", "创建商品品牌及图片引用"),
     PermissionDefinition("brands:update", "修改品牌", "修改品牌资料和启用状态"),

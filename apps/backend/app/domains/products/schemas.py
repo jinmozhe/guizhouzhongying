@@ -66,6 +66,7 @@ class PublicSkuRead(BaseModel):
     sku_no: int
     specifications: dict[str, str]
     price: Decimal
+    max_points_deduction: int
     market_price: Decimal | None
     wholesale_prices: list[WholesalePrice]
     weight_grams: int | None
@@ -84,6 +85,9 @@ class CheckoutSku(BaseModel):
     product_name: str
     product_type: Literal["physical", "virtual"]
     product_revision: int
+    merchant_id: UUID | None
+    fulfillment_mode: Literal["legacy", "local"]
+    max_points_deduction: int
 
 
 class SkuUpdate(SkuInput):
@@ -98,6 +102,10 @@ class ProductInput(BaseModel):
     product_type: Literal["physical", "virtual"] = Field(description="实物或虚拟商品")
     category_id: UUID = Field(description="所属分类 ID")
     brand_id: UUID | None = Field(default=None, description="可选品牌")
+    merchant_id: UUID | None = Field(default=None, description="唯一到店消费商家")
+    fulfillment_mode: Literal["legacy", "local"] = Field(
+        default="local", description="当前新增售卖使用到店核销；legacy保留历史商品"
+    )
     purchase_limit_quantity: int = Field(
         default=0, ge=0, le=2147483647, description="每用户累计限购配置，交易阶段实施计数"
     )
@@ -221,6 +229,8 @@ class PublicProductRead(BaseModel):
     product_type: Literal["physical", "virtual"] = Field(description="商品类型")
     category_id: UUID = Field(description="分类 ID")
     brand_id: UUID | None
+    merchant_id: UUID | None
+    fulfillment_mode: Literal["legacy", "local"]
     images: list[str] = Field(description="图片公开地址")
     skus: list[PublicSkuRead] = Field(description="启用且未归档的商品变体，无成本字段")
     attributes: list[AdoptionRead] = Field(description="当前采用定义及描述值")

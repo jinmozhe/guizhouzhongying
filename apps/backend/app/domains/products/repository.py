@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.db.models.asset import Asset
+from app.db.models.local_commerce import Merchant
 from app.db.models.product import Category, Product, ProductDetailImage, ProductImage, ProductSku
 
 from .catalog_repository import CatalogRepository
@@ -151,8 +152,11 @@ class ProductRepository(CatalogRepository):
         status: str | None = None,
         product_type: str | None = None,
         is_home_recommended: bool | None = None,
+        merchant_id: UUID | None = None,
     ) -> tuple[list[Product], int]:
         query = select(Product)
+        if merchant_id is not None:
+            query = query.where(Product.merchant_id == merchant_id)
         if search:
             name_matches = Product.name.icontains(search, autoescape=True)
             if public:
@@ -192,6 +196,8 @@ class ProductRepository(CatalogRepository):
             .outerjoin(grandparent, grandparent.id == parent.parent_id)
             .where(
                 Product.status == "on_sale",
+                Product.fulfillment_mode == "local",
+                Product.merchant_id.in_(select(Merchant.id).where(Merchant.is_active.is_(True))),
                 Category.is_active.is_(True),
                 (Category.parent_id.is_(None) | parent.is_active.is_(True)),
                 (parent.parent_id.is_(None) | grandparent.is_active.is_(True)),
@@ -202,6 +208,28 @@ class ProductRepository(CatalogRepository):
                 or_(Category.id == category_id, parent.id == category_id, grandparent.id == category_id)
             )
         return query
+
+    async def active_merchant(self, merchant_id: UUID | None) -> bool:
+        return (
+            merchant_id is not None
+            and await self.session.scalar(
+                select(Merchant.id).where(Merchant.id == merchant_id, Merchant.is_active.is_(True))
+            )
+            is not None
+        )
+
+    async def public_merchant_ids(self, category_id: UUID | None, search: str | None) -> list[UUID]:
+        query = self._public_query(select(Product), category_id)
+        if search:
+            query = query.where(Product.name.icontains(search.strip(), autoescape=True))
+        products = query.subquery()
+        return list(
+            await self.session.scalars(
+                select(Merchant.id)
+                .where(Merchant.id.in_(select(products.c.merchant_id)))
+                .order_by(Merchant.sort_order.asc().nulls_last(), Merchant.id.desc())
+            )
+        )
 
     async def public_recommendations(self) -> list[Product]:
         query = self._public_query(select(Product).where(Product.is_home_recommended.is_(True)))

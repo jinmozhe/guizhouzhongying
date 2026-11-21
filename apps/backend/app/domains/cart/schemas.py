@@ -28,6 +28,7 @@ class CartItemRead(BaseModel):
 
 
 class ConsumerCartItemRead(CartItemRead):
+    merchant_id: UUID | None
     product_id: UUID | None
     product_type: Literal["physical", "virtual"] | None
     product_name: str

@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     DateTime,
@@ -55,6 +56,10 @@ class Product(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("description_version IN (0, 1)", name="ck_products_description_version"),
         CheckConstraint("purchase_limit_quantity >= 0", name="ck_products_purchase_limit"),
         CheckConstraint("home_recommend_sort >= 0", name="ck_products_home_recommend_sort"),
+        CheckConstraint(
+            "fulfillment_mode IN ('legacy', 'local') AND (fulfillment_mode <> 'local' OR merchant_id IS NOT NULL)",
+            name="ck_products_fulfillment_mode",
+        ),
         Index("ix_products_category_status", "category_id", "status", "id"),
         Index(
             "ix_products_home_recommend",
@@ -81,6 +86,10 @@ class Product(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
         comment="可选品牌",
     )
+    merchant_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("merchants.id", ondelete="RESTRICT"), index=True, comment="到店消费商家"
+    )
+    fulfillment_mode: Mapped[str] = mapped_column(String(16), default="legacy", comment="历史履约或商家到店核销")
     purchase_limit_quantity: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, comment="每用户跨 SKU 累计限购，零为不限"
     )
@@ -101,6 +110,9 @@ class ProductSku(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("cost_price >= 0 AND cost_price < 'Infinity'::numeric", name="ck_product_skus_cost"),
         CheckConstraint("market_price >= 0 AND market_price < 'Infinity'::numeric", name="ck_product_skus_market"),
         CheckConstraint("sku_no >= 0", name="ck_product_skus_number"),
+        CheckConstraint(
+            "max_points_deduction >= 0 AND max_points_deduction <= 9999999999999", name="ck_product_skus_points_limit"
+        ),
         CheckConstraint("jsonb_typeof(wholesale_prices) = 'array'", name="ck_product_skus_wholesale"),
         CheckConstraint("weight_grams >= 0", name="ck_product_skus_weight"),
         CheckConstraint("jsonb_typeof(specifications) = 'object'", name="ck_product_skus_specifications"),
@@ -131,6 +143,9 @@ class ProductSku(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     specifications: Mapped[dict[str, str]] = mapped_column(JSONB, nullable=False, comment="规格组合，无规格为空对象")
     price: Mapped[Decimal] = mapped_column(Numeric(15, 2), nullable=False, comment="基础售价人民币元")
+    max_points_deduction: Mapped[int] = mapped_column(
+        BigInteger, default=0, comment="每件最多抵扣的整数积分，1积分抵1元"
+    )
     cost_price: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), comment="仅管理端可见的成本价")
     market_price: Mapped[Decimal | None] = mapped_column(Numeric(15, 2), comment="展示市场参考价")
     wholesale_prices: Mapped[list[dict[str, object]]] = mapped_column(

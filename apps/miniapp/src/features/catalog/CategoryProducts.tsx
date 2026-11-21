@@ -47,10 +47,11 @@ function layout(): Promise<{ viewport: Rect; content: Rect; rows: Rect[]; scroll
 const rendered = () => new Promise<void>((resolve) => Taro.nextTick(resolve))
 
 export function CategoryProducts({
-  categoryId, keyword, scope, visible, revision, filters, refreshing, onRefresh, clearSearch, searchAll,
+  categoryId, keyword, scope, visible, revision, filters, refreshing, onRefresh, clearSearch, searchAll, merchantId, merchantFilter,
 }: {
   categoryId?: string; keyword: string; scope: string; visible: boolean; revision: number; filters: ReactNode
   refreshing: boolean; onRefresh: () => void; clearSearch: () => void; searchAll: () => void
+  merchantId?: string; merchantFilter?: ReactNode
 }) {
   const [scrollTop, setScrollTop] = useState(0)
   const [direction, setDirection] = useState<Direction>()
@@ -71,11 +72,11 @@ export function CategoryProducts({
     return () => { live.current = false; commitWaiter.current?.resolve(); commitWaiter.current = undefined }
   }, [])
   const query = useInfiniteQuery({
-    queryKey: ['catalog', 'category-products', categoryId ?? 'all', keyword, revision],
+    queryKey: ['catalog', 'category-products', categoryId ?? 'all', keyword, merchantId, revision],
     initialPageParam: 1,
     queryFn: async ({ pageParam, signal }) => {
       const page = await getPublic<ResponseModelPageResultPublicProductRead>(
-        `/products?page=${pageParam}&page_size=${CATEGORY_PAGE_SIZE}${categoryId ? `&category_id=${encodeURIComponent(categoryId)}` : ''}${keyword ? `&search=${encodeURIComponent(keyword)}` : ''}`, signal,
+        `/products?page=${pageParam}&page_size=${CATEGORY_PAGE_SIZE}${categoryId ? `&category_id=${encodeURIComponent(categoryId)}` : ''}${keyword ? `&search=${encodeURIComponent(keyword)}` : ''}${merchantId ? `&merchant_id=${encodeURIComponent(merchantId)}` : ''}`, signal,
       )
       if (page.page !== pageParam || page.page_size !== CATEGORY_PAGE_SIZE) throw new Error('商品分页响应无效，请刷新后重试')
       if (pageParam > 1 && !page.items.length) throw new Error('商品列表已变化，请刷新商品')
@@ -189,6 +190,7 @@ export function CategoryProducts({
       onScrollToLower={() => { void load('next') }} onScrollToUpper={() => { void load('previous') }}
       refresherEnabled={!query.hasPreviousPage && !direction} refresherTriggered={refreshing} onRefresherRefresh={onRefresh}>
       <View id='category-products-content'>
+        {merchantFilter}
         {query.isPending && <QueryState title={query.fetchStatus === 'paused' ? '等待网络连接' : '正在加载商品'} />}
         {!pages && query.isError && <QueryState title='商品加载失败' error={query.error} retry={() => { void query.refetch() }} />}
         {pages && <>

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
+from cryptography.fernet import Fernet
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -64,6 +65,7 @@ class Settings(BaseSettings):
     web_token_hmac_key: str | None = Field(default=None, validation_alias="WEB_TOKEN_HMAC_KEY")
     admin_token_hmac_key: str | None = Field(default=None, validation_alias="ADMIN_TOKEN_HMAC_KEY")
     miniapp_login_enabled: bool = Field(default=False, validation_alias="MINIAPP_LOGIN_ENABLED")
+    local_redemption_key: str | None = Field(default=None, validation_alias="LOCAL_REDEMPTION_KEY", repr=False)
     support_phone: str | None = Field(
         default=None, validation_alias="SUPPORT_PHONE", pattern=r"^\+?[0-9][0-9 -]{4,29}$"
     )
@@ -215,6 +217,11 @@ class Settings(BaseSettings):
     def validate_runtime(self) -> None:
         self.validate_database_runtime()
         self.validate_wechat_pay()
+        if self.local_redemption_key:
+            try:
+                Fernet(self.local_redemption_key.encode("ascii"))
+            except (ValueError, UnicodeError) as exc:
+                raise RuntimeError("LOCAL_REDEMPTION_KEY 必须是有效的 Fernet 密钥") from exc
         upload_root = self.upload_local_root.resolve()
         settings_root = self.settings_media_root.resolve()
         if (

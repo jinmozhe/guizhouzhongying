@@ -16,6 +16,7 @@ from app.domains.distribution.service import DistributionService
 from app.domains.durable_tasks.service import DurableTaskService, LeasedTask, TaskDeferred
 from app.services.orders import OrderService
 from app.services.payment_lifecycle import LifecycleService
+from app.services.redemptions import RedemptionService
 from app.services.wechat_pay import WechatPaymentService
 from app.services.wechat_pay_client import WechatPayClient
 from app.services.wechat_shipping import WechatShippingService
@@ -35,7 +36,14 @@ class DurableTaskRunner:
     """Runs one bounded batch without holding a task lease transaction during business work."""
 
     _INTERNAL_HANDLERS = frozenset(
-        {"expire_order", "confirm_order", "auto_confirm_fulfillment", "refund_followup", "commission_settlement"}
+        {
+            "expire_order",
+            "expire_redemption",
+            "confirm_order",
+            "auto_confirm_fulfillment",
+            "refund_followup",
+            "commission_settlement",
+        }
     )
 
     def __init__(
@@ -161,6 +169,10 @@ class DurableTaskRunner:
             order_id = self._payload_uuid(task, "order_id")
             async with self._session_factory() as session:
                 await OrderService(session).expire_scheduled(order_id)
+            return
+        if task.task_type == "expire_redemption":
+            async with self._session_factory() as session:
+                await RedemptionService(session).expire(self._payload_uuid(task, "order_id"))
             return
         if task.task_type == "confirm_order":
             payment_attempt_id = self._payload_uuid(task, "payment_attempt_id")

@@ -3,6 +3,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -35,7 +36,7 @@ class Order(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint("status IN ('pending_payment', 'paid', 'cancelled')", name="ck_order_status"),
         CheckConstraint("product_type IN ('physical', 'virtual')", name="ck_order_product_type"),
         CheckConstraint(
-            "items_amount >= 0 AND freight_amount >= 0 AND total_amount = items_amount + freight_amount",
+            "items_amount >= 0 AND freight_amount >= 0 AND points_deduction >= 0 AND order_gross_amount = items_amount + freight_amount AND total_amount = order_gross_amount - points_deduction AND total_amount >= 0",
             name="ck_order_amounts",
         ),
         CheckConstraint("currency = 'CNY'", name="ck_order_currency"),
@@ -47,7 +48,7 @@ class Order(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             name="ck_order_commission_result_snapshot",
         ),
         CheckConstraint(
-            "(product_type = 'physical' AND address_snapshot IS NOT NULL AND jsonb_typeof(address_snapshot) = 'object') OR (product_type = 'virtual' AND address_snapshot IS NULL)",
+            "(fulfillment_mode = 'local' AND merchant_id IS NOT NULL AND address_snapshot IS NULL AND freight_amount = 0) OR (fulfillment_mode = 'legacy' AND points_deduction = 0 AND ((product_type = 'physical' AND address_snapshot IS NOT NULL AND jsonb_typeof(address_snapshot) = 'object') OR (product_type = 'virtual' AND address_snapshot IS NULL)))",
             name="ck_order_address_snapshot",
         ),
         CheckConstraint(
@@ -83,6 +84,15 @@ class Order(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     items_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), comment="商品金额")
     freight_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), comment="运费")
     total_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), comment="应付金额")
+    order_gross_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), comment="积分抵扣前完整成交额")
+    points_deduction: Mapped[int] = mapped_column(BigInteger, default=0, comment="订单使用积分，1积分抵1元")
+    merchant_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("merchants.id", ondelete="RESTRICT"), index=True, comment="成交商家"
+    )
+    merchant_snapshot: Mapped[dict[str, object] | None] = mapped_column(
+        JSONB(none_as_null=True), comment="成交商家公开资料快照"
+    )
+    fulfillment_mode: Mapped[str] = mapped_column(String(16), default="legacy", comment="历史履约或到店核销")
     address_snapshot: Mapped[dict[str, object] | None] = mapped_column(
         JSONB(none_as_null=True), nullable=True, comment="收货地址快照"
     )
@@ -125,6 +135,7 @@ class OrderItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ),
         CheckConstraint("quantity BETWEEN 1 AND 999", name="ck_order_item_quantity"),
         CheckConstraint("unit_price >= 0 AND line_amount = unit_price * quantity", name="ck_order_item_amount"),
+        CheckConstraint("points_deduction >= 0 AND points_deduction <= line_amount", name="ck_order_item_points"),
         CheckConstraint("jsonb_typeof(specifications) = 'object'", name="ck_order_item_specs"),
         {"comment": "订单明细快照，后续退款与评价的稳定标识"},
     )
@@ -137,6 +148,7 @@ class OrderItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     quantity: Mapped[int] = mapped_column(Integer, comment="成交数量")
     unit_price: Mapped[Decimal] = mapped_column(Numeric(15, 2), comment="成交单价")
     line_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), comment="成交行金额")
+    points_deduction: Mapped[int] = mapped_column(BigInteger, default=0, comment="确定性分配的行积分")
     price_snapshot: Mapped[dict[str, object]] = mapped_column(JSONB, comment="统一报价快照")
     commission_snapshot: Mapped[dict[str, object]] = mapped_column(JSONB, comment="下单冻结佣金来源快照")
     category_snapshot: Mapped[dict[str, object]] = mapped_column(JSONB, comment="分类链快照")

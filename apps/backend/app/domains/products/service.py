@@ -64,6 +64,8 @@ class ProductService(SpecificationService):
             product = product_rows[0][1]
             if product.status != "on_sale":
                 continue
+            if product.fulfillment_mode != "local" or not await self.repository.active_merchant(product.merchant_id):
+                continue
             category_id: UUID | None = product.category_id
             visible = True
             while category_id is not None:
@@ -88,6 +90,8 @@ class ProductService(SpecificationService):
         categories = {category.id: category for category in await self.repository.categories()}
         result: list[CheckoutSku] = []
         for sku, product in rows:
+            if product.fulfillment_mode != "local" or not await self.repository.active_merchant(product.merchant_id):
+                raise AppException(status_code=409, code=ErrorCode.CHECKOUT_INVALID, message="仅开放有效商家的到店商品")
             if product.status != "on_sale":
                 raise AppException(status_code=409, code=ErrorCode.CHECKOUT_INVALID, message="SKU 当前不可销售")
             category_id: UUID | None = product.category_id
@@ -113,6 +117,9 @@ class ProductService(SpecificationService):
                     product_name=product.name,
                     product_type=cast(Literal["physical", "virtual"], product.product_type),
                     product_revision=product.revision,
+                    merchant_id=product.merchant_id,
+                    fulfillment_mode=cast(Literal["legacy", "local"], product.fulfillment_mode),
+                    max_points_deduction=sku.max_points_deduction,
                 )
             )
         return result
@@ -198,6 +205,8 @@ class ProductService(SpecificationService):
             product_type=cast(Literal["physical", "virtual"], row.product_type),
             category_id=row.category_id,
             brand_id=row.brand_id,
+            merchant_id=row.merchant_id,
+            fulfillment_mode=cast(Literal["legacy", "local"], row.fulfillment_mode),
             purchase_limit_quantity=row.purchase_limit_quantity,
             status=cast(Literal["draft", "on_sale", "off_sale"], row.status),
             revision=row.revision,
@@ -249,6 +258,8 @@ class ProductService(SpecificationService):
 
     async def public_read(self, product_id: UUID) -> PublicProductRead:
         row = await self._get(product_id)
+        if row.fulfillment_mode != "local" or not await self.repository.active_merchant(row.merchant_id):
+            raise AppException(status_code=404, code=ErrorCode.PRODUCT_NOT_FOUND, message="该商品当前不可售")
         visible_categories = await self._public_category_ids()
         if row.status != "on_sale" or row.category_id not in visible_categories:
             raise AppException(status_code=404, code=ErrorCode.PRODUCT_NOT_FOUND, message="商品不存在")
@@ -296,6 +307,8 @@ class ProductService(SpecificationService):
             product_type=cast(Literal["physical", "virtual"], row.product_type),
             category_id=row.category_id,
             brand_id=row.brand_id,
+            merchant_id=row.merchant_id,
+            fulfillment_mode=cast(Literal["legacy", "local"], row.fulfillment_mode),
             images=images,
             skus=visible_skus,
             attributes=await self.adoption_reads(row.id, current_only=True, snapshot=snapshot),
@@ -329,10 +342,18 @@ class ProductService(SpecificationService):
         )
 
     async def public_page(
-        self, page: int, page_size: int, *, category_id: UUID | None = None, search: str | None = None
+        self,
+        page: int,
+        page_size: int,
+        *,
+        category_id: UUID | None = None,
+        search: str | None = None,
+        merchant_id: UUID | None = None,
     ) -> PageResult[PublicProductRead]:
         keyword = search.strip() if search is not None else None
-        rows, total = await self.repository.page(page, page_size, public=True, category_id=category_id, search=keyword)
+        rows, total = await self.repository.page(
+            page, page_size, public=True, category_id=category_id, search=keyword, merchant_id=merchant_id
+        )
         return PageResult[PublicProductRead].create(
             items=await self._public_reads(rows), page=page, page_size=page_size, total=total
         )
@@ -376,6 +397,8 @@ class ProductService(SpecificationService):
         await self.repository.lock_catalog()
         await self._category(data.category_id)
         await self._brand(data.brand_id)
+        if data.fulfillment_mode == "local" and not await self.repository.active_merchant(data.merchant_id):
+            raise catalog_conflict("到店商品必须绑定有效商家")
         row = Product(
             id=new_uuid7(),
             **data.model_dump(
@@ -435,6 +458,9 @@ class ProductService(SpecificationService):
         row.name, row.description, row.category_id = data.name, data.description, data.category_id
         row.description_version = 1
         row.brand_id, row.purchase_limit_quantity = data.brand_id, data.purchase_limit_quantity
+        if data.fulfillment_mode == "local" and not await self.repository.active_merchant(data.merchant_id):
+            raise catalog_conflict("到店商品必须绑定有效商家")
+        row.merchant_id, row.fulfillment_mode = data.merchant_id, data.fulfillment_mode
         row.revision += 1
         await self.repository.replace_images(product_id, data.image_asset_ids)
         await self.repository.replace_detail_images(product_id, data.detail_image_asset_ids)

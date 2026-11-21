@@ -11,6 +11,7 @@ export function loadDraft(userId: string): Draft | null {
   if (typeof value !== 'object' || !('userId' in value) || value.userId !== userId || !('request' in value) || !('submitted' in value) || typeof value.submitted !== 'boolean') throw new Error('结算记录格式无效，请联系支持，勿重复下单')
   if (!('schemaVersion' in value) || value.schemaVersion !== 1 || !('productType' in value) || !['physical', 'virtual'].includes(String(value.productType))) throw new Error('结算记录版本无效，请先核对订单结果')
   const draft = value as Draft
+  if (draft.request?.points_to_use != null && (!Number.isSafeInteger(draft.request.points_to_use) || draft.request.points_to_use < 0 || draft.request.points_to_use > 9999999999999)) throw new Error('结算积分记录无效，请先核对订单结果')
   if (!draft.request || !UUID.test(draft.request.request_id) || !Array.isArray(draft.request.items) || !draft.request.items.length || draft.request.items.length > 50 || draft.request.items.some((item) => !item || !UUID.test(item.sku_id) || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 999) || draft.request.address_id != null && !UUID.test(draft.request.address_id) || draft.request.quote_fingerprint != null && !/^[0-9a-f]{64}$/.test(draft.request.quote_fingerprint) || draft.submitted && !draft.request.quote_fingerprint) throw new Error('结算记录格式无效，请联系支持，勿重复下单')
   return draft
 }

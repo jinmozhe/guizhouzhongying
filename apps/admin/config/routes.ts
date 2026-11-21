@@ -1,4 +1,12 @@
 export default [
+  {
+    path: "/local-commerce", name: "到店消费", icon: "ShopOutlined", access: "canLocalCommerce",
+    routes: [
+      { path: "/local-commerce/merchants", name: "商家管理", component: "../features/local-commerce/MerchantsPage", access: "canMerchants" },
+      { path: "/local-commerce/property", name: "物业授权", component: "../features/local-commerce/PropertyOperatorsPage", access: "canPropertyOperators" },
+      { path: "/local-commerce/settlements", name: "商家结算", component: "../features/local-commerce/SettlementsPage", access: "canMerchantSettlements" },
+    ],
+  },
   { path: "/login", component: "../features/auth/LoginPage", layout: false },
   { path: "/", redirect: "/welcome" },
   {

@@ -125,6 +125,7 @@ class RefundRequestCreate(BaseModel):
 
 class RefundRequestRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+    points_returned: int
 
     id: UUID
     order_id: UUID

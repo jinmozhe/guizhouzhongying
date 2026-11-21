@@ -3,7 +3,7 @@ import type { PublicSkuRead } from '@pinjie/api-client'
 import { canSelect, matchingSkus, resolvedSku, specGroups } from './sku'
 
 function variant(id: string, specifications: Record<string, string>, active = true): PublicSkuRead {
-  return { id, code: id, sku_no: 1, specifications, price: '10.00', market_price: null, wholesale_prices: [], weight_grams: null, is_active: active }
+  return { id, code: id, sku_no: 1, specifications, price: '10.00', max_points_deduction: 0, market_price: null, wholesale_prices: [], weight_grams: null, is_active: active }
 }
 
 describe('商品规格选择', () => {

@@ -9,7 +9,7 @@ import { QueryState } from '@/components/QueryState'
 import { privateRequest, useSession } from '@/lib/session'
 
 const entryLabels: Record<ConsumerPointsLedgerRead['entry_type'], string> = { grant: '积分授予', spend: '积分支出', freeze: '积分冻结', release: '冻结释放', reverse: '积分冲销', expire: '积分到期' }
-const sourceLabels: Record<ConsumerPointsLedgerRead['source_type'], string> = { invite: '邀请相关记录', order: '订单相关记录', refund: '退款相关记录', redemption: '兑换相关记录', manual: '人工调整记录' }
+const sourceLabels: Record<ConsumerPointsLedgerRead['source_type'], string> = { invite: '邀请相关记录', order: '订单相关记录', refund: '退款相关记录', redemption: '兑换相关记录', manual: '人工调整记录', property: '物业发放积分' }
 function Content() {
   const session = useSession()
   const [page, setPage] = useState(1)
@@ -17,7 +17,7 @@ function Content() {
   const ledger = useQuery({ queryKey: ['private', 'points-ledgers', session.epoch, page], enabled: account.data?.state === 'opened' && !account.isError, gcTime: 0, queryFn: ({ signal }) => privateRequest<ResponseModelPageResultConsumerPointsLedgerRead>(`/users/me/points/ledgers?page=${page}&page_size=10`, { signal }) })
   useDidShow(() => { void account.refetch(); if (account.data?.state === 'opened') void ledger.refetch() })
   return <View className='page account-page'><View className='title'>我的积分</View>
-    <View className='note'>积分独立于人民币钱包。当前提供余额和流水查询，兑换、抵扣与自动到期尚未开放；推荐绑定或分享不承诺积分奖励。</View>
+    <View className='note'>1积分抵1元，购买到店商品时可按规格上限抵扣。物业授予积分不参与升级，实际消费按含积分成交额计算；推荐绑定或分享不承诺积分奖励。</View>
     {account.isPending && <QueryState title='正在读取本人积分账户' />}
     {account.isError && <QueryState title='积分账户读取失败' error={account.error} retry={() => { void account.refetch() }} />}
     {account.data && !account.isError && <>{account.data.state === 'not_opened' ? <QueryState title='积分账户异常，请重新登录；若仍异常，请联系帮助与支持' /> : account.data.account && <>
