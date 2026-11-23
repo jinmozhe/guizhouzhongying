@@ -68,7 +68,7 @@ Taro 传递 normalize-url 2.0.1 的 query-string 使用限定为 parse/stringify
 
 公开 project.config.json 只放可公开配置与 AppID。project.private.config.json、真实环境文件、上传私钥、输出目录和日志应加入忽略规则。AppID 可公开，AppSecret、session_key、支付密钥与上传私钥不得进入客户端、仓库或产物。
 
-公开 `project.config.json` 的 AppID 留空，导入微信开发者工具前填写贵州众赢所属小程序 AppID，并同步服务端 `WECHAT_APP_ID`。主体资格、平台权限、隐私指引、合法域名和发布须独立验收。项目配置指向 dist/ 并排除打包 .map 文件。开发 API 与资源源站默认明确为 `http://127.0.0.1:18168`；可用公开 TARO_APP_API_BASE_URL 与 TARO_APP_ASSET_BASE_URL 覆盖，生产必须显式配置 HTTPS 源站。图片仅允许配置资源源站的绝对 URL 或站内路径，不自动信任其他 CDN。
+公开 `project.config.json` 已填写小程序 AppID。启用微信登录前，核对目标环境的 `WECHAT_APP_ID` 与客户端一致。主体资格、平台权限、隐私指引、合法域名和发布须独立验收。项目配置指向 dist/ 并排除打包 .map 文件。开发 API 与资源源站默认明确为 `http://127.0.0.1:18168`；可用公开 TARO_APP_API_BASE_URL 与 TARO_APP_ASSET_BASE_URL 覆盖，生产必须显式配置 HTTPS 源站。图片仅允许配置资源源站的绝对 URL 或站内路径，不自动信任其他 CDN。
 
 根 dev 保持 Admin 入口，Backend 本机使用已有 18168，Admin 使用 3001。小程序真机连接可达且符合微信配置的 HTTPS 服务；手机 localhost 不指向电脑。禁止启动 Web、H5 或监听 3000。
 

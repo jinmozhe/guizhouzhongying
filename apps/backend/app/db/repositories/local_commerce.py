@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Asset, LocalBindingEvent, Merchant, PropertyGrant, PropertyOperator, User
 
 _OPENING_TIME = r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]"
-_CLOSING_TIME = rf"(?:{_OPENING_TIME}|24:00)"
+_CLOSING_TIME = f"(?:{_OPENING_TIME}|24:00)"
 _HOURS_PREFIX = r"^\s*(?:每日|每天)?\s*"
 _HOURS_SEPARATOR = r"\s*[-–—~～至]\s*"
 _HOURS_SUFFIX = r"\s*$"
@@ -74,7 +74,7 @@ class LocalActorsRepository:
             opens = func.lpad(
                 func.substring(
                     Merchant.business_hours,
-                    rf"{_HOURS_PREFIX}({_OPENING_TIME}){_HOURS_SEPARATOR}{_CLOSING_TIME}{_HOURS_SUFFIX}",
+                    f"{_HOURS_PREFIX}({_OPENING_TIME}){_HOURS_SEPARATOR}{_CLOSING_TIME}{_HOURS_SUFFIX}",
                 ),
                 5,
                 "0",
@@ -82,7 +82,7 @@ class LocalActorsRepository:
             closes = func.lpad(
                 func.substring(
                     Merchant.business_hours,
-                    rf"{_HOURS_PREFIX}{_OPENING_TIME}{_HOURS_SEPARATOR}({_CLOSING_TIME}){_HOURS_SUFFIX}",
+                    f"{_HOURS_PREFIX}{_OPENING_TIME}{_HOURS_SEPARATOR}({_CLOSING_TIME}){_HOURS_SUFFIX}",
                 ),
                 5,
                 "0",
