@@ -5606,6 +5606,18 @@ export type MerchantInput = {
      */
     address?: string;
     /**
+     * Latitude
+     *
+     * 公开门店纬度，GCJ-02
+     */
+    latitude?: number | string | null;
+    /**
+     * Longitude
+     *
+     * 公开门店经度，GCJ-02
+     */
+    longitude?: number | string | null;
+    /**
      * Business Hours
      *
      * 当前业务字段，具体语义由所属请求或响应模型定义
@@ -5665,6 +5677,18 @@ export type MerchantRead = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     address?: string;
+    /**
+     * Latitude
+     *
+     * 公开门店纬度，GCJ-02
+     */
+    latitude?: string | null;
+    /**
+     * Longitude
+     *
+     * 公开门店经度，GCJ-02
+     */
+    longitude?: string | null;
     /**
      * Business Hours
      *
@@ -5749,6 +5773,18 @@ export type MerchantUpdate = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     address?: string;
+    /**
+     * Latitude
+     *
+     * 公开门店纬度，GCJ-02
+     */
+    latitude?: number | string | null;
+    /**
+     * Longitude
+     *
+     * 公开门店经度，GCJ-02
+     */
+    longitude?: number | string | null;
     /**
      * Business Hours
      *
@@ -7484,6 +7520,42 @@ export type PageResultPropertyGrantRead = {
 };
 
 /**
+ * PageResult[PublicMerchantRead]
+ */
+export type PageResultPublicMerchantRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<PublicMerchantRead>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
  * PageResult[PublicProductRead]
  */
 export type PageResultPublicProductRead = {
@@ -9121,6 +9193,18 @@ export type PublicMerchantRead = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     address: string;
+    /**
+     * Latitude
+     *
+     * 公开门店纬度，GCJ-02
+     */
+    latitude?: number | null;
+    /**
+     * Longitude
+     *
+     * 公开门店经度，GCJ-02
+     */
+    longitude?: number | null;
     /**
      * Business Hours
      *
@@ -12677,6 +12761,34 @@ export type ResponseModelPageResultPropertyGrantRead = {
      * 响应业务数据
      */
     data: PageResultPropertyGrantRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[PageResult[PublicMerchantRead]]
+ */
+export type ResponseModelPageResultPublicMerchantRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultPublicMerchantRead;
     /**
      * Request Id
      *
@@ -16248,6 +16360,58 @@ export type CategoryMerchantsApiV1MerchantsGetResponses = {
 };
 
 export type CategoryMerchantsApiV1MerchantsGetResponse = CategoryMerchantsApiV1MerchantsGetResponses[keyof CategoryMerchantsApiV1MerchantsGetResponses];
+
+export type BrowseMerchantsApiV1MerchantsBrowseGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Category Id
+         */
+        category_id?: string | null;
+        /**
+         * Search
+         */
+        search?: string | null;
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+        /**
+         * Open Now
+         *
+         * 仅返回当前北京时间处于已填写每日营业时段内的商家
+         */
+        open_now?: boolean;
+    };
+    url: '/api/v1/merchants/browse';
+};
+
+export type BrowseMerchantsApiV1MerchantsBrowseGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type BrowseMerchantsApiV1MerchantsBrowseGetError = BrowseMerchantsApiV1MerchantsBrowseGetErrors[keyof BrowseMerchantsApiV1MerchantsBrowseGetErrors];
+
+export type BrowseMerchantsApiV1MerchantsBrowseGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPageResultPublicMerchantRead;
+};
+
+export type BrowseMerchantsApiV1MerchantsBrowseGetResponse = BrowseMerchantsApiV1MerchantsBrowseGetResponses[keyof BrowseMerchantsApiV1MerchantsBrowseGetResponses];
 
 export type RolesApiV1UsersMeBusinessRolesGetData = {
     body?: never;

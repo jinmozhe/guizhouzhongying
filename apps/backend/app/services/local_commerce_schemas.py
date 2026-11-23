@@ -1,9 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.core.restricted_html import restricted_html
 
@@ -42,9 +42,20 @@ class MerchantInput(OperatorInput):
     logo_asset_id: UUID | None = None
     description: Annotated[str, AfterValidator(restricted_html)] = Field(default="", max_length=20000)
     address: str = Field(default="", max_length=300)
+    latitude: Decimal | None = Field(default=None, ge=-90, le=90, decimal_places=6, description="公开门店纬度，GCJ-02")
+    longitude: Decimal | None = Field(
+        default=None, ge=-180, le=180, decimal_places=6, description="公开门店经度，GCJ-02"
+    )
     business_hours: str = Field(default="", max_length=200)
     public_phone: str = Field(default="", max_length=40)
     sort_order: int | None = Field(default=None, ge=0, le=2147483647)
+
+    @model_validator(mode="after")
+    def validate_map_coordinates(self) -> Self:
+        supplied = self.model_fields_set & {"latitude", "longitude"}
+        if len(supplied) == 1 or (self.latitude is None) != (self.longitude is None):
+            raise ValueError("门店纬度和经度需同时填写或清空")
+        return self
 
 
 class MerchantUpdate(MerchantInput):
@@ -67,6 +78,8 @@ class PublicMerchantRead(BaseModel):
     description: str
     description_format: Literal["restricted_html_v1"] = "restricted_html_v1"
     address: str
+    latitude: float | None = Field(default=None, description="公开门店纬度，GCJ-02")
+    longitude: float | None = Field(default=None, description="公开门店经度，GCJ-02")
     business_hours: str
     public_phone: str
     is_active: bool

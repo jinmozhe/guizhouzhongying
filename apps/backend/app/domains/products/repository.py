@@ -218,16 +218,18 @@ class ProductRepository(CatalogRepository):
             is not None
         )
 
-    async def public_merchant_ids(self, category_id: UUID | None, search: str | None) -> list[UUID]:
+    def public_merchant_scope(self, category_id: UUID | None, search: str | None) -> Select[tuple[UUID]]:
         query = self._public_query(select(Product), category_id)
         if search:
             query = query.where(Product.name.icontains(search.strip(), autoescape=True))
-        products = query.subquery()
+        return select(Merchant.id).where(Merchant.id.in_(query.with_only_columns(Product.merchant_id)))
+
+    async def public_merchant_ids(self, category_id: UUID | None, search: str | None) -> list[UUID]:
         return list(
             await self.session.scalars(
-                select(Merchant.id)
-                .where(Merchant.id.in_(select(products.c.merchant_id)))
-                .order_by(Merchant.sort_order.asc().nulls_last(), Merchant.id.desc())
+                self.public_merchant_scope(category_id, search).order_by(
+                    Merchant.sort_order.asc().nulls_last(), Merchant.id.desc()
+                )
             )
         )
 

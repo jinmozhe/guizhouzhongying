@@ -17,6 +17,8 @@
 
 | 路径 | 状态 | 结果 | 影响范围 | 用途 |
 | --- | --- | --- | --- | --- |
+| `plans/2026-11-23_分类商家浏览与分页导航计划.md` | 已结束 | 已完成 | Backend、Admin、Miniapp、API Client、Database、Documentation | 分类商家单行横滑，点击“全部”原地展开，支持按商家筛选商品。独立列表支持商家分页和地图导航。本机开发库已升级，商家接口和就绪检查已复测，微信动态验收未执行 |
+| `plans/2026-11-23_小程序商品商家联系计划.md` | 已结束 | 已完成 | Miniapp、Documentation | 商品详情商家卡显示营业时间和公开电话拨号入口，微信预览与真机拨号未执行 |
 | `plans/2026-11-23_商品统一为实物计划.md` | 已结束 | 已完成 | Backend、Admin、Miniapp、API Client、Database、Documentation | 本机 3 件商品已转换，新建仅支持实物，适用轻量门禁通过 |
 | `plans/2026-11-21_商家核销与物业积分消费全栈计划.md` | 已结束 | 已完成；本地实现、轻量检查、开发库迁移及权限目录同步完成，平台及重型业务验收未执行 | Backend、Admin、Miniapp、API Client、Database、Deployment、Documentation | 商家、物业积分、整单核销退款和全额应收；开发库已升至 20261121_01，六项权限同步且复查无差异，初始超级管理员 pinjie 已创建，仓库外加密备份保留 |
 | `plans/2026-11-20_1Panel源码部署计划.md` | 已结束 | 已完成；本地部署入口、Admin 反代配置和运行手册已交付，生产尚未部署 | Backend、Admin、Database、Deployment、Documentation | 以 1Panel 单一 Python 环境运行宿主机源码 |

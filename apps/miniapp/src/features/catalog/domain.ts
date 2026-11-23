@@ -1,5 +1,5 @@
 import type { CategoryRead, PageResultPublicProductRead, PublicProductRead } from '@pinjie/api-client'
-import { compareMoney, priceLabel } from '../../lib/money'
+import { compareMoney } from '../../lib/money'
 
 export const CATEGORY_PAGE_SIZE = 20
 export const CATEGORY_MAX_PAGES = 5
@@ -31,11 +31,22 @@ export function uniqueProducts(pages: PageResultPublicProductRead[]) {
 }
 
 export function productPrice(product: PublicProductRead) {
-  const skus = product.skus.filter((sku) => sku.is_active)
-  const single = skus.length === 1 ? skus[0] : undefined
+  const skus = product.skus.filter((sku) => sku.is_active).sort((left, right) => compareMoney(left.price, right.price))
+  const lowest = skus[0]
+  const multiple = skus.length > 1
+  const market = multiple ? undefined : lowest?.market_price
+  const points = product.fulfillment_mode === 'local'
+    ? skus.reduce((highest, sku) => {
+      const wholeYuan = Number(sku.price.split('.')[0])
+      return Math.max(highest, Math.min(sku.max_points_deduction, wholeYuan))
+    }, 0)
+    : 0
+
   return {
-    label: priceLabel(skus.map((sku) => sku.price)),
-    multiple: skus.length > 1,
-    market: single?.market_price && compareMoney(single.market_price, single.price) > 0 ? single.market_price : undefined,
+    amount: lowest?.price,
+    startsAt: multiple && compareMoney(lowest.price, skus[skus.length - 1].price) < 0,
+    multiple,
+    market: market && compareMoney(market, lowest.price) > 0 ? market : undefined,
+    points,
   }
 }

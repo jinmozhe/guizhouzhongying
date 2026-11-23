@@ -1,5 +1,5 @@
 import hashlib
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -148,6 +148,19 @@ class LocalActorsService:
             for row, url in await self.repository.public_merchants(ids)
         ]
 
+    async def category_merchant_page(
+        self, category_id: UUID | None, search: str | None, *, page: int, page_size: int, open_now: bool
+    ) -> PageResult[PublicMerchantRead]:
+        scope = ProductRepository(self.session).public_merchant_scope(category_id, search)
+        open_at = datetime.now(timezone(timedelta(hours=8))).strftime("%H:%M") if open_now else None
+        rows, total = await self.repository.public_merchant_page(scope, page=page, page_size=page_size, open_at=open_at)
+        return PageResult[PublicMerchantRead].create(
+            items=[PublicMerchantRead.model_validate(row).model_copy(update={"logo_url": url}) for row, url in rows],
+            page=page,
+            page_size=page_size,
+            total=total,
+        )
+
     async def merchants(self, page: int, page_size: int, search: str | None) -> PageResult[MerchantRead]:
         rows, total = await self.repository.page(Merchant, page, page_size, search)
         return PageResult[MerchantRead].create(
@@ -184,7 +197,11 @@ class LocalActorsService:
             row = existing
             previous_user = row.user_id
             row.revision += 1
-        for field, value in data.model_dump(exclude={"revision"}).items():
+        fields = data.model_dump(exclude={"revision"})
+        if isinstance(data, MerchantInput) and "latitude" not in data.model_fields_set:
+            fields.pop("latitude")
+            fields.pop("longitude")
+        for field, value in fields.items():
             setattr(row, field, value)
         if isinstance(row, Merchant) and row.logo_asset_id is not None:
             asset = await self.repository.asset(row.logo_asset_id, lock=True)

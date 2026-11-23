@@ -37,10 +37,21 @@ describe('分类范围与公开商品展示', () => {
   })
 
   it('不混用不同 SKU 的参考价，金额按十进制比较且不伪造零价', () => {
-    expect(productPrice(product('one', [sku('9.90', '19.90')]))).toEqual({ label: '¥9.90', market: '19.90', multiple: false })
-    expect(productPrice(product('multi', [sku('99.00', '199.00'), sku('9.90', '19.90')]))).toEqual({ label: '¥9.90 起', market: undefined, multiple: true })
+    expect(productPrice(product('one', [sku('9.90', '19.90')]))).toMatchObject({ amount: '9.90', startsAt: false, market: '19.90', multiple: false })
+    expect(productPrice(product('multi', [sku('99.00', '199.00'), sku('9.90', '19.90')]))).toMatchObject({ amount: '9.90', startsAt: true, market: undefined, multiple: true })
+    expect(productPrice(product('same-price', [sku('9.90'), sku('9.9')]))).toMatchObject({ startsAt: false, multiple: true })
     expect(productPrice(product('invalid-market', [sku('9.90', '9.9')])).market).toBeUndefined()
     expect(productPrice(product('huge', [sku('999999999999999999.99', '1000000000000000000.00')])).market).toBe('1000000000000000000.00')
-    expect(productPrice(product('none', [{ ...sku('10'), is_active: false }])).label).toBe('暂无可售规格')
+    expect(productPrice(product('none', [{ ...sku('10'), is_active: false }])).amount).toBeUndefined()
+  })
+
+  it('只展示到店商品启用规格的最高单件可抵积分，且上限不超过该规格的整元标价', () => {
+    const capped = { ...sku('9.99'), max_points_deduction: 20 }
+    const higher = { ...sku('100.00'), max_points_deduction: 50 }
+    const inactive = { ...sku('200.00'), max_points_deduction: 100, is_active: false }
+    expect(productPrice(product('single', [capped])).points).toBe(9)
+    expect(productPrice(product('multiple', [capped, higher, inactive])).points).toBe(50)
+    expect(productPrice(product('sub-yuan', [{ ...capped, price: '0.99' }])).points).toBe(0)
+    expect(productPrice({ ...product('legacy', [higher]), fulfillment_mode: 'legacy' }).points).toBe(0)
   })
 })

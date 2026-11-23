@@ -1,9 +1,15 @@
 from uuid import UUID
 
-from sqlalchemy import func, select, text
+from sqlalchemy import Select, and_, func, or_, select, text, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Asset, LocalBindingEvent, Merchant, PropertyGrant, PropertyOperator, User
+
+_OPENING_TIME = r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]"
+_CLOSING_TIME = rf"(?:{_OPENING_TIME}|24:00)"
+_HOURS_PREFIX = r"^\s*(?:每日|每天)?\s*"
+_HOURS_SEPARATOR = r"\s*[-–—~～至]\s*"
+_HOURS_SUFFIX = r"\s*$"
 
 
 class LocalActorsRepository:
@@ -59,6 +65,54 @@ class LocalActorsRepository:
         )
         by_id = {merchant.id: (merchant, url) for merchant, url in rows.tuples()}
         return [by_id[value] for value in ids if value in by_id]
+
+    async def public_merchant_page(
+        self, scope: Select[tuple[UUID]], *, page: int, page_size: int, open_at: str | None
+    ) -> tuple[list[tuple[Merchant, str | None]], int]:
+        visible = scope
+        if open_at is not None:
+            opens = func.lpad(
+                func.substring(
+                    Merchant.business_hours,
+                    rf"{_HOURS_PREFIX}({_OPENING_TIME}){_HOURS_SEPARATOR}{_CLOSING_TIME}{_HOURS_SUFFIX}",
+                ),
+                5,
+                "0",
+            ).collate("C")
+            closes = func.lpad(
+                func.substring(
+                    Merchant.business_hours,
+                    rf"{_HOURS_PREFIX}{_OPENING_TIME}{_HOURS_SEPARATOR}({_CLOSING_TIME}){_HOURS_SUFFIX}",
+                ),
+                5,
+                "0",
+            ).collate("C")
+            visible = visible.where(
+                or_(
+                    and_(opens < closes, opens <= open_at, closes > open_at),
+                    and_(opens > closes, or_(opens <= open_at, closes > open_at)),
+                )
+            )
+        matching = visible.add_columns(Merchant.sort_order).cte("matching_merchants")
+        totals = select(func.count().label("total")).select_from(matching).subquery()
+        page_rows = (
+            select(matching.c.id, matching.c.sort_order)
+            .order_by(matching.c.sort_order.asc().nulls_last(), matching.c.id.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .subquery()
+        )
+        # Keep the count row even when the requested page is empty.
+        result = await self.session.execute(
+            select(Merchant, Asset.url, totals.c.total)
+            .select_from(totals)
+            .outerjoin(page_rows, true())
+            .outerjoin(Merchant, Merchant.id == page_rows.c.id)
+            .outerjoin(Asset, Asset.id == Merchant.logo_asset_id)
+            .order_by(page_rows.c.sort_order.asc().nulls_last(), page_rows.c.id.desc())
+        )
+        rows = result.tuples().all()
+        return [(merchant, url) for merchant, url, _ in rows if merchant is not None], int(rows[0][2])
 
     async def asset(self, asset_id: UUID, *, lock: bool = False) -> Asset | None:
         query = select(Asset).where(Asset.id == asset_id)

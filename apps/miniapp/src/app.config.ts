@@ -3,7 +3,7 @@ import tabBar from './tab-bar.json'
 export default defineAppConfig({
   pages: ['pages/home/index', 'pages/category/index', 'pages/cart/index', 'pages/account/index'],
   subPackages: [
-    { root: 'subpackages/local', pages: ['merchant/index', 'property/index', 'redemption/index', 'finance/index'] },
+    { root: 'subpackages/local', pages: ['merchant/index', 'merchants/index', 'property/index', 'redemption/index', 'finance/index'] },
     { root: 'subpackages/catalog', pages: ['detail/index'] },
     { root: 'subpackages/account', pages: ['auth/index', 'addresses/index', 'privacy/index', 'profile/index', 'settings/index', 'sessions/index', 'closure/index'] },
     { root: 'subpackages/finance', pages: ['membership/index', 'wallets/index', 'ledgers/index', 'commissions/index', 'withdrawals/index', 'referral/index', 'points/index'] },

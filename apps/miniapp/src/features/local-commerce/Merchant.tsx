@@ -7,15 +7,60 @@ import { getPublic } from '@/lib/api'
 import { ProductImage } from '@/components/ProductImage'
 import { QueryState } from '@/components/QueryState'
 import { Button } from '@/components/Button'
+import { Icon } from '@/components/Icon'
+import './merchant.scss'
 
 export function MerchantCard({ merchantId }: { merchantId: string }) {
   const query = useQuery({ queryKey: ['merchant-public', merchantId], queryFn: ({ signal }) => getPublic<ResponseModelPublicMerchantRead>(`/merchants/${merchantId}`, signal) })
-  if (query.isPending) return <QueryState title='正在读取消费商家' />
+  if (query.isPending) return <QueryState title='正在读取商家资料' />
   if (query.isError) return <QueryState title='商家资料读取失败' error={query.error} retry={() => { void query.refetch() }} />
   const merchant = query.data
-  return <View className='surface' onClick={() => { void Taro.navigateTo({ url: `/subpackages/local/merchant/index?id=${merchantId}` }) }}>
-    <View className='section-title'>消费商家 · {merchant.name}</View>
-    <View className='trade-row'><View className='trade-thumb'><ProductImage url={merchant.logo_url ?? undefined} /></View><View><View>{merchant.address || '地址待商家补充'}</View><View className='muted'>查看商家详情 ›</View></View></View>
+  const address = merchant.address.trim()
+  const businessHours = merchant.business_hours.trim()
+  const publicPhone = merchant.public_phone.trim()
+  const openMerchant = () => {
+    void Taro.navigateTo({ url: `/subpackages/local/merchant/index?id=${merchantId}` })
+      .catch(() => Taro.showToast({ title: '商家详情打开失败，请重试', icon: 'none' }))
+  }
+
+  return <View className='surface'>
+    <View className='merchant-card-summary'>
+      <View className='trade-thumb' ariaRole='link' ariaLabel={`查看${merchant.name}详情`} onClick={openMerchant}>
+        {merchant.logo_url ? <ProductImage url={merchant.logo_url} /> : <View className='image-box' />}
+      </View>
+      <View className='merchant-card-info'>
+        <View className='merchant-card-name' ariaRole='link' onClick={openMerchant}>
+          {merchant.name}
+        </View>
+        <View className='merchant-card-meta'>
+          <Icon name='Location' size={28} />
+          <Text>{address || '地址待商家补充'}</Text>
+        </View>
+      </View>
+    </View>
+    <View className='merchant-card-footer'>
+      {(businessHours || publicPhone) && <View className='merchant-card-contact'>
+        {businessHours && <View className='merchant-card-meta'>
+          <Icon name='Clock' size={28} />
+          <Text>营业时间 {businessHours}</Text>
+        </View>}
+        {publicPhone && <Button
+          type='default'
+          fill='none'
+          icon={<Icon name='Phone' size={28} />}
+          onClick={() => {
+            void Taro.makePhoneCall({ phoneNumber: publicPhone })
+              .catch(() => Taro.showToast({ title: '拨号未完成，可重新点击', icon: 'none' }))
+          }}
+        >
+          联系商家
+        </Button>}
+      </View>}
+      <View className='merchant-card-details' ariaRole='link' ariaLabel='查看商家详情' onClick={openMerchant}>
+        <Text>详情</Text>
+        <Icon name='ArrowRight' size={24} />
+      </View>
+    </View>
   </View>
 }
 
