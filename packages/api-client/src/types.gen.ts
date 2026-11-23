@@ -8404,9 +8404,9 @@ export type ProductCreate = {
     /**
      * Product Type
      *
-     * 实物或虚拟商品
+     * 新建商品仅支持实物
      */
-    product_type: 'physical' | 'virtual';
+    product_type?: 'physical';
     /**
      * Category Id
      *

@@ -63,6 +63,7 @@ test-results/
 
 # 本地临时参考资料
 /temp/
+/output/
 
 # 压缩包与归档文件
 *.7z

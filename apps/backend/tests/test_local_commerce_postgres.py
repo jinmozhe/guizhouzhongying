@@ -86,8 +86,7 @@ async def test_points_grant_checkout_and_whole_order_completion(shop, monkeypatc
     category = await shop.commerce.create_category(CategoryInput(name="到店测试"))
     product = await shop.commerce.create_product(
         ProductCreate(
-            name="整单到店服务",
-            product_type="virtual",
+            name="整单到店实物商品",
             merchant_id=merchant.id,
             fulfillment_mode="local",
             category_id=category.id,

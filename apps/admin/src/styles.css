@@ -811,3 +811,7 @@ body .ant-tag.ant-tag-success {
 .catalog-specification-row .ant-form-item {
   margin-bottom: 0 !important;
 }
+
+.catalog-fixed-product-type .ant-form-item-optional {
+  display: none;
+}

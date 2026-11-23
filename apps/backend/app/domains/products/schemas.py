@@ -119,6 +119,7 @@ class ProductInput(BaseModel):
 
 
 class ProductCreate(ProductInput, SpecificationSet):
+    product_type: Literal["physical"] = Field(default="physical", description="新建商品仅支持实物")
     description: RestrictedDescription = Field(
         default="", max_length=20000, description="受限 HTML v1，仅文字格式和颜色；不支持媒体、链接或脚本"
     )

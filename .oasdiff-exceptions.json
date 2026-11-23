@@ -1,4 +1,50 @@
 {
   "schemaVersion": 1,
-  "exceptions": []
+  "exceptions": [
+    {
+      "id": "product-create-physical-const",
+      "plan": "plans/2026-11-23_商品统一为实物计划.md",
+      "owner": "@jinmozhe",
+      "approvedOn": "2026-11-23",
+      "expiresOn": "2026-12-07",
+      "reason": "用户要求新建商品仅支持实物，创建请求新增 physical 常量约束。",
+      "migration": "Admin 固定提交 physical，生成客户端已同步，小程序仅消费查询契约。",
+      "rollout": "先切换 Admin 创建入口，再切换 Backend 创建约束。",
+      "rollback": "先回滚 Backend 创建约束，再回滚 Admin。开发库商品的数据回滚按计划核对版本。",
+      "cleanup": "比较基线包含新契约后删除本登记。",
+      "method": "POST",
+      "path": "/api/v1/admin/products",
+      "message": "the `product_type` request property const value `physical` was added"
+    },
+    {
+      "id": "product-create-physical-enum-serialization",
+      "plan": "plans/2026-11-23_商品统一为实物计划.md",
+      "owner": "@jinmozhe",
+      "approvedOn": "2026-11-23",
+      "expiresOn": "2026-12-07",
+      "reason": "OpenAPI 将旧枚举表示改成单值常量，physical 仍可提交。",
+      "migration": "Admin 固定提交 physical，生成客户端已同步，小程序仅消费查询契约。",
+      "rollout": "先切换 Admin 创建入口，再切换 Backend 创建约束。",
+      "rollback": "先回滚 Backend 创建约束，再回滚 Admin。开发库商品的数据回滚按计划核对版本。",
+      "cleanup": "比较基线包含新契约后删除本登记。",
+      "method": "POST",
+      "path": "/api/v1/admin/products",
+      "message": "removed the enum value `physical` of the request property `product_type`"
+    },
+    {
+      "id": "product-create-retire-virtual",
+      "plan": "plans/2026-11-23_商品统一为实物计划.md",
+      "owner": "@jinmozhe",
+      "approvedOn": "2026-11-23",
+      "expiresOn": "2026-12-07",
+      "reason": "用户明确要求新建商品仅支持实物，退役创建请求的 virtual 值。",
+      "migration": "Admin 固定提交 physical，生成客户端已同步，小程序仅消费查询契约。",
+      "rollout": "先切换 Admin 创建入口，再切换 Backend 创建约束。",
+      "rollback": "先回滚 Backend 创建约束，再回滚 Admin。开发库商品的数据回滚按计划核对版本。",
+      "cleanup": "比较基线包含新契约后删除本登记。",
+      "method": "POST",
+      "path": "/api/v1/admin/products",
+      "message": "removed the enum value `virtual` of the request property `product_type`"
+    }
+  ]
 }
