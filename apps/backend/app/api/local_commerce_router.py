@@ -61,6 +61,25 @@ async def category_merchants(
 
 
 @router.get(
+    "/merchants/browse",
+    response_model=ResponseModel[PageResult[PublicMerchantRead]],
+    summary="分页浏览当前分类及商品搜索范围内的公开商家",
+)
+async def browse_merchants(
+    service: LocalActors,
+    category_id: UUID | None = None,
+    search: Annotated[str | None, Query(max_length=200)] = None,
+    page: Page = 1,
+    page_size: PageSize = 20,
+    open_now: Annotated[bool, Query(description="仅返回当前北京时间处于已填写每日营业时段内的商家")] = False,
+) -> ResponseModel[PageResult[PublicMerchantRead]]:
+    result = await service.category_merchant_page(
+        category_id, search, page=page, page_size=page_size, open_now=open_now
+    )
+    return success_response(data=result, request_id=current_request_id())
+
+
+@router.get(
     "/users/me/business-roles", response_model=ResponseModel[LocalRolesRead], summary="读取本人实时附加业务身份"
 )
 async def roles(service: LocalActors, current: BasicUser) -> ResponseModel[LocalRolesRead]:

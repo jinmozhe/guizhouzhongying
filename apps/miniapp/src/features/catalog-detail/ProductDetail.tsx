@@ -59,6 +59,8 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
   const price = displaySku ? `¥${displaySku.price}` : priceLabel(matchingSkus(product.skus, displaySelection).map((sku) => sku.price))
   const validQuantity = /^\d+$/.test(quantity) && Number(quantity) >= 1 && Number(quantity) <= 99
   const canSell = product.skus.some((sku) => sku.is_active)
+  const hasDescription = product.description_format === 'restricted_html_v1'
+    && Boolean(product.description.replace(/<[^>]*>|&nbsp;/g, '').trim())
   const [intent, setIntent] = useState<'cart' | 'buy' | 'select'>('select')
   const [actionNotice, setActionNotice] = useState('')
   const [unknownCart, setUnknownCart] = useState(false)
@@ -132,10 +134,10 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
           <Text>{Array.isArray(item.value) ? item.value.map((value) => item.display_snapshot?.[value] ?? value).join('、') : item.value ? item.display_snapshot?.[item.value] ?? item.value : '未提供'}{item.value && item.unit_snapshot ? ` ${item.unit_snapshot}` : ''}</Text>
         </View>)}
       </View>}
-      <View className='surface'>
+      {hasDescription && <View className='surface'>
         <View className='section-title'>商品说明</View>
-        {product.description_format === 'restricted_html_v1' && product.description ? <mp-html content={product.description} selectable copy-link={false} use-anchor={false} container-style='font-size: 14px; line-height: 1.7; color: #101828; overflow-wrap: anywhere;' /> : <View className='muted'>{product.description_format === 'legacy' ? '说明整理中，请查看商品参数和详情图片' : '暂无文字说明'}</View>}
-      </View>
+        <mp-html content={product.description} selectable copy-link={false} use-anchor={false} container-style='font-size: 14px; line-height: 1.7; color: #101828; overflow-wrap: anywhere;' />
+      </View>}
       <View className='section-title'>商品详情</View>
       {!product.detail_images.length && <View className='surface muted'>暂无详情图片</View>}
       {product.detail_images.map((image) => <View className='detail-slice' key={image.url} style={{ paddingTop: `${image.height / image.width * 100}%` }}>

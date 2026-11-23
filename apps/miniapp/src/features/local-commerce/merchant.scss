@@ -1,0 +1,80 @@
+@use '../../styles/tokens' as *;
+
+.merchant-card-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.merchant-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.merchant-card-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 32px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.merchant-card-details,
+.merchant-card-meta {
+  display: flex;
+  gap: 8px;
+  color: $secondary;
+  font-size: 24px;
+}
+
+.merchant-card-details {
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 88px;
+  min-height: 88px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.merchant-card-meta {
+  align-items: flex-start;
+}
+
+.merchant-card-meta .app-icon {
+  margin-top: 4px;
+}
+
+.merchant-card-meta > text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.merchant-card-footer,
+.merchant-card-contact {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.merchant-card-footer {
+  margin-top: 8px;
+}
+
+.merchant-card-contact,
+.merchant-card-contact .merchant-card-meta {
+  min-width: 0;
+}
+
+.merchant-card-contact .nut-button {
+  flex: none;
+  min-height: 88px;
+  margin: 0;
+  padding: 0;
+  white-space: nowrap;
+}

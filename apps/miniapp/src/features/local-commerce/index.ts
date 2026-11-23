@@ -1,4 +1,5 @@
 export { MerchantCard, MerchantPage } from './Merchant'
+export { CategoryMerchants, HomeMerchants, homeMerchantQueryKey, MerchantDirectoryPage, type MerchantSelection } from './MerchantDirectory'
 export { Voucher } from './Voucher'
 export { PropertyPointsPage } from './PropertyPointsPage'
 export { RedemptionPage } from './RedemptionPage'

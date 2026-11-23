@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import Taro from '@tarojs/taro'
-import { Button, ScrollView, Text, View } from '@tarojs/components'
+import { Button, ScrollView, View } from '@tarojs/components'
 import { useInfiniteQuery, type InfiniteData } from '@tanstack/react-query'
 import type { PageResultPublicProductRead, ResponseModelPageResultPublicProductRead } from '@pinjie/api-client'
 import { Icon } from '@/components/Icon'
@@ -9,6 +9,7 @@ import { ProductImage } from '@/components/ProductImage'
 import { QueryState } from '@/components/QueryState'
 import { getPublic } from '@/lib/api'
 import { CATEGORY_MAX_PAGES, CATEGORY_PAGE_SIZE, nextProductPage, productPrice, uniqueProducts } from './domain'
+import { ProductPrices, ProductTags } from './ProductOffer'
 
 type Direction = 'next' | 'previous'
 type Rect = { id: string; top: number; bottom: number; height: number }
@@ -47,11 +48,11 @@ function layout(): Promise<{ viewport: Rect; content: Rect; rows: Rect[]; scroll
 const rendered = () => new Promise<void>((resolve) => Taro.nextTick(resolve))
 
 export function CategoryProducts({
-  categoryId, keyword, scope, visible, revision, filters, refreshing, onRefresh, clearSearch, searchAll, merchantId, merchantFilter,
+  categoryId, merchantId, keyword, scope, visible, revision, filters, refreshing, onRefresh, clearSearch, searchAll, merchantPreview,
 }: {
-  categoryId?: string; keyword: string; scope: string; visible: boolean; revision: number; filters: ReactNode
+  categoryId?: string; merchantId?: string; keyword: string; scope: string; visible: boolean; revision: number; filters: ReactNode
   refreshing: boolean; onRefresh: () => void; clearSearch: () => void; searchAll: () => void
-  merchantId?: string; merchantFilter?: ReactNode
+  merchantPreview: ReactNode
 }) {
   const [scrollTop, setScrollTop] = useState(0)
   const [direction, setDirection] = useState<Direction>()
@@ -177,11 +178,7 @@ export function CategoryProducts({
   }
 
   return <>
-    <View className='category-heading'>
-      <View className='category-scope'>{scope}</View>
-      <Text className='category-count'>{total === undefined ? '正在查询' : `${keyword ? '找到' : '共'} ${total} 件商品`}</Text>
-      {keyword && <View className='category-keyword'>搜索：{keyword}</View>}
-    </View>
+    {keyword && <View className='category-keyword'>搜索：{keyword}</View>}
     {filters}
     {navigationError && <View className='category-warning'>{navigationError}</View>}
     {positionError && <View className='category-warning'>{positionError}<Button className='category-text-action' onClick={onRefresh}>刷新商品</Button></View>}
@@ -190,7 +187,7 @@ export function CategoryProducts({
       onScrollToLower={() => { void load('next') }} onScrollToUpper={() => { void load('previous') }}
       refresherEnabled={!query.hasPreviousPage && !direction} refresherTriggered={refreshing} onRefresherRefresh={onRefresh}>
       <View id='category-products-content'>
-        {merchantFilter}
+        {merchantPreview}
         {query.isPending && <QueryState title={query.fetchStatus === 'paused' ? '等待网络连接' : '正在加载商品'} />}
         {!pages && query.isError && <QueryState title='商品加载失败' error={query.error} retry={() => { void query.refetch() }} />}
         {pages && <>
@@ -202,7 +199,7 @@ export function CategoryProducts({
             <Icon name='Search' size={56} />
             <View className='category-empty-title'>{keyword ? '未找到相关商品' : '暂无商品'}</View>
             <View className='muted'>{keyword ? `“${scope}”中未找到“${keyword}”` : '当前范围暂无公开上架商品'}</View>
-            {keyword && categoryId && <Button className='category-empty-primary' onClick={searchAll}>在全部商品中搜索</Button>}
+            {keyword && (categoryId || merchantId) && <Button className='category-empty-primary' onClick={searchAll}>在全部商品中搜索</Button>}
             {keyword && <Button className='category-text-action' onClick={clearSearch}>清空搜索</Button>}
           </View>}
           {products.map((product) => {
@@ -212,12 +209,9 @@ export function CategoryProducts({
               <View className='category-product-image'><ProductImage url={product.images[0]} /></View>
               <View className='category-product-info'>
                 <View className='category-product-name'>{product.name}</View>
-                <View className='category-product-meta'>{product.product_type === 'physical' ? '实物商品' : '虚拟商品'}{price.multiple ? ' · 多规格可选' : ''}</View>
+                <ProductTags multiple={price.multiple} points={price.points} />
                 <View className='category-product-bottom'>
-                  <View className='category-product-prices'>
-                    <View className='category-product-price'>{price.label}</View>
-                    {price.market && <Text className='category-market-price'>¥{price.market}</Text>}
-                  </View>
+                  <ProductPrices amount={price.amount} startsAt={price.startsAt} market={price.market} />
                   <Button className='category-product-open' ariaLabel={`查看${product.name}详情`} disabled={navigating || Boolean(direction)}
                     onClick={(event) => { event.stopPropagation(); void openProduct(product.id) }}>
                     <View className='category-plus'><Icon name='Plus' size={32} /></View>

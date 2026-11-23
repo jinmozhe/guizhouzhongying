@@ -27,6 +27,12 @@ class Merchant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("revision > 0", name="ck_merchants_revision"),
         CheckConstraint("sort_order >= 0", name="ck_merchants_sort"),
+        CheckConstraint(
+            "(latitude IS NULL AND longitude IS NULL) OR "
+            "(latitude IS NOT NULL AND longitude IS NOT NULL AND "
+            "latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180)",
+            name="ck_merchants_map_coordinates",
+        ),
         {"comment": "线下消费商家，一商家一授权手机号一核销员"},
     )
     name: Mapped[str] = mapped_column(String(100), comment="商家名称")
@@ -39,6 +45,8 @@ class Merchant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     description: Mapped[str] = mapped_column(Text, default="", comment="受限 HTML 商家介绍")
     address: Mapped[str] = mapped_column(String(300), default="", comment="线下消费地址")
+    latitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), comment="公开门店纬度，GCJ-02")
+    longitude: Mapped[Decimal | None] = mapped_column(Numeric(9, 6), comment="公开门店经度，GCJ-02")
     business_hours: Mapped[str] = mapped_column(String(200), default="", comment="营业时间")
     public_phone: Mapped[str] = mapped_column(String(40), default="", comment="明确公开的联系电话")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, comment="是否启用")

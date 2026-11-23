@@ -9,6 +9,7 @@ import { ResourceTable } from "@/components/ResourceTable";
 import { canAccess, useCurrentAdmin } from "@/features/auth";
 import { errorMessage } from "@/lib/api/http";
 import { localCommerceApi } from "@/lib/api/local-commerce";
+import { AuthorizationPhoneField, displayAuthorizationPhone } from "./AuthorizationPhoneField";
 
 function Editor({ target, close, done }: { target: OperatorRead | null; close: () => void; done: () => Promise<void> }) {
   const [form] = Form.useForm<OperatorInput>();
@@ -19,11 +20,14 @@ function Editor({ target, close, done }: { target: OperatorRead | null; close: (
     else await localCommerceApi.createOperator(values);
     await done(); close();
   }}>
-    <Form form={form} layout="vertical" initialValues={target ?? { name: "", phone_e164: "+86", is_active: true }} onValuesChange={() => lookup.reset()}>
+    <Form form={form} layout="vertical" initialValues={target ?? { name: "", phone_e164: "", is_active: true }} onValuesChange={() => lookup.reset()}>
       <Form.Item name="name" label="物业名称" rules={[{ required: true, whitespace: true, max: 100 }]}><Input maxLength={100} /></Form.Item>
-      <Form.Item name="phone_e164" label="授权手机号" extra="可预录尚未注册的号码，也可查询已有用户。保存后自动绑定可信号码匹配的用户。" rules={[{ required: true, pattern: /^\+[1-9][0-9]{6,14}$/ }]}><Input maxLength={16} /></Form.Item>
+      <AuthorizationPhoneField
+        label="授权手机号"
+        extra="直接填写 11 位手机号。可预录尚未注册的号码，也可查询已有用户。保存后自动绑定可信号码匹配的用户。"
+      />
       <Button icon={<SearchOutlined />} loading={lookup.isPending} onClick={() => lookup.mutate()}>按手机号查询已注册用户</Button>
-      {lookup.data && <Alert type="success" title={`${lookup.data.display_name ?? "会员"} · ${lookup.data.phone_masked}`} description={`保存后关联用户 ${lookup.data.id}`} />}
+      {lookup.data && <Alert type="success" title={`${lookup.data.display_name ?? "会员"} · ${displayAuthorizationPhone(lookup.data.phone_masked)}`} description={`保存后关联用户 ${lookup.data.id}`} />}
       {lookup.error && <Alert type="warning" title={errorMessage(lookup.error)} />}
       <Form.Item name="is_active" label="启用授权" valuePropName="checked"><Switch /></Form.Item>
     </Form>
@@ -50,7 +54,8 @@ export default function PropertyOperatorsPage() {
           write && <Button key="disable" icon={<StopOutlined />} disabled={!selected.length || status.isPending} onClick={() => status.mutate(false)}>批量停用</Button>,
         ]}
         columns={[
-          { title: "名称", dataIndex: "name" }, { title: "手机号", dataIndex: "phone_e164" },
+          { title: "名称", dataIndex: "name" },
+          { title: "手机号", render: (_, row) => displayAuthorizationPhone(row.phone_e164) },
           { title: "绑定用户", render: (_, row) => row.user_id ?? "等待注册绑定" },
           { title: "状态", render: (_, row) => row.is_active ? "启用" : "停用" },
           { title: "操作", width: "1%", render: (_, row) => write && <Button icon={<EditOutlined />} onClick={() => setEdit({ target: row })}>编辑</Button> },
