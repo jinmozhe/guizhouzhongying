@@ -240,11 +240,13 @@ async def prepare_product(shop, physical=False):
     data = ProductCreate(
         name="运营测试商品",
         category_id=category.id,
-        product_type="physical" if physical else "virtual",
         category_revision=category.revision,
         image_asset_ids=[shop.image],
         skus=[NewSkuInput(code=f"SKU-{new_uuid7().hex}", price="100.00", weight_grams=100 if physical else None)],
     )
+    if not physical:
+        # Exercise the historical virtual catalog state without enabling it at the API boundary.
+        data = data.model_copy(update={"product_type": "virtual"})
     product = await shop.commerce.create_product(data)
     await shop.commerce.adjust_inventory(
         product.skus[0].id, InventoryAdjustment(request_id=new_uuid7(), revision=1, quantity_delta=50, reason="入库")

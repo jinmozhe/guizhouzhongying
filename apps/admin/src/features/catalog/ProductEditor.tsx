@@ -1,6 +1,6 @@
 import type { CategoryRead, ProductCreate, ProductRead, ProductDetailRead, ProductImageRead, ProductUpdate } from "@pinjie/api-client";
 import { useQuery } from "@tanstack/react-query";
-import { Form, Input, Radio, Select, Space, App, Modal, Tabs } from "antd";
+import { Form, Input, Select, Space, App, Modal, Tabs } from "antd";
 import { useRef, useState } from "react";
 
 import { RichTextEditor } from "@/components/RichTextEditor";
@@ -96,7 +96,7 @@ function ProductEditorForm({
         name: values.name.trim(),
         category_id: values.category_id,
         category_revision: specification.categoryRevision,
-        product_type: values.product_type,
+        product_type: "physical",
         merchant_id: values.merchant_id,
         fulfillment_mode: "local",
         description: values.description?.trim() || "",
@@ -140,9 +140,7 @@ function ProductEditorForm({
                 merchant_id: target.merchant_id,
                 description: target.description,
               }
-            : {
-                product_type: "physical",
-              }
+            : undefined
         }
       >
         <Form.Item
@@ -168,15 +166,8 @@ function ProductEditorForm({
           </Form.Item>
 
           {!target && (
-            <Form.Item
-              name="product_type"
-              label="商品类型"
-              rules={[{ required: true }]}
-            >
-              <Radio.Group>
-                <Radio value="physical">到店实物商品</Radio>
-                <Radio value="virtual">到店服务</Radio>
-              </Radio.Group>
+            <Form.Item className="catalog-fixed-product-type" label="商品类型">
+              到店实物商品
             </Form.Item>
           )}
         </Space>

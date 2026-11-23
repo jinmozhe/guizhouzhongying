@@ -29536,12 +29536,10 @@
           },
           "product_type": {
             "type": "string",
-            "enum": [
-              "physical",
-              "virtual"
-            ],
+            "const": "physical",
             "title": "Product Type",
-            "description": "实物或虚拟商品"
+            "description": "新建商品仅支持实物",
+            "default": "physical"
           },
           "category_id": {
             "type": "string",
@@ -29620,7 +29618,6 @@
           "skus",
           "category_revision",
           "name",
-          "product_type",
           "category_id"
         ],
         "title": "ProductCreate"

@@ -246,6 +246,8 @@ export const ProductSpecificationForm = forwardRef<ProductSpecificationFormHandl
   // 规格字段属于外层商品表单，避免嵌套 HTML form 导致校验和提交状态分离。
   const form = Form.useFormInstance<FormValues>();
   const { message } = App.useApp();
+  const defaultInitialQuantity = mode === "create" ? 10_000 : 0;
+  const initialQuantityHint = `录入默认仓库的初始可用物理库存件数（整数），启用时必填，默认 ${defaultInitialQuantity}`;
   const initialized = useRef<string | undefined>(undefined);
   const templateQuery = useQuery({
     queryKey: ["commerce-category-template", categoryId],
@@ -399,10 +401,10 @@ export const ProductSpecificationForm = forwardRef<ProductSpecificationFormHandl
         market_price: prior?.market_price ?? null,
         weight_grams: prior?.weight_grams ?? null,
         is_active: prior?.is_active ?? true,
-        initial_quantity: 0,
+        initial_quantity: defaultInitialQuantity,
       };
     }));
-  }, [combinationSignature, draftCombinations, existingSkuBySelection, form, mode]);
+  }, [combinationSignature, defaultInitialQuantity, draftCombinations, existingSkuBySelection, form, mode]);
 
   const handleRegenerateCodes = () => {
     const currentSkus: DraftSku[] = form.getFieldValue("skus") ?? [];
@@ -507,6 +509,7 @@ export const ProductSpecificationForm = forwardRef<ProductSpecificationFormHandl
         const key = selectionKey(row.selections);
         if (seenCombinations.has(key)) throw new Error("SKU 规格组合不能重复");
         seenCombinations.add(key);
+        if (typeof row.initial_quantity !== "number") throw new Error(`请填写第 ${index + 1} 个 SKU 的初始库存`);
         return {
           code,
           price: row.price ?? "0",
@@ -516,7 +519,7 @@ export const ProductSpecificationForm = forwardRef<ProductSpecificationFormHandl
           weight_grams: row.weight_grams ?? null,
           is_active: row.is_active ?? true,
           selections: row.selections,
-          initial_quantity: Number(row.initial_quantity ?? 0),
+          initial_quantity: row.initial_quantity,
         } satisfies NewSkuInput;
       });
       return { attributes: attributesPayload, skus, categoryRevision: template.revision };
@@ -728,7 +731,7 @@ export const ProductSpecificationForm = forwardRef<ProductSpecificationFormHandl
                 title: (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                     初始库存 (件)
-                    <Tooltip title={skuFieldTooltips.initial_quantity}>
+                    <Tooltip title={initialQuantityHint}>
                       <QuestionCircleOutlined style={{ color: "#8c8c8c", cursor: "pointer" }} />
                     </Tooltip>
                   </span>
@@ -739,7 +742,7 @@ export const ProductSpecificationForm = forwardRef<ProductSpecificationFormHandl
                 onHeaderCell: tableHeaderCellStyle,
                 onCell: tableBodyCellStyle,
                 render: (fieldName: number, _, index: number) => (
-                  <SkuInitialQuantityCell fieldName={fieldName} index={index} />
+                  <SkuInitialQuantityCell fieldName={fieldName} index={index} hint={initialQuantityHint} />
                 ),
               },
             ];
@@ -768,7 +771,6 @@ const skuFieldTooltips = {
   code: "唯一商品规格编码/货号（如 SPU-RED-L），用于仓储物流发货识别，启用时必填",
   price: "商品该规格的实际销售单价（元），顾客下单时实付的基础价格，启用时必填",
   market_price: "市场划线参考原价（元），用于小程序前台展示划线优惠对比，选填",
-  initial_quantity: "录入默认仓库的初始可用物理库存件数（整数），启用时必填，默认 0",
 };
 
 const tableHeaderCellStyle = () => ({
@@ -850,7 +852,7 @@ function SkuPriceCell({ fieldName, index }: { fieldName: number; index: number }
   );
 }
 
-function SkuInitialQuantityCell({ fieldName, index }: { fieldName: number; index: number }) {
+function SkuInitialQuantityCell({ fieldName, index, hint }: { fieldName: number; index: number; hint: string }) {
   const form = Form.useFormInstance<FormValues>();
   const enabled = Form.useWatch(["skus", fieldName, "enabled"], form) ?? false;
 
@@ -868,7 +870,7 @@ function SkuInitialQuantityCell({ fieldName, index }: { fieldName: number; index
         placeholder="初始库存"
         style={{ width: "100%" }}
         suffix={
-          <Tooltip title={skuFieldTooltips.initial_quantity}>
+          <Tooltip title={hint}>
             <QuestionCircleOutlined style={{ color: "#8c8c8c", cursor: "pointer" }} />
           </Tooltip>
         }
