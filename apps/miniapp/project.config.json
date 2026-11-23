@@ -4,7 +4,7 @@
   "miniprogramRoot": "dist/",
   "compileType": "miniprogram",
   "libVersion": "3.17.4",
-  "appid": "",
+  "appid": "wx5e57afb47fd45568",
   "setting": {
     "urlCheck": true,
     "es6": true,
