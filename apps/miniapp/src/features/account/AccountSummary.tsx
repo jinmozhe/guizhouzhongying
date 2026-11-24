@@ -35,16 +35,16 @@ export function AccountSummary({ open, user, assets, children }: { open: Open; u
   const loggedIn = !!user
   const target = loggedIn ? profilePath : accountPath
   const values = assets ?? [
-    { label: '佣金钱包', value: '•••', path: walletsPath },
-    { label: '消费钱包', value: '•••', path: walletsPath },
+    { label: '会员余额', value: '•••', path: walletsPath },
     { label: '我的积分', value: '•••', path: pointsPath },
+    { label: '佣金钱包', value: '•••', path: walletsPath },
   ]
   return <View className='account-summary'>
     <View className='account-identity'>
       <Avatar url={user?.avatar} open={() => open(target)} />
       <Button className='account-identity-button' onClick={() => open(target)}>
         <View className='account-name'>{loggedIn ? user.display_name || '微信商城用户' : '未登录'}</View>
-        <View className='account-welcome'>欢迎来到贵州众赢</View>
+        <View className='account-welcome'>欢迎来到众赢生活</View>
         <Icon className='account-chevron' name='ArrowRight' size={24} />
       </Button>
     </View>
@@ -86,9 +86,9 @@ export function SignedInSummary({ open }: { open: Open }) {
   const pointsValue = points.isError ? '读取失败' : points.isPending ? '加载中'
     : points.data.state === 'not_opened' ? '账户异常' : points.data.account?.available_points ?? '账户缺失'
   const assets = [
-    { label: '佣金钱包', value: walletValue('commission'), path: walletsPath },
-    { label: '消费钱包', value: walletValue('consumption'), path: walletsPath },
+    { label: '会员余额', value: walletValue('consumption'), path: walletsPath },
     { label: '我的积分', value: pointsValue, path: pointsPath },
+    { label: '佣金钱包', value: walletValue('commission'), path: walletsPath },
   ]
   return <AccountSummary open={open} user={profile.data ?? session.user} assets={assets}>
     {profile.isPending && <View className='account-summary-notice'>正在更新账户资料</View>}

@@ -3,14 +3,17 @@
 import asyncio
 import re
 from datetime import UTC, datetime
+from time import perf_counter
 
 import httpx
+from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
 from app.core.cache_keys import cache_keys
 from app.core.config import Settings
+from app.core.context import current_request_id, current_trace_id
 from app.core.error_codes import ErrorCode
 from app.core.exceptions import AppException
 from app.core.identifiers import new_uuid7
@@ -20,6 +23,46 @@ from app.core.security import token_digest
 _EXCHANGE_FAILURES = (httpx.HTTPError, TimeoutError, ValueError)
 _TOKEN_FAILURES = (RedisError, ValidationError)
 _PHONE_VALIDATION_FAILURES = (ValidationError, ValueError)
+_PHONE_EXCHANGE_BUDGET = 15
+_PHONE_HTTP_TIMEOUT = httpx.Timeout(4.0, connect=10.0, pool=1.0)
+
+
+def _log_failure(operation: str, started: float, error: Exception) -> None:
+    reason = "http_error"
+    for error_type, name in (
+        (httpx.ConnectTimeout, "connect_timeout"),
+        (httpx.ReadTimeout, "read_timeout"),
+        (httpx.WriteTimeout, "write_timeout"),
+        (httpx.PoolTimeout, "pool_timeout"),
+        (TimeoutError, "total_timeout"),
+        (httpx.ConnectError, "connection_failed"),
+        (ValueError, "invalid_response"),
+    ):
+        if isinstance(error, error_type):
+            reason = name
+            break
+    logger.bind(
+        request_id=current_request_id(),
+        trace_id=current_trace_id(),
+        dependency="wechat",
+        operation=operation,
+        reason=reason,
+        duration_ms=round((perf_counter() - started) * 1000),
+    ).warning("wechat phone exchange unavailable")
+
+
+def _phone_exchange_failed(*, fetching_token: bool) -> AppException:
+    if fetching_token:
+        return AppException(
+            status_code=503,
+            code=ErrorCode.SERVICE_UNAVAILABLE,
+            message="微信应用凭据获取失败，请稍后重新授权",
+        )
+    return AppException(
+        status_code=504,
+        code=ErrorCode.PHONE_BINDING_UNKNOWN,
+        message="微信验证结果未确认，请查询账户手机号状态后重新授权",
+    )
 
 
 class ApplicationToken(BaseModel):
@@ -60,33 +103,35 @@ class WechatPhoneClient:
         self.settings, self.redis, self.http = settings, redis, http
         self.keys = cache_keys(settings)
 
-    async def _post(self, path: str, data: dict[str, object], *, token: str | None = None) -> dict[str, object]:
+    async def _post(
+        self, path: str, data: dict[str, object], *, token: str | None = None, phone_binding: bool = False
+    ) -> dict[str, object]:
         if self.http is None:
             raise AppException(status_code=503, code=ErrorCode.SERVICE_UNAVAILABLE, message="微信服务尚未就绪")
+        started = perf_counter()
         try:
-            async with asyncio.timeout(8):
+            async with asyncio.timeout(None if phone_binding else 8):
                 response = await self.http.post(
                     f"https://api.weixin.qq.com{path}",
                     json=data,
                     params={"access_token": token} if token else None,
+                    timeout=_PHONE_HTTP_TIMEOUT if phone_binding else self.http.timeout,
                 )
             if response.status_code != 200 or len(response.content) > 8192:
                 raise ValueError("Invalid response")
             body = response.json()
             if not isinstance(body, dict):
                 raise ValueError("Invalid response")
-        except _EXCHANGE_FAILURES:
-            raise AppException(
-                status_code=504,
-                code=ErrorCode.PHONE_BINDING_UNKNOWN,
-                message="微信验证结果未确认，请查询账户手机号状态后重新授权",
-            ) from None
+        except _EXCHANGE_FAILURES as exc:
+            if phone_binding:
+                _log_failure(path.rsplit("/", 1)[-1], started, exc)
+            raise _phone_exchange_failed(fetching_token=phone_binding and token is None) from None
         return body
 
     async def application_token(self) -> str:
         return await self._token()
 
-    async def _token(self) -> str:
+    async def _token(self, *, phone_deadline: float | None = None) -> str:
         if self.redis is None or self.settings.wechat_app_id is None:
             raise AppException(status_code=503, code=ErrorCode.SERVICE_UNAVAILABLE, message="手机号服务尚未就绪")
         key = self.keys.miniapp("application-token", self.settings.wechat_app_id)
@@ -109,6 +154,7 @@ class WechatPhoneClient:
                         "secret": self.settings.wechat_app_secret,
                         "force_refresh": False,
                     },
+                    phone_binding=phone_deadline is not None,
                 )
                 if body.get("errcode", 0) != 0:
                     raise AppException(
@@ -122,14 +168,29 @@ class WechatPhoneClient:
                 await self.redis.set(key, parsed.model_dump_json(), ex=max(1, parsed.expires_in - 120))
                 return parsed.access_token
             finally:
-                await release_refresh_lock(self.redis, key=key + ":lock", owner=owner)
+                # Cancellation during token fetch must not extend the phone budget while releasing the lock.
+                async with asyncio.timeout_at(phone_deadline):
+                    await release_refresh_lock(self.redis, key=key + ":lock", owner=owner)
         except _TOKEN_FAILURES:
             raise AppException(
                 status_code=503, code=ErrorCode.SERVICE_UNAVAILABLE, message="微信凭据缓存不可用"
             ) from None
 
     async def exchange(self, code: str, openid: str) -> str:
-        token = await self.application_token()
+        started = perf_counter()
+        deadline = asyncio.get_running_loop().time() + _PHONE_EXCHANGE_BUDGET
+        fetching_token = True
+        try:
+            async with asyncio.timeout_at(deadline):
+                token = await self._token(phone_deadline=deadline)
+                fetching_token = False
+                return await self._exchange_phone(code, openid, token)
+        except TimeoutError as exc:
+            operation = "stable_token" if fetching_token else "getuserphonenumber"
+            _log_failure(operation, started, exc)
+            raise _phone_exchange_failed(fetching_token=fetching_token) from None
+
+    async def _exchange_phone(self, code: str, openid: str, token: str) -> str:
         if self.redis is None or self.settings.wechat_app_id is None:
             raise AppException(status_code=503, code=ErrorCode.SERVICE_UNAVAILABLE, message="手机号服务尚未就绪")
         _, hmac_key = self.settings.miniapp_secrets()
@@ -144,7 +205,9 @@ class WechatPhoneClient:
             raise AppException(
                 status_code=409, code=ErrorCode.PHONE_CODE_INVALID, message="手机号凭证已使用，请重新授权"
             )
-        body = await self._post("/wxa/business/getuserphonenumber", {"code": code, "openid": openid}, token=token)
+        body = await self._post(
+            "/wxa/business/getuserphonenumber", {"code": code, "openid": openid}, token=token, phone_binding=True
+        )
         error = body.get("errcode", 0)
         if error != 0:
             if error in (40001, 40014, 42001):

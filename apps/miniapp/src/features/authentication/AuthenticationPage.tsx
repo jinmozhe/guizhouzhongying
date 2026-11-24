@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Taro from '@tarojs/taro'
 import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
 import type { ResponseModelConsumerUserRead } from '@pinjie/api-client'
+import { ApiError } from '@/lib/api'
 import { bindPhone, login, privateRequest, sessionScope, updateSessionUser, useSession } from '@/lib/session'
 import { authNeedsPhone, cancelAuthentication, finishAuthentication } from '@/lib/auth-navigation'
 import { useNavigationLayout } from '@/lib/use-navigation-layout'
@@ -11,6 +12,12 @@ import { LegalSheet } from './LegalSheet'
 import type { LegalDocument } from './LegalSheet'
 import shop from './assets/shop.svg'
 import './authentication.scss'
+
+function needsBindingCheck(error: unknown) {
+  if (!(error instanceof ApiError)) return true
+  if (error.code === 'PHONE_BINDING_UNKNOWN' || error.kind === 'network' || error.kind === 'protocol') return true
+  return error.status >= 500 && error.code !== 'SERVICE_UNAVAILABLE'
+}
 
 export function AuthenticationPage() {
   const session = useSession()
@@ -59,9 +66,12 @@ export function AuthenticationPage() {
       if (identity.epoch !== sessionScope()) throw new Error('会话已改变，请重新点击微信登录。')
       if (!identity.user.phone_bound) {
         profileAfterBinding.current = identity.user.id
-        setPendingPhoneUser(identity.user.id)
-        await bindPhone(code)
-        setPendingPhoneUser(null)
+        try {
+          await bindPhone(code)
+        } catch (failure) {
+          if (needsBindingCheck(failure)) setPendingPhoneUser(identity.user.id)
+          throw failure
+        }
       }
     }
     catch (failure) { setError(failure instanceof Error ? failure.message : '绑定未完成，请先查询账户状态') }

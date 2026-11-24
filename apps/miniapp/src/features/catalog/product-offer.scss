@@ -12,8 +12,8 @@
   max-width: 100%;
   padding: 2px 10px;
   border-radius: 8px;
-  background: $background;
-  color: $secondary;
+  background: $surface-tint;
+  color: $primary;
   font-size: 22px;
   line-height: 1.4;
 }
@@ -36,7 +36,7 @@
   min-width: 0;
 }
 
-.catalog-product-price { min-width: 0; font-size: 40px; line-height: 1.15; font-weight: 600; color: $primary; overflow-wrap: anywhere; }
+.catalog-product-price { min-width: 0; font-size: 40px; line-height: 1.15; font-weight: 600; color: $price; overflow-wrap: anywhere; }
 .catalog-price-small { font-size: 24px; }
 .catalog-price-unavailable, .catalog-market-price { min-width: 0; font-size: 22px; color: $secondary; overflow-wrap: anywhere; }
 .catalog-market-price { text-decoration: line-through; }

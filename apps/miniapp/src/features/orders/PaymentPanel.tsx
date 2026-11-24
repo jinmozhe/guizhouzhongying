@@ -117,9 +117,9 @@ export function PaymentPanel({ orderId, refreshOrder }: { orderId: string; refre
     <View className='section-title'>微信支付</View>
     {query.isPending && <QueryState title='正在读取支付状态' />}
     {(query.error || pay.error || refresh.error) && <QueryState title='支付结果未确认，请查询原交易' error={query.error ?? pay.error ?? refresh.error} />}
-    {query.data && <View className='note'>{attempt ? labels[attempt.status] ?? '支付状态待核对' : query.data.enabled ? '由微信收银台完成付款' : '微信支付尚未开放'}</View>}
-    {notice && <View className='note'>{notice}</View>}
-    {query.data?.enabled && <Button block disabled={blocked} loading={pay.isPending} onClick={() => pay.mutate()}>{attempt?.status === 'pending' ? '继续付款' : '微信付款'}</Button>}
+    {query.data && <View className={`note ${attempt?.status === 'succeeded' ? 'note-success' : attempt?.status === 'created' || attempt?.status === 'unknown' ? 'note-warning' : ''}`}>{attempt ? labels[attempt.status] ?? '支付状态待核对' : query.data.enabled ? '由微信收银台完成付款' : '微信支付尚未开放'}</View>}
+    {notice && <View className='note note-warning'>{notice}</View>}
+    {query.data?.enabled && <Button block type='primary' disabled={blocked} loading={pay.isPending} onClick={() => pay.mutate()}>{attempt?.status === 'pending' ? '继续付款' : '微信付款'}</Button>}
     <Button block fill='outline' disabled={pay.isPending || refresh.isPending} loading={refresh.isPending} onClick={() => refresh.mutate()}>查询付款与订单结果</Button>
     <Button block fill='outline' onClick={() => { void Taro.navigateTo({ url: '/subpackages/service/help/index' }) }}>联系帮助支持</Button>
   </View>

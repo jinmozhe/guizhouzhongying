@@ -1,3 +1,4 @@
+import { modalColors } from '@/styles/colors'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { Input, Text, View } from '@tarojs/components'
@@ -65,7 +66,7 @@ function Content() {
     try {
     if (!draft || !draft.request.quote_fingerprint) throw new Error('请先获取服务端报价')
     if (!recover && (!quote || Date.parse(quote.expires_at) <= Date.now())) throw new Error('报价已过期，请重新获取后确认')
-    const answer = await Taro.showModal({ title: recover ? '恢复原请求' : '确认创建订单', content: recover ? '以相同请求号和原内容恢复。报价变化时会明确拒绝，请先查询原结果。' : `成交总额 ¥${quote?.order_gross_amount}，使用 ${quote?.points_deduction} 积分，微信应付 ¥${quote?.total_amount}。成交后获得整单到店核销码。` })
+    const answer = await Taro.showModal({ ...modalColors, title: recover ? '恢复原请求' : '确认创建订单', content: recover ? '以相同请求号和原内容恢复。报价变化时会明确拒绝，请先查询原结果。' : `成交总额 ¥${quote?.order_gross_amount}，使用 ${quote?.points_deduction} 积分，微信应付 ¥${quote?.total_amount}。成交后获得整单到店核销码。` })
     if (!answer.confirm || session.epoch !== sessionScope()) return
     const pending = { ...draft, submitted: true }
     saveDraft(pending); setDraft(pending); setNotice('正在确认订单结果，请勿重复下单')
@@ -103,8 +104,8 @@ function Content() {
       <Button block fill='outline' disabled={busy} loading={submit.isPending} onClick={() => submit.mutate(true)}>以原请求恢复</Button>
     </View> : <>
       <View className='surface'><View className='section-title'>到店消费 · 无需配送</View><View className='note'>仅同商家商品可一起结算，一单一码，整单核销。</View>
-        <View className='field-label'>本次使用积分，1积分抵1元</View><Input type='number' value={pointsText} maxlength={13} disabled={busy} onInput={(event) => changePoints(event.detail.value)} />
-        {quote && <View className='muted'>可用积分 {quote.available_points}，本单最多使用 {quote.maximum_points} 积分。<Button fill='outline' disabled={busy} onClick={() => changePoints(String(quote.maximum_points))}>使用本单最大积分</Button></View>}
+        <View className='field-label'>本次使用积分，1积分抵1元</View><Input placeholderClass='input-placeholder' type='number' value={pointsText} maxlength={13} disabled={busy} onInput={(event) => changePoints(event.detail.value)} />
+        {quote && <View className='muted'>可用积分 {quote.available_points}，本单最多使用 {quote.maximum_points} 积分。<Button className='reward-button' fill='solid' disabled={busy} onClick={() => changePoints(String(quote.maximum_points))}>使用本单最大积分</Button></View>}
       </View>
       <View className='surface'><View className='section-title'>结算商品</View>{quote ? quote.items.map((line) => <View className='order-line' key={line.sku_id}><View>{line.product_name}</View><View className='muted'>{Object.values(line.specifications).join(' / ') || '默认规格'} · {line.quantity} 件</View><View>¥{line.unit_price} / 件 · 小计 ¥{line.line_amount}</View></View>) : <View className='muted'>已选 {draft.request.items.length} 种商品，共 {draft.request.items.reduce((total, line) => total + line.quantity, 0)} 件。获取报价后显示名称与成交价格。</View>}</View>
       {quote && <View className='surface'><View className='trade-row spread'><Text>成交总额</Text><Text>¥{quote.order_gross_amount}</Text></View><View className='trade-row spread'><Text>积分抵扣</Text><Text>{quote.points_deduction} 积分</Text></View><View className='trade-row spread'><Text>微信应付</Text><Text className='price'>¥{quote.total_amount}</Text></View><View className='muted'>报价有效至 {new Date(quote.expires_at).toLocaleString()}，提交时由服务端复核。</View></View>}

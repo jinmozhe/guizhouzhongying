@@ -390,6 +390,10 @@ docker compose exec redis redis-cli ping
 
 认证限流和会话刷新锁遇到 Redis 故障时，保留 `503 / SERVICE_UNAVAILABLE`。Backend 的 `ENVIRONMENT=local` 会分别提示 Redis 未初始化、连接失败、认证失败、请求超时或命令失败；连接失败时提示检查 Docker Desktop、Redis 容器与 `REDIS_URL`。非 local 环境使用安全提示，不输出连接串、地址、密码或底层异常原文。小程序直接展示后端返回的消息，无需重新编译。
 
+当消息为“微信登录结果未确认，请重新发起登录”时，错误发生在后端微信换码请求或响应 JSON 解析阶段。`ConsumerAuthService._exchange` 单次请求的连接上限为 10 秒、读取和写入各 4 秒、连接池等待 1 秒，换码调用的总预算为 15 秒；总预算可以先于分段预算之和到期。此处按请求覆盖客户端设置，共享微信 HTTP 客户端及支付、手机号等其他操作的预算保持不变。小程序传输层默认 12 秒，只有 `POST /auth/login` 通过 `timeoutMs: 20_000` 放宽为 20 秒；此前取得 code 的 `Taro.login` 仍独立限制为 8 秒。20 秒不包含前置获取 code 的时间，也不保证数据库与审计等后续环节必然在剩余预算内完成。
+
+换码异常日志包含 `request_id`、`trace_id`、`dependency=wechat`、`operation=code2session`、`reason` 和 `duration_ms`。`reason` 为 `connect_timeout`、`read_timeout`、`write_timeout`、`pool_timeout`、`total_timeout`、`connection_failed`、`invalid_json` 或 `http_error`；不输出异常原文、请求 URL、code、AppSecret 或微信响应正文。客户端保留原 503 提示，微信明确返回 code 无效或已使用时仍返回原 401。按请求编号定位原因后检查后端到微信的 DNS、连接、TLS 与网络出口；延长等待不能证明网络或凭据已经恢复。修改需后端加载新源码、小程序重新编译，独立启动的进程不会因文档或源码变更自动生效。
+
 后端结构化警告包含 `request_id`、`trace_id`、`dependency=redis`、`operation` 和 `reason`。`operation` 为 `rate_limit` 或 `refresh_lock`；`reason` 为 `not_initialized`、`connection_failed`、`authentication_failed`、`timeout` 或 `command_failed`。按失败响应的 `request_id` 定位日志。依赖恢复后重新发起登录，由小程序取得新 code，不重放旧登录请求。
 
 只读检查当前依赖状态：

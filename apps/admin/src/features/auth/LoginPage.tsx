@@ -10,6 +10,7 @@ import { useEffect } from "react";
 
 import { adminApi } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/http";
+import { useDocumentBrandTitle, useSiteBrand } from "@/lib/site-brand";
 
 type LoginValues = { username: string; password: string };
 
@@ -49,6 +50,8 @@ export function LoginPage({
 }) {
   const queryClient = useQueryClient();
   const recoveryError = getRecoveryError(history.location.state);
+  const brand = useSiteBrand();
+  useDocumentBrandTitle(brand.adminTitle);
 
   useEffect(() => {
     if (authenticated) {
@@ -75,9 +78,13 @@ export function LoginPage({
         <div className="login-shell">
           <header className="login-top">
             <div className="login-header">
-              <span className="login-header__logo" aria-hidden="true" />
+              {brand.logoUrl ? (
+                <img className="login-header__logo-image" src={brand.logoUrl} alt={brand.siteName} />
+              ) : (
+                <span className="login-header__logo" aria-hidden="true" />
+              )}
               <h1 className="login-header__title" id="login-title">
-                贵州众赢管理后台&nbsp;&nbsp;
+                {brand.adminTitle}&nbsp;&nbsp;
               </h1>
             </div>
             <p className="login-desc">
@@ -175,7 +182,7 @@ export function LoginPage({
         </div>
       </section>
       <footer className="login-footer">
-        <div className="login-footer__copyright">贵州众赢 © 2026</div>
+        <div className="login-footer__copyright">{brand.copyrightText}</div>
       </footer>
     </main>
   );

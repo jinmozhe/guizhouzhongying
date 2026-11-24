@@ -1,3 +1,4 @@
+import { modalColors } from '@/styles/colors'
 import { useRef, useState } from 'react'
 import Taro, { useDidShow, useRouter, useShareAppMessage } from '@tarojs/taro'
 import { Button as NativeButton, Input, View } from '@tarojs/components'
@@ -8,6 +9,7 @@ import { Button } from '@/components/Button'
 import { QueryState } from '@/components/QueryState'
 import { ApiError } from '@/lib/api'
 import { privateRequest, sessionScope, useSession } from '@/lib/session'
+import { useSiteName } from '@/lib/site-brand'
 import { queryClient } from '@/lib/query'
 import { invitationCode, referralPath } from './domain'
 import { clearIntent, loadIntent, saveIntent } from './intent'
@@ -52,7 +54,7 @@ function Content({ invite }: { invite: string | null }) {
     lookup.reset()
     copy.reset()
     try {
-      const answer = await Taro.showModal({ title: restore ? '恢复原码绑定' : '确认绑定推荐人', content: `当前商城账户：${session.user?.display_name || '微信商城用户'}。推荐码：${original}。关系只能首次绑定，确认后不能更换；绑定不承诺积分或佣金奖励。` })
+      const answer = await Taro.showModal({ ...modalColors, title: restore ? '恢复原码绑定' : '确认绑定推荐人', content: `当前商城账户：${session.user?.display_name || '微信商城用户'}。推荐码：${original}。关系只能首次绑定，确认后不能更换；绑定不承诺积分或佣金奖励。` })
       if (!answer.confirm || session.epoch !== sessionScope()) return
       // Persist before sending; failure to save prevents the write.
       saveIntent(userId, original)
@@ -104,7 +106,7 @@ function Content({ invite }: { invite: string | null }) {
         {query.data.invitation_code ? <><View className='referral-code wrap'>{query.data.invitation_code}</View><Button block fill='outline' disabled={busy} onClick={() => copy.mutate()}>复制本人邀请码</Button><NativeButton className='share-button' openType='share' disabled={busy}>分享商城给微信好友</NativeButton><View className='muted'>分享仅传递本人邀请码。对方需登录并主动确认；分享次数不代表有效邀请或收益。</View></> : <><View className='muted'>会员信息暂不可用，请重新登录；若仍异常，请联系帮助与支持。</View><Button block onClick={() => { void Taro.navigateTo({ url: '/subpackages/finance/membership/index' }) }}>查看会员中心</Button></>}
       </View>
       <View className='surface profile-form'><View className='section-title'>我的推荐关系</View>
-        {query.data.state === 'bound' ? <><View>已绑定，不能更换推荐人</View><View className='muted'>绑定时间：{query.data.bound_at ? new Date(query.data.bound_at).toLocaleString() : '尚无记录'}</View></> : <><View className='field-label'>推荐人的邀请码</View><Input value={input} maxlength={32} disabled={busy || readonly} placeholder='请输入 8 至 16 位字母或数字' onInput={(event) => { setInput(event.detail.value); setNotice('') }} /><View className='muted'>关系仅首次绑定；服务端拒绝自邀和循环。绑定不会自动授予等级、积分或佣金。</View>{input && !code && <View className='note'>邀请码格式无效，请检查原始邀请码，勿粘贴网址。</View>}<Button block disabled={busy || readonly || !code || code === query.data.invitation_code} loading={bind.isPending} onClick={() => bind.mutate(false)}>确认首次绑定</Button></>}
+        {query.data.state === 'bound' ? <><View>已绑定，不能更换推荐人</View><View className='muted'>绑定时间：{query.data.bound_at ? new Date(query.data.bound_at).toLocaleString() : '尚无记录'}</View></> : <><View className='field-label'>推荐人的邀请码</View><Input placeholderClass='input-placeholder' value={input} maxlength={32} disabled={busy || readonly} placeholder='请输入 8 至 16 位字母或数字' onInput={(event) => { setInput(event.detail.value); setNotice('') }} /><View className='muted'>关系仅首次绑定；服务端拒绝自邀和循环。绑定不会自动授予等级、积分或佣金。</View>{input && !code && <View className='note'>邀请码格式无效，请检查原始邀请码，勿粘贴网址。</View>}<Button block disabled={busy || readonly || !code || code === query.data.invitation_code} loading={bind.isPending} onClick={() => bind.mutate(false)}>确认首次绑定</Button></>}
       </View>
     </>}
     {pending && <View className='note wrap'>原码 {pending} 的结果尚待确认。先查询匹配事实；未确认前保留原码，无法换码重试。{query.data?.state !== 'bound' && <Button block fill='outline' disabled={busy || query.isError || !query.data} onClick={() => bind.mutate(true)}>主动恢复原码绑定</Button>}</View>}
@@ -119,13 +121,14 @@ function Content({ invite }: { invite: string | null }) {
 
 export function ReferralPage() {
   const session = useSession()
+  const siteName = useSiteName()
   const raw = useRouter().params.invite
   const invite = invitationCode(raw)
   const query = useQuery({ queryKey: ['private', 'referral', session.epoch], enabled: !!session.user, gcTime: 0, queryFn: ({ signal }) => privateRequest<ResponseModelConsumerReferralRead>('/distribution/me/referrer', { signal }) })
   // Register on the page component even before login. Never forward someone else's landing code.
   useShareAppMessage(() => {
     const own = session.epoch === sessionScope() && session.user && !query.isError ? query.data?.invitation_code : null
-    return { title: '邀你逛贵州众赢', path: own && invitationCode(own) ? referralPath(own) : '/pages/home/index', imageUrl: '/assets/share-mall.png' }
+    return { title: `邀你逛${siteName}`, path: own && invitationCode(own) ? referralPath(own) : '/pages/home/index', imageUrl: '/assets/share-mall.png' }
   })
   return <>{raw !== undefined && <View className='page'><View className='note'>{invite ? `收到邀请码 ${invite}。登录后核对当前账户并主动确认，不会自动绑定。` : '分享邀请码无效，可继续浏览商城或手动填写正确邀请码。'}</View></View>}<AuthGate><Content key={session.epoch} invite={invite} /></AuthGate></>
 }

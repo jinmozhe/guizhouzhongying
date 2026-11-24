@@ -1,7 +1,9 @@
+import colors from '../../../styles/palette.json'
+
 export default definePageConfig({
   navigationBarTitleText: '登录',
   navigationStyle: 'custom',
   navigationBarTextStyle: 'black',
-  backgroundColor: '#FFFAF5',
+  backgroundColor: colors.background,
   disableScroll: true,
 })

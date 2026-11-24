@@ -35,6 +35,7 @@ import type {
   RolePermissionAssignIn,
   RoleUpdateIn,
   StatusUpdateIn,
+  SiteProfileRead,
   SiteSettingPatchIn,
   SystemOverviewRead,
   UserUpdateIn,
@@ -220,6 +221,8 @@ export const adminApi = {
   auditEvents: (page = 1) => apiRequest<PageResultAuditEventRead>(`/api/v1/admin/security/audit-events?page=${page}&page_size=20`),
   requestLogs: (page = 1) => apiRequest<PageResultRequestLogRead>(`/api/v1/admin/system/request-logs?page=${page}&page_size=20`),
   systemOverview: () => apiRequest<SystemOverviewRead>("/api/v1/admin/system/overview"),
+  siteProfile: () =>
+    apiRequest<SiteProfileRead>("/api/v1/system/site-profile", {}, { retryAuth: false }),
   siteSetting: () => apiRequest<AdminSiteSettingRead>("/api/v1/admin/settings/site"),
   updateSiteSetting: (input: SiteSettingPatchIn) =>
     apiRequest<AdminSiteSettingRead>("/api/v1/admin/settings/site", {

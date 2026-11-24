@@ -1,3 +1,4 @@
+import { dangerModalColors } from '@/styles/colors'
 import { useState } from 'react'
 import Taro, { useDidShow, useRouter } from '@tarojs/taro'
 import { Text, Textarea, View } from '@tarojs/components'
@@ -14,7 +15,7 @@ import type { RefundIntent } from './intent'
 const reviewLabels: Record<string, string> = { requested: '待审核', approved: '审核通过', rejected: '审核拒绝', completed: '售后处理完成' }
 const executionLabels: Record<ConsumerRefundRead['execution_status'], string> = { not_started: '尚无资金执行记录', created: '已记录退款执行意图', processing: '渠道处理中', succeeded: '渠道已确认退款', abnormal: '渠道异常，请联系支持', unknown: '渠道结果未知，请继续查询', closed: '执行已关闭，请联系支持' }
 function Progress({ refund }: { refund: ConsumerRefundRead }) {
-  return <><View className='trade-row spread'><Text className='section-title'>{reviewLabels[refund.status] ?? '未知审核状态'}</Text><Text className='price-small'>现金 ¥{refund.amount}</Text></View><View>积分返还：{refund.points_returned} 积分，{refund.status === 'completed' ? '已记入积分账本' : '待退款完成后入账'}</View><View className='muted'>{refund.review_mode === 'automatic' ? '系统自动审核' : '人工审核'}</View><View>{executionLabels[refund.execution_status]}</View><View className='note'>{refund.funds_status === 'confirmed' ? '服务端已取得渠道现金退款确认事实' : refund.funds_status === 'no_funds' ? '本单无现金退款，积分及订单恢复已完成' : '现金退回尚未确认，审核通过不代表到账'}</View>{refund.funds_confirmed_at && <View className='muted'>渠道确认时间：{new Date(refund.funds_confirmed_at).toLocaleString()}</View>}</>
+  return <><View className='trade-row spread'><Text className='section-title'>{reviewLabels[refund.status] ?? '未知审核状态'}</Text><Text className='price-small'>现金 ¥{refund.amount}</Text></View><View>积分返还：{refund.points_returned} 积分，{refund.status === 'completed' ? '已记入积分账本' : '待退款完成后入账'}</View><View className='muted'>{refund.review_mode === 'automatic' ? '系统自动审核' : '人工审核'}</View><View>{executionLabels[refund.execution_status]}</View><View className={`note ${refund.funds_status === 'confirmed' || refund.funds_status === 'no_funds' ? 'note-success' : 'note-warning'}`}>{refund.funds_status === 'confirmed' ? '服务端已取得渠道现金退款确认事实' : refund.funds_status === 'no_funds' ? '本单无现金退款，积分及订单恢复已完成' : '现金退回尚未确认，审核通过不代表到账'}</View>{refund.funds_confirmed_at && <View className='muted'>渠道确认时间：{new Date(refund.funds_confirmed_at).toLocaleString()}</View>}</>
 }
 function Apply() {
   const session = useSession()
@@ -54,7 +55,7 @@ function Apply() {
       const result = await privateRequest<ResponseModelConsumerRefundLookupRead>(`/refunds/by-request/${current.request.request_id}`)
       if (result.state === 'found' && result.refund) { await confirmed(result.refund.id); return }
     } else if (!order.data.can_refund || !reason.trim()) throw new Error('请检查退款资格并填写原因')
-    const answer = await Taro.showModal({ title: current ? '使用原请求重试' : '整单退款', content: '覆盖全部商品和原运费。未接单自动审核，已接单人工审核。审核通过与资金退回分别确认。' })
+    const answer = await Taro.showModal({ ...dangerModalColors, title: current ? '使用原请求重试' : '整单退款', content: '覆盖全部商品和原运费。未接单自动审核，已接单人工审核。审核通过与资金退回分别确认。' })
     if (!answer.confirm || session.epoch !== sessionScope()) return
     if (!current) {
       const ticket = await privateRequest<ResponseModelOperationIntentRead>('/refunds/intent')
@@ -70,7 +71,7 @@ function Apply() {
   if (order.isError || stored.isError) return <QueryState title='退款准备失败，勿重复申请' error={order.error ?? stored.error} retry={() => { void order.refetch(); void stored.refetch() }} />
   const busy = submit.isPending || lookup.isPending
   return <View className='page'><View className='title'>申请整单退款</View><View className='surface'><View className='section-title'>全量商品与原运费</View>{order.data.items.map((item) => <View className='order-line' key={item.id}><View>{item.product_name} × {item.quantity}</View><View className='muted'>¥{item.line_amount}</View></View>)}<View className='trade-row spread'><Text>商品金额</Text><Text>¥{order.data.items_amount}</Text></View><View className='trade-row spread'><Text>原运费</Text><Text>¥{order.data.freight_amount}</Text></View><View className='trade-row spread'><Text>整单金额</Text><Text className='price-small'>¥{order.data.total_amount}</Text></View><View className='note'>仅实物未发货或虚拟未交付可申请。最终资格与金额由服务端裁决。</View></View>
-    {active ? <View className='surface'><View className='section-title'>原申请待确认</View><View className='wrap'>{active.request.reason}</View><View className='muted wrap'>请求号：{active.request.request_id}</View><View className='note'>原原因已锁定。先查询受理事实，保留原请求避免重复申请。</View></View> : <View className='surface'><View className='field-label'>退款原因</View><Textarea className='trade-textarea' maxlength={300} value={reason} disabled={busy} placeholder='请说明申请整单退款的原因' onInput={(event) => setReason(event.detail.value)} /><View className='muted'>{reason.length} / 300</View></View>}
+    {active ? <View className='surface'><View className='section-title'>原申请待确认</View><View className='wrap'>{active.request.reason}</View><View className='muted wrap'>请求号：{active.request.request_id}</View><View className='note'>原原因已锁定。先查询受理事实，保留原请求避免重复申请。</View></View> : <View className='surface'><View className='field-label'>退款原因</View><Textarea placeholderClass='input-placeholder' className='trade-textarea' maxlength={300} value={reason} disabled={busy} placeholder='请说明申请整单退款的原因' onInput={(event) => setReason(event.detail.value)} /><View className='muted'>{reason.length} / 300</View></View>}
     {(submit.error || lookup.error) && <QueryState title={acceptedId ? '申请已受理，本机记录处理或跳转未完成' : '申请结果未确认，请查询原请求'} error={submit.error ?? lookup.error} />}{notice && <View className='note'>{notice}</View>}
     {active && <Button block fill='outline' disabled={busy} loading={lookup.isPending} onClick={() => lookup.mutate()}>查询原申请结果</Button>}
     {acceptedId ? <Button block onClick={() => { void Taro.navigateTo({ url: `/subpackages/service/refund-detail/index?id=${acceptedId}` }) }}>查看已受理申请</Button> : <Button block disabled={busy || !active && (!order.data.can_refund || !reason.trim())} loading={submit.isPending} onClick={() => submit.mutate()}>{active ? '使用原请求号重试' : '提交整单退款申请'}</Button>}

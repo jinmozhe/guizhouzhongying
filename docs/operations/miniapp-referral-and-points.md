@@ -30,7 +30,7 @@
 
 采用 Taro useShareAppMessage 页面钩子，页面配置 enableShareAppMessage=true，按钮使用微信原生 openType=share。本人邀请码读取成功后，分享固定路径 `/subpackages/finance/referral/index?invite=本人邀请码`；未登录、查询失败或没有本人码时，菜单分享仅回到公开商城首页，不转发收到的他人邀请码。
 
-分享使用固定 750 × 600 PNG，比例 5:4，构建配置显式复制到 dist/assets/share-mall.png，避免默认截图带出当前账户或积分信息。源文件为 apps/miniapp/src/assets/share-mall.png，生成脚本为 scripts/design/render-miniapp-share-card.py。不制作二维码，不上传平台分享图片，不把分享钩子触发认定为发送成功、有效邀请或收益事实。
+分享使用固定 750 × 600 PNG，比例 5:4，构建配置显式复制到 dist/assets/share-mall.png，避免默认截图带出当前账户或积分信息。源文件为 apps/miniapp/src/assets/share-mall.png，生成脚本为 scripts/design/render-miniapp-share-card.py，从统一 palette.json 读取品牌配色。使用 `python -B scripts/design/render-miniapp-share-card.py --out <新的PNG路径>` 生成，核对后替换资产；脚本拒绝覆盖已有输出。不制作二维码，不上传平台分享图片，不把分享钩子触发认定为发送成功、有效邀请或收益事实。
 
 ## 5. 本人积分
 

@@ -3,7 +3,7 @@
 .account-screen {
   button { box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font-family: inherit; font-size: inherit; line-height: inherit; }
   button::after { border: 0; }
-  button[disabled] { opacity: 0.55; }
+  button[disabled] { color: t.$disabled; }
 }
 .account-screen .account-frame-title { font-size: 34px; }
 .account-frame-body.account-body { padding: 56px 24px 0; }
@@ -27,7 +27,8 @@
   height: 100%;
   color: t.$account-avatar-ink;
 }
-.account-portrait-error, .account-screen .account-portrait-retry { font-size: 20px; color: t.$primary; overflow-wrap: anywhere; }
+.account-portrait-error { font-size: 20px; color: t.$danger; overflow-wrap: anywhere; }
+.account-screen .account-portrait-retry { font-size: 20px; color: t.$info; overflow-wrap: anywhere; }
 .account-screen .account-portrait-retry { min-height: 88px; }
 .account-screen .account-identity-button { position: relative; flex: 1; min-width: 0; min-height: 116px; padding: 12px 32px 18px 22px; text-align: left; }
 .account-name { overflow: hidden; font-size: 36px; font-weight: 700; line-height: 1.5; white-space: nowrap; text-overflow: ellipsis; }
@@ -59,5 +60,5 @@
 }
 .account-brand { display: flex; align-items: center; justify-content: center; gap: 40px; padding: 38px 0; color: t.$account-brand; font-size: 24px; }
 .account-brand > view:first-child, .account-brand > view:last-child { width: 50px; height: 1px; background: t.$account-brand-line; }
-.account-feedback { margin-top: 20px; padding: 20px; border-radius: 16px; background: t.$surface; color: t.$primary; font-size: 24px; overflow-wrap: anywhere; }
+.account-feedback { margin-top: 20px; padding: 20px; border-radius: 16px; background: t.$danger-soft; color: t.$danger; font-size: 24px; overflow-wrap: anywhere; }
 .account-summary-notice { padding-top: 8px; color: t.$account-muted; font-size: 24px; text-align: center; }

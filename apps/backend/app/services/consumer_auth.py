@@ -1,8 +1,10 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
+from time import perf_counter
 from uuid import UUID
 
 import httpx
+from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -27,6 +29,21 @@ from app.services.local_actors import LocalActorsService
 from app.services.security_events import SecurityEventWriter, login_event
 
 _EXCHANGE_FAILURES = (httpx.HTTPError, TimeoutError, ValueError)
+
+
+def _exchange_failure_reason(error: httpx.HTTPError | TimeoutError | ValueError) -> str:
+    for error_type, reason in (
+        (httpx.ConnectTimeout, "connect_timeout"),
+        (httpx.ReadTimeout, "read_timeout"),
+        (httpx.WriteTimeout, "write_timeout"),
+        (httpx.PoolTimeout, "pool_timeout"),
+        (TimeoutError, "total_timeout"),
+        (httpx.ConnectError, "connection_failed"),
+        (ValueError, "invalid_json"),
+    ):
+        if isinstance(error, error_type):
+            return reason
+    return "http_error"
 
 
 def bearer_error(code: ErrorCode = ErrorCode.AUTH_TOKEN_INVALID) -> AppException:
@@ -68,8 +85,9 @@ class ConsumerAuthService:
     async def _exchange(self, code: str) -> WechatIdentity:
         if self.http is None:
             raise AppException(status_code=503, code=ErrorCode.SERVICE_UNAVAILABLE, message="微信登录服务暂时不可用")
+        started = perf_counter()
         try:
-            async with asyncio.timeout(8):
+            async with asyncio.timeout(15):
                 response = await self.http.get(
                     "https://api.weixin.qq.com/sns/jscode2session",
                     params={
@@ -78,14 +96,23 @@ class ConsumerAuthService:
                         "js_code": code,
                         "grant_type": "authorization_code",
                     },
+                    timeout=httpx.Timeout(4.0, connect=10.0, pool=1.0),
                 )
             if response.status_code != 200 or len(response.content) > 8192:
                 raise AppException(
                     status_code=503, code=ErrorCode.SERVICE_UNAVAILABLE, message="微信登录响应不可用，请重新发起登录"
                 )
             body = response.json()
-        except _EXCHANGE_FAILURES:
+        except _EXCHANGE_FAILURES as exc:
             # Exceptions can contain the full secret-bearing URL; discard the external error and payload.
+            logger.bind(
+                request_id=self.metadata.request_id,
+                trace_id=self.metadata.trace_id,
+                dependency="wechat",
+                operation="code2session",
+                reason=_exchange_failure_reason(exc),
+                duration_ms=round((perf_counter() - started) * 1000),
+            ).warning("wechat login exchange unavailable")
             raise AppException(
                 status_code=503, code=ErrorCode.SERVICE_UNAVAILABLE, message="微信登录结果未确认，请重新发起登录"
             ) from None

@@ -14,13 +14,15 @@ import { Button, Col, Divider, Flex, Row, Space, Tag, Typography } from "antd";
 
 import { PageFrame } from "@/components/PageFrame";
 import { useCurrentAdmin } from "@/features/auth";
+import { useSiteBrand } from "@/lib/site-brand";
 
 export function WelcomePage() {
   const current = useCurrentAdmin();
+  const brand = useSiteBrand();
 
   return (
     <PageFrame
-      title="欢迎使用 贵州众赢 管理后台"
+      title={`欢迎使用 ${brand.siteName} 管理后台`}
       description="独立商城的运营管理控制台，当前阶段聚焦后端领域模型与后台管理能力。"
     >
       <Space orientation="vertical" size={24} style={{ width: "100%" }}>
@@ -49,7 +51,7 @@ export function WelcomePage() {
                   您好，{current?.display_name || current?.username || "管理员"}！
                 </Typography.Title>
                 <Typography.Paragraph style={{ color: "rgba(255, 255, 255, 0.88)", fontSize: 15, margin: 0, maxWidth: 640 }}>
-                  本系统是 贵州众赢 的统一管理控制台。采用模块化单体架构，提供商品管理、订单履约、分销财务、统一资产、系统设置与全链路安全审计能力，支撑微信小程序商城高效运营。
+                  本系统是 {brand.siteName} 的统一管理控制台。采用模块化单体架构，提供商品管理、订单履约、分销财务、统一资产、系统设置与全链路安全审计能力，支撑微信小程序商城高效运营。
                 </Typography.Paragraph>
               </Space>
             </Col>

@@ -17,8 +17,9 @@ export function Voucher({ orderId }: { orderId: string }) {
   if (query.isError) return <QueryState title='核销凭证读取失败' error={query.error} retry={() => { void query.refetch() }} />
   const row = query.data
   const expired = Date.parse(row.expires_at) <= now
+  const tone = row.status === 'redeemed' || row.status === 'refunded' ? 'success' : expired || row.status === 'refunding' ? 'warning' : 'info'
   return <View className='surface'>
-    <View className='section-title'>{labels[expired && row.status === 'available' ? 'expired' : row.status] ?? row.status}</View>
+    <View className={`section-title status-${tone}`}>{labels[expired && row.status === 'available' ? 'expired' : row.status] ?? row.status}</View>
     {row.status === 'available' && !expired && row.code && <>
       {row.qr_data_url && <Image src={row.qr_data_url} mode='aspectFit' style={{ width: '400rpx', height: '400rpx', display: 'block', margin: '0 auto' }} />}
       <View className='muted wrap'>{row.code}</View>

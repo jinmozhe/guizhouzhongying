@@ -123,7 +123,7 @@ export function HomeMerchants({ visible }: { visible: boolean }) {
 
   return <View className='home-section home-merchants'>
     <View className='home-section-header'>
-      <View className='home-section-title'>热门商家</View>
+      <View className='home-section-title'>品牌商家</View>
       {merchants.length > 0 && <Button className='home-merchants-all' ariaLabel='查看全部商家'
         onClick={() => navigate('/subpackages/local/merchants/index', '商家列表打开失败，请重试')}>
         全部<Icon name='ArrowRight' size={22} />

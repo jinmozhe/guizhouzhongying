@@ -1,6 +1,8 @@
 import tabBar from './tab-bar.json'
+import colors from './styles/palette.json'
 
 export default defineAppConfig({
+  lazyCodeLoading: 'requiredComponents',
   pages: ['pages/home/index', 'pages/category/index', 'pages/cart/index', 'pages/account/index'],
   subPackages: [
     { root: 'subpackages/local', pages: ['merchant/index', 'merchants/index', 'property/index', 'redemption/index', 'finance/index'] },
@@ -10,9 +12,9 @@ export default defineAppConfig({
     { root: 'subpackages/trade', pages: ['checkout/index', 'orders/index', 'order-detail/index'] },
     { root: 'subpackages/service', pages: ['refund-apply/index', 'refunds/index', 'refund-detail/index', 'review/index', 'help/index'] },
   ],
-  window: { navigationBarTitleText: '贵州众赢', navigationBarBackgroundColor: '#FFFFFF', navigationBarTextStyle: 'black', backgroundColor: '#F7F8FA' },
+  window: { navigationBarTitleText: '众赢生活', navigationBarBackgroundColor: colors.surface, navigationBarTextStyle: 'black', backgroundColor: colors.background, backgroundTextStyle: 'dark' },
   tabBar: {
-    color: tabBar.color, selectedColor: tabBar.selectedColor, backgroundColor: '#FFFFFF', borderStyle: 'white',
+    color: colors.secondary, selectedColor: colors.primary, backgroundColor: colors.surface, borderStyle: 'white',
     list: tabBar.items.map(({ pagePath, text, asset }) => ({
       pagePath, text, iconPath: `assets/tab-${asset}.png`, selectedIconPath: `assets/tab-${asset}-active.png`,
     })),

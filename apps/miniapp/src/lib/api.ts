@@ -17,7 +17,7 @@ export function getPublic<R extends Envelope>(path: string, signal?: RequestSign
   return request<R>(path, { signal })
 }
 
-export function request<R extends Envelope>(path: string, options: { signal?: RequestSignal; method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; data?: object; accessToken?: string } = {}): Promise<R['data']> {
+export function request<R extends Envelope>(path: string, options: { signal?: RequestSignal; method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; data?: object; accessToken?: string; timeoutMs?: number } = {}): Promise<R['data']> {
   const signal = options.signal ?? requestController().signal
   return new Promise((resolve, reject) => {
     if (signal.aborted) { reject(new ApiError('请求已取消', 'protocol')); return }
@@ -25,7 +25,7 @@ export function request<R extends Envelope>(path: string, options: { signal?: Re
       url: `${__API_BASE_URL__}/api/v1${path}`,
       method: options.method ?? 'GET',
       data: options.data,
-      timeout: 12_000,
+      timeout: options.timeoutMs ?? 12_000,
       header: { Accept: 'application/json', 'Content-Type': 'application/json', ...(options.accessToken ? { Authorization: `Bearer ${options.accessToken}` } : {}) },
       success(response) {
         const body = response.data

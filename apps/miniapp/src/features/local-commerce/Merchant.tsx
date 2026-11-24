@@ -1,3 +1,4 @@
+import { richTextStyle } from '@/styles/colors'
 import { useState } from 'react'
 import Taro, { useRouter } from '@tarojs/taro'
 import { Text, View } from '@tarojs/components'
@@ -78,7 +79,7 @@ export function MerchantPage() {
       {!row.is_active && <View className='note'>商家已暂停服务，未核销订单可申请退款。</View>}
       <View>{row.address || '消费地址待补充'}</View><View className='muted'>{row.business_hours || '营业时间待补充'}</View>
       {row.public_phone && <View>联系电话：{row.public_phone}</View>}
-      {row.description_format === 'restricted_html_v1' && row.description && <mp-html content={row.description} selectable copy-link={false} use-anchor={false} />}
+      {row.description_format === 'restricted_html_v1' && row.description && <mp-html container-style={richTextStyle} content={row.description} selectable copy-link={false} use-anchor={false} />}
     </View>
     <View className='section-title'>商家商品</View>
     {products.isPending && <QueryState title='正在加载商品' />}

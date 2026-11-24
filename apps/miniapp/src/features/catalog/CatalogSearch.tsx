@@ -12,7 +12,7 @@ export function CatalogSearch({ draft, keyword, scope, onInput, onSubmit, onClea
   return <View className='category-search'>
     <View className='category-search-field'>
       <Icon name='Search' size={32} />
-      <Input className='category-search-input' ariaLabel={`在${scope}中搜索商品名称`} value={draft} maxlength={200}
+      <Input placeholderClass='input-placeholder' className='category-search-input' ariaLabel={`在${scope}中搜索商品名称`} value={draft} maxlength={200}
         confirmType='search' placeholder='搜索全部商品'
         onInput={(event) => onInput(event.detail.value)} onConfirm={(event) => onSubmit(event.detail.value)} />
       {(draft || keyword) && <Button className='category-clear' ariaLabel='清空搜索' onClick={onClear}>

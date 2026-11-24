@@ -1,3 +1,4 @@
+import { modalColors } from '@/styles/colors'
 import { useRef, useState } from 'react'
 import Taro from '@tarojs/taro'
 import { Input, Text, View } from '@tarojs/components'
@@ -38,7 +39,7 @@ function Content() {
       let payload = pending
       if (!payload) {
         if (!target || phoneValue(phone) !== targetPhone || !/^[1-9][0-9]{0,18}$/.test(points) || BigInt(points) > 9223372036854775807n) throw new Error('请先查询会员，填写合法正整数积分并确认')
-        const answer = await Taro.showModal({ title: '确认发放积分', content: `向 ${target.display_name ?? '会员'}（${target.phone_masked}）发放 ${points} 积分？` })
+        const answer = await Taro.showModal({ ...modalColors, title: '确认发放积分', content: `向 ${target.display_name ?? '会员'}（${target.phone_masked}）发放 ${points} 积分？` })
         if (!answer.confirm || session.epoch !== sessionScope()) return
         const intent = await privateRequest<ResponseModelOperationIntentRead>('/checkout/intent')
         if (session.epoch !== sessionScope()) return
@@ -51,7 +52,7 @@ function Content() {
       if (session.epoch !== sessionScope()) return
       Taro.removeStorageSync(storageKey); setPending(null); setTarget(undefined); setPoints(''); setNote('')
       await records.refetch()
-      await Taro.showModal({ title: '发放成功', content: `已记录发放 ${result.points} 积分，请以用户积分流水核对到账及欠款抵扣。`, showCancel: false })
+      await Taro.showModal({ ...modalColors, title: '发放成功', content: `已记录发放 ${result.points} 积分，请以用户积分流水核对到账及欠款抵扣。`, showCancel: false })
     } catch (error) {
       if (!findOnly && session.epoch === sessionScope() && error instanceof ApiError && (error.status === 422 || error.code === 'PHONE_BINDING_CONFLICT')) {
         Taro.removeStorageSync(storageKey); setPending(null); setTarget(undefined)
@@ -64,9 +65,9 @@ function Content() {
   return <View className='page'><View className='title'>物业发放积分</View><View className='note'>仅向有效已注册并绑定手机号的会员发放，授予积分不参与升级。</View>
     {(lookup.error || grant.error) && <QueryState title='操作未完成' error={lookup.error ?? grant.error} />}
     {pending ? <View className='surface'><View>原请求：{pending.request_id}</View><View>发放积分：{pending.points}</View><View className='note'>结果未确认，先查询原请求，勿建立新的发放请求。</View><Button block disabled={busy} onClick={() => grant.mutate(true)}>查询原结果</Button><Button block disabled={busy} onClick={() => grant.mutate(false)}>使用原请求恢复发放</Button></View> : <View className='surface'>
-      <View className='field-label'>会员手机号</View><Input value={phone} disabled={busy} maxlength={16} placeholder='请输入会员手机号' onInput={(event) => { setPhone(event.detail.value); setTarget(undefined) }} />
+      <View className='field-label'>会员手机号</View><Input placeholderClass='input-placeholder' value={phone} disabled={busy} maxlength={16} placeholder='请输入会员手机号' onInput={(event) => { setPhone(event.detail.value); setTarget(undefined) }} />
       <Button block disabled={busy} loading={lookup.isPending} onClick={() => lookup.mutate()}>查询会员</Button>
-      {target && <><View>{target.display_name ?? '会员'} · {target.phone_masked}</View><View className='field-label'>发放积分</View><Input type='number' maxlength={19} value={points} disabled={busy} onInput={(event) => setPoints(event.detail.value)} /><View className='field-label'>发放说明</View><Input maxlength={200} value={note} disabled={busy} onInput={(event) => setNote(event.detail.value)} /><Button block type='primary' disabled={busy || !points} loading={grant.isPending} onClick={() => grant.mutate(false)}>确认发放</Button></>}
+      {target && <><View>{target.display_name ?? '会员'} · {target.phone_masked}</View><View className='field-label'>发放积分</View><Input placeholderClass='input-placeholder' type='number' maxlength={19} value={points} disabled={busy} onInput={(event) => setPoints(event.detail.value)} /><View className='field-label'>发放说明</View><Input placeholderClass='input-placeholder' maxlength={200} value={note} disabled={busy} onInput={(event) => setNote(event.detail.value)} /><Button block type='primary' disabled={busy || !points} loading={grant.isPending} onClick={() => grant.mutate(false)}>确认发放</Button></>}
     </View>}
     <View className='section-title'>本人发放记录</View>
     {records.isPending && <QueryState title='正在读取发放记录' />}

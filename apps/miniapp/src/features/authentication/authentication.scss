@@ -30,7 +30,7 @@
   border-radius: 0;
   background: transparent;
   color: t.$auth-text;
-  &[disabled] { opacity: 0.55; }
+  &[disabled] { color: t.$disabled; }
 }
 .auth-scroll { position: relative; flex: 1; width: 100%; height: 0; min-height: 0; }
 .auth-content { display: flex; flex-direction: column; min-height: 100%; padding: 0 64px 24px; }
@@ -85,7 +85,8 @@
   font-size: 32px;
   font-weight: 600;
   line-height: 1.5;
-  &[disabled] { background: t.$auth-button-muted; color: t.$surface; }
+  &:active { background: t.$primary-pressed; }
+  &[disabled] { background: t.$background; color: t.$disabled; border: 1px solid t.$border; }
 }
 .auth-screen .auth-skip {
   width: 100%;
@@ -96,7 +97,7 @@
   font-size: 28px;
   line-height: 88px;
 }
-.auth-feedback { padding: 12px 0; color: t.$auth-primary; font-size: 24px; line-height: 1.6; text-align: center; overflow-wrap: anywhere; }
+.auth-feedback { padding: 12px 0; color: t.$warning; font-size: 24px; line-height: 1.6; text-align: center; overflow-wrap: anywhere; }
 .auth-consent-area { position: relative; flex: none; padding: 16px 32px calc(36px + env(safe-area-inset-bottom)); }
 .auth-consent-row { display: flex; align-items: center; justify-content: center; min-height: 88px; }
 .auth-screen .auth-consent-toggle {
@@ -111,7 +112,7 @@
 .auth-checkbox { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 2px solid t.$auth-hint; border-radius: 50%; }
 .auth-checkbox-checked { border-color: t.$auth-primary; background: t.$auth-primary; color: t.$surface; }
 .auth-consent-copy { min-width: 0; color: t.$auth-muted; font-size: 23px; line-height: 2; }
-.auth-legal-link { display: inline-block; padding: 8px 0; color: t.$auth-primary; }
+.auth-legal-link { display: inline-block; padding: 8px 0; color: t.$info; }
 
 .auth-legal-overlay { background: t.$auth-mask; }
 .auth-legal-sheet {

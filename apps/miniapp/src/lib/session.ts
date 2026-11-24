@@ -35,7 +35,7 @@ export function phoneReady() { return !!credentials?.user.phone_bound }
 
 export async function bindPhone(code: string) {
   const epoch = snapshot.epoch
-  const user = await privateRequest<ResponseModelConsumerUserRead>('/users/me/phone', { method: 'POST', data: { code } })
+  const user = await privateRequest<ResponseModelConsumerUserRead>('/users/me/phone', { method: 'POST', data: { code }, timeoutMs: 20_000 })
   updateSessionUser(user, epoch)
   await queryClient.invalidateQueries({ queryKey: ['private', 'me', epoch] })
 }
@@ -58,7 +58,7 @@ export async function login(): Promise<LoginResult> {
       const wxResult = await Taro.login({ timeout: 8000 })
       assertCurrent()
       if (!wxResult.code) throw new Error('未取得微信登录凭证，请重新发起')
-      const result = await request<ResponseModelConsumerSessionRead>('/auth/login', { method: 'POST', data: { code: wxResult.code } })
+      const result = await request<ResponseModelConsumerSessionRead>('/auth/login', { method: 'POST', data: { code: wxResult.code }, timeoutMs: 20_000 })
       assertCurrent()
       Taro.setStorageSync('guizhouzhongying.signed-out', false)
       credentials = result
@@ -121,7 +121,7 @@ async function privateCall<T>(operation: (accessToken: string, signal: RequestSi
     throw error
   } finally { pending.delete(controller); signal?.removeEventListener('abort', abort) }
 }
-export function privateRequest<R extends Envelope>(path: string, options: { signal?: RequestSignal; method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; data?: object } = {}): Promise<R['data']> {
+export function privateRequest<R extends Envelope>(path: string, options: { signal?: RequestSignal; method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'; data?: object; timeoutMs?: number } = {}): Promise<R['data']> {
   return privateCall((accessToken, signal) => request<R>(path, { ...options, signal, accessToken }), options.signal)
 }
 export function privateAvatarUpload(filePath: string, signal?: RequestSignal) {

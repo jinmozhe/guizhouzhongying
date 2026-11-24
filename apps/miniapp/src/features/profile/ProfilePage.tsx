@@ -1,3 +1,4 @@
+import { dangerModalColors } from '@/styles/colors'
 import { useEffect, useRef, useState } from 'react'
 import Taro, { useDidShow, useRouter } from '@tarojs/taro'
 import { Button as NativeButton, Form, Image, Input, Text, View } from '@tarojs/components'
@@ -87,7 +88,7 @@ function Content() {
   } })
   const remove = useMutation({ mutationFn: async () => {
     try {
-      const answer = await Taro.showModal({ title: '移除头像', content: '确认后立即解除头像绑定，已上传的文件仍按商城资产规则保留。' })
+      const answer = await Taro.showModal({ ...dangerModalColors, title: '移除头像', content: '确认后立即解除头像绑定，已上传的文件仍按商城资产规则保留。' })
       ensureCurrent()
       if (!answer.confirm) return
       setSaved(false); setNotice('正在移除头像…'); setUnknown('avatar')
@@ -139,7 +140,7 @@ function Content() {
                 if (!guard.current && !busy && !unknown && event.detail.avatarUrl) { guard.current = true; save.reset(); remove.reset(); choose.mutate(event.detail.avatarUrl) }
               }}><View className='profile-camera'><Icon name='Photograph' size={24} /></View></NativeButton>
           </View>
-          {query.data.avatar && <NativeButton className='profile-text-action' disabled={busy || !!unknown} onClick={() => {
+          {query.data.avatar && <NativeButton className='profile-text-action profile-danger-action' disabled={busy || !!unknown} onClick={() => {
             if (!guard.current && !busy && !unknown) { guard.current = true; save.reset(); choose.reset(); remove.mutate() }
           }}>移除头像</NativeButton>}
         </View>

@@ -5,15 +5,21 @@ import './product-offer.scss'
 
 type Offer = ReturnType<typeof productPrice>
 
+export function ProductPointsTag({ points, maximum = false }: { points: number; maximum?: boolean }) {
+  if (points <= 0) return null
+
+  return <View className='catalog-product-tag catalog-points-tag'>
+    <Icon name='Jingdou' size={20} />
+    <Text>{`${maximum ? '最高抵' : '可抵'} ${points} 积分`}</Text>
+  </View>
+}
+
 export function ProductTags({ multiple, points }: Pick<Offer, 'multiple' | 'points'>) {
   if (!multiple && points <= 0) return null
 
   return <View className='catalog-product-tags'>
     {multiple && <Text className='catalog-product-tag'>多规格</Text>}
-    {points > 0 && <View className='catalog-product-tag catalog-points-tag'>
-      <Icon name='Jingdou' size={20} />
-      <Text>{`${multiple ? '最高抵' : '可抵'} ${points} 积分`}</Text>
-    </View>}
+    <ProductPointsTag maximum={multiple} points={points} />
   </View>
 }
 

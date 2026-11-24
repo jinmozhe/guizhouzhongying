@@ -1,1 +1,1 @@
-export default definePageConfig({ navigationBarTitleText: '首页', enablePullDownRefresh: true })
+export default definePageConfig({ navigationBarTitleText: '众赢生活', enablePullDownRefresh: true })
