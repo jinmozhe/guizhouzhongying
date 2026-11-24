@@ -3,9 +3,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ConfigProvider } from "antd";
 import zhCN from "antd/locale/zh_CN";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
 import { AdminContext } from "@/features/auth";
+import { server } from "@/test/setup";
 import { WelcomePage } from "./WelcomePage";
 
 const { push } = vi.hoisted(() => ({
@@ -75,5 +77,27 @@ describe("WelcomePage", () => {
     const adminWithoutDisplayName = { ...mockAdmin, display_name: null, username: "simple-admin" };
     renderWelcomePage(adminWithoutDisplayName);
     expect(screen.getByText("您好，simple-admin！")).toBeInTheDocument();
+  });
+
+  it("renders dynamic site name from public site profile", async () => {
+    server.use(
+      http.get("http://localhost:3000/api/v1/system/site-profile", () =>
+        HttpResponse.json({
+          code: "OK",
+          message: "操作成功",
+          data: {
+            name: "众赢生活",
+            logo_url: null,
+            title: "众赢生活",
+            keywords: ["众赢生活"],
+            description: "同城核销商城",
+          },
+          request_id: "test-request",
+        }),
+      ),
+    );
+    renderWelcomePage(mockAdmin);
+    expect(await screen.findByText("欢迎使用 众赢生活 管理后台")).toBeInTheDocument();
+    expect(screen.getByText(/本系统是 众赢生活 的统一管理控制台/)).toBeInTheDocument();
   });
 });

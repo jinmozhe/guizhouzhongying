@@ -72,6 +72,8 @@ Taro 传递 normalize-url 2.0.1 的 query-string 使用限定为 parse/stringify
 
 根 dev 保持 Admin 入口，Backend 本机使用已有 18168，Admin 使用 3001。小程序真机连接可达且符合微信配置的 HTTPS 服务；手机 localhost 不指向电脑。禁止启动 Web、H5 或监听 3000。
 
+`src/app.config.ts` 设置 `lazyCodeLoading: 'requiredComponents'` 开启按需注入。商品详情和商家详情的页面配置同时声明 `componentPlaceholder: { 'mp-html': 'view' }`，让富文本原生组件在首次实际渲染时注入，准备期间使用微信内置 `view` 占位，随后由平台替换为真实组件。保持既有内容条件渲染；此配置不表示滚动到可视区才加载，也不改变登录请求。Taro 4.3.0 缺少该页面字段的类型声明，由 `src/wechat-config.d.ts` 补充 `PageConfig`，不使用类型断言或忽略检查。Taro 递归渲染组件继续由编译器管理，不统一设置占位。修改后须经 Taro 编译生成配置，不手改 `dist`；微信开发者工具检查结果与首次富文本渲染需单独验收。机制依据见[微信占位组件](https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/placeholder.html)。
+
 ## 4. 代码与依赖边界
 
 - pages/subpackages 负责路由、生命周期与页面组合，只通过 Feature 的 index.ts 消费业务能力。
@@ -115,7 +117,7 @@ mp-html 不开启脚本、链接导航、编辑、Markdown 或额外媒体插件
 
 首页商品使用 `GET /api/v1/products/recommended` 与 `ResponseModelListPublicProductRead`，Query key 为 `catalog/home-recommendations`，一次渲染返回的完整推荐数组，不附带分页参数或触底追加。下述商品分页及窗口限制仅适用于分类列表。首页隐藏时取消请求，恢复时沿用 Query 过期刷新，下拉刷新主动失效；无推荐不回退普通商品。后台推荐读写与排序、公开可见性规则见产品基线和数据库字典。
 
-UI tokens 与业务组件必须遵循[小程序 UI 规范](miniapp-ui-standard.md)。业务 Sass 使用 750 设计宽度；NutUI 源样式按其 375 宽度独立换算，配置 designWidth 函数与 `deviceRatio[375] = 2`，防止控件尺寸减半或应用尺寸翻倍。原生 rpx 不二次换算，JS 动态尺寸使用对应设计宽度的 Taro.pxTransform 或明确 rpx。
+UI tokens 与业务组件必须遵循[小程序 UI 规范](miniapp-ui-standard.md)及[标准配色](../design/miniapp/color-standard.md)。`src/styles/palette.json` 是色值唯一机器来源，`colors.ts` 映射原生控件、富文本容器与弹窗参数，`tokens.scss` 映射 Sass 语义；修改色板后运行 `node scripts/design/generate-miniapp-palette.mjs` 生成 `_palette.scss`，用同命令附加 `--check` 核对漂移，禁止手改生成 Sass。原生 TabBar 角标和系统导航文字等无任意颜色参数的外观保持平台行为。业务 Sass 使用 750 设计宽度；NutUI 源样式按其 375 宽度独立换算，配置 designWidth 函数与 `deviceRatio[375] = 2`，防止控件尺寸减半或应用尺寸翻倍。原生 rpx 不二次换算，JS 动态尺寸使用对应设计宽度的 Taro.pxTransform 或明确 rpx。
 
 当前编译注入 NutUI variables.scss，按组件导入 Button/Popup 与样式，不导入完整主题字体。应用 CSS 变量映射 tokens；统一 Button 默认为 solid 和 square，避免 NutUI 默认 outline/round 偏离设计。已核对产物默认 NutUI 32px 转为 64rpx，应用按钮变量为 88rpx。主包四项 TabBar，详情路由位于 subpackages/catalog；商品每页 20 件，公开评价每页 10 条。分类连续列表由 useInfiniteQuery 管理，maxPages=5，最多常驻 100 条原始商品，前后分页共用窗口；淘汰前页后向上可重取，窗口变更测量可见商品锚点并恢复偏移。商品 query key 包含分类、已提交词、所选商家与刷新代次，切换条件卸载旧订阅并以 gcTime=0 回收。原生 Tab 隐藏暂停并取消请求，详情返回保留当前会话窗口，不自动重拉改变位置。刷新创建新代次从第 1 页开始；首批不足可滚动高度时受控补载，不对失败页反复自动加载。实际发布包体和设备表现需专项验证。
 
@@ -123,7 +125,7 @@ UI tokens 与业务组件必须遵循[小程序 UI 规范](miniapp-ui-standard.m
 
 业务页面使用 `components/Icon.tsx` 的固定图标集合和 `IconName` 类型，不导入整包命名空间或新增自绘功能 SVG。公共组件使用原生 View 包裹 NutUI 图标，以明确 rpx 控制尺寸；子图标填满容器，颜色继承 tokens。公共图标样式仅在 `styles/app.scss` 加载一次；原生按钮和平台控件的内置图形继续由微信处理。
 
-`src/tab-bar.json` 同时驱动原生 TabBar 配置和图片生成。`scripts/design/render-miniapp-tab-icons.mjs` 从已安装且与应用声明一致的 NutUI 包提取四个 SVG，输出 81 × 81 透明 PNG；普通态和选中态只改变清单定义的颜色。生成先全量校验、在系统临时目录备份原图片，再逐文件核对和替换；出错停止，备份路径打印到终端。生成器依赖开发工具 sharp，本次使用 0.35.5，不引入小程序运行依赖，不写入本机绝对运行路径。
+`src/tab-bar.json` 同时驱动原生 TabBar 路由和图片清单，颜色由 `src/styles/palette.json` 同时提供给配置和生成器。`scripts/design/render-miniapp-tab-icons.mjs` 从已安装且与应用声明一致的 NutUI 包提取四个 SVG，输出 81 × 81 透明 PNG；普通态使用 secondary，选中态使用 primary。生成先全量校验、在系统临时目录备份原图片，再逐文件核对和替换；出错停止，备份路径打印到终端。生成器依赖开发工具 sharp，本次使用 0.35.5，不引入小程序运行依赖，不写入本机绝对运行路径。
 
 ```powershell
 node scripts/design/render-miniapp-tab-icons.mjs --sharp-root "<提供 sharp 的 node_modules 绝对路径>"

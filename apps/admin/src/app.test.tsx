@@ -251,4 +251,47 @@ describe("admin runtime lifecycle", () => {
     expect(ready.siderWidth).toBe(256);
     expect(ready.token?.pageContainer?.paddingInlinePageContainerContent).toBe(40);
   });
+
+  it("renders dynamic site name and logo from public site profile in header, footer, and login page", async () => {
+    server.use(
+      http.get("http://localhost:3000/api/v1/system/site-profile", () =>
+        HttpResponse.json({
+          code: "OK",
+          message: "操作成功",
+          data: {
+            name: "众赢生活",
+            logo_url: "/static/settings/site/logo.png?v=3",
+            title: "众赢生活",
+            keywords: ["众赢生活"],
+            description: "同城核销商城",
+          },
+          request_id: "test-request",
+        }),
+      ),
+    );
+    const runtime = layout({ initialState: { settings: defaultSettings, currentAdmin } });
+    const headerView = render(
+      rootContainer(
+        <>
+          {runtime.headerTitleRender?.()}
+          {runtime.footerRender?.()}
+        </>,
+      ),
+    );
+    expect(await screen.findByRole("heading", { name: "众赢生活管理后台" })).toBeInTheDocument();
+    expect(screen.getByText("众赢生活管理后台 · 众赢生活")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "众赢生活管理后台" })).toHaveAttribute(
+      "src",
+      "/static/settings/site/logo.png?v=3",
+    );
+    headerView.unmount();
+
+    render(rootContainer(<LoginPage />));
+    expect(await screen.findByRole("heading", { name: /众赢生活管理后台/ })).toBeInTheDocument();
+    expect(screen.getByText("众赢生活 © 2026")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "众赢生活" })).toHaveAttribute(
+      "src",
+      "/static/settings/site/logo.png?v=3",
+    );
+  });
 });

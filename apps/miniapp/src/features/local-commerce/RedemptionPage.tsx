@@ -1,3 +1,4 @@
+import { dangerModalColors } from '@/styles/colors'
 import { useRef, useState } from 'react'
 import Taro from '@tarojs/taro'
 import { Input, Text, View } from '@tarojs/components'
@@ -26,7 +27,7 @@ function Content() {
       let payload = pending
       if (!payload) {
         if (!preview || code.trim() !== previewCode) throw new Error('请先读取并核对订单')
-        const answer = await Taro.showModal({ title: '确认整单核销', content: `${preview.items.join('；')}。成交额 ¥${preview.order_gross_amount}，确认顾客已消费全部商品？` })
+        const answer = await Taro.showModal({ ...dangerModalColors, title: '确认整单核销', content: `${preview.items.join('；')}。成交额 ¥${preview.order_gross_amount}，确认顾客已消费全部商品？` })
         if (!answer.confirm || session.epoch !== sessionScope()) return
         const intent = await privateRequest<ResponseModelOperationIntentRead>('/checkout/intent')
         if (session.epoch !== sessionScope()) return
@@ -42,7 +43,7 @@ function Content() {
   const busy = scan.isPending || lookup.isPending || confirm.isPending
   return <View className='page'><View className='title'>商家核销</View>
     {(scan.error || lookup.error || confirm.error) && <QueryState title='操作未完成，请核对原结果' error={scan.error ?? lookup.error ?? confirm.error} />}
-    <View className='surface'><View className='note'>扫码或输入核销码，核对商品后整单确认。</View><Button block disabled={busy || !!pending} onClick={() => scan.mutate()}>扫描顾客核销码</Button><Input value={code} disabled={busy || !!pending} maxlength={64} placeholder='输入或粘贴核销码' onInput={(event) => { setCode(event.detail.value); setPreview(undefined) }} /><Button block fill='outline' disabled={busy || !code || !!pending} onClick={() => lookup.mutate()}>查询核销商品</Button>
+    <View className='surface'><View className='note'>扫码或输入核销码，核对商品后整单确认。</View><Button block disabled={busy || !!pending} onClick={() => scan.mutate()}>扫描顾客核销码</Button><Input placeholderClass='input-placeholder' value={code} disabled={busy || !!pending} maxlength={64} placeholder='输入或粘贴核销码' onInput={(event) => { setCode(event.detail.value); setPreview(undefined) }} /><Button block fill='outline' disabled={busy || !code || !!pending} onClick={() => lookup.mutate()}>查询核销商品</Button>
       {preview && <><View className='section-title'>{preview.merchant_name}</View>{preview.items.map((item, index) => <View key={`${index}-${item}`}>{item}</View>)}<View>成交总额 ¥{preview.order_gross_amount}</View><View className='muted'>有效期至 {new Date(preview.expires_at).toLocaleString()}</View></>}
       {(preview || pending) && <Button block type='primary' disabled={busy} loading={confirm.isPending} onClick={() => confirm.mutate()}>{pending ? '查询并恢复原核销请求' : '确认整单已消费并核销'}</Button>}
     </View>

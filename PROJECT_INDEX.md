@@ -26,7 +26,8 @@
 | 小程序技术决策 | [docs/adr/0017-小程序采用TaroReact与NutUI决策.md](docs/adr/0017-小程序采用TaroReact与NutUI决策.md) | 已定版技术路线与取舍；工程与公开浏览已实施 |
 | 小程序工程标准 | [docs/architecture/miniapp-engineering-standard.md](docs/architecture/miniapp-engineering-standard.md) | 初始化版本、配置、依赖、请求、内容与验证要求 |
 | 小程序 UI 规范 | [docs/architecture/miniapp-ui-standard.md](docs/architecture/miniapp-ui-standard.md) | 设计 tokens、组件、页面与交互验收标准 |
-| 小程序页面设计 | [docs/design/miniapp/README.md](docs/design/miniapp/README.md) | V1 风格已确认；V2 完整页面与状态图片、能力映射及流程评审入口 |
+| 小程序标准配色 | [docs/design/miniapp/color-standard.md](docs/design/miniapp/color-standard.md) | 最终色板、语义 tokens 和全部页面搭配的唯一来源；32 个路由源码配色已统一，微信视觉及动态验收未执行 |
+| 小程序页面设计 | [docs/design/miniapp/README.md](docs/design/miniapp/README.md) | V1/V2 历史页面与状态图片、能力映射及流程评审入口；颜色以标准配色为准 |
 | 小程序账户安全 | [docs/operations/miniapp-account-security.md](docs/operations/miniapp-account-security.md) | 账户设置、本人会话撤销/原集合恢复及只读注销前置边界 |
 | 到店业务运行 | [docs/operations/local-commerce.md](docs/operations/local-commerce.md) | 商家物业、积分购买核销退款、商家对账付款、密钥及迁移前置 |
 | 计划规则 | [plans/README.md](plans/README.md) | 计划创建、格式、状态、完成和保护规则 |
@@ -48,6 +49,8 @@
 
 全部计划状态与已结束结果见 [plans/INDEX.md](plans/INDEX.md)。
 
+[微信登录超时预算调整计划](plans/2026-11-23_微信登录超时预算调整计划.md)已完成本地修改与轻量检查：单次微信换码连接 10 秒、总预算 15 秒，小程序登录请求 20 秒，并增加脱敏异常分类。真实微信登录恢复尚未验收，临时验证目录清理受平台策略阻止。
+
 [商家核销与物业积分消费全栈计划](plans/2026-11-21_商家核销与物业积分消费全栈计划.md)已完成本地源码、生成契约和适用轻量检查。2026-11-21 开发库升级至 `20261121_01`，六项权限目录已同步，结构及原字段数据摘要核验通过，仓库外加密备份保留。本机初始超级管理员 `pinjie` 已创建，账号启用并拥有六项到店权限，登录操作未验收。凭证密钥、微信配置、重型业务及真实平台验收未执行；启用步骤见[到店业务运行手册](docs/operations/local-commerce.md)。
 
 [贵州众赢独立项目初始化计划](plans/2026-11-20_贵州众赢独立项目初始化计划.md)已完成项目身份、独立配置模板、契约和适用静态门禁。本机开发库另行完成初始化，平台及生产资源待配置。
@@ -60,7 +63,7 @@
 
 [小程序微信支付接入计划](plans/2026-11-18_小程序微信支付接入计划.md)已结束：普通商户公钥模式支付、退款、持久通知、查关单、任务恢复审计、账单核对及微信发货/收货已有本地源码，小程序收银台及原请求找回已接入，适用轻量门禁通过。商户信息预留配置，默认关闭渠道；源码迁移 head 为 `20261118_01`，本次未升级数据库，pytest/Vitest、真实资金、平台及生产验收未执行。配置与运行前置见[微信支付手册](docs/operations/wechat-pay.md)。
 
-[小程序首页八宫格分类与后端分类图标初始化计划](plans/2026-11-18_小程序首页八宫格分类与后端分类图标初始化计划.md)记录来源项目的 8 个一级分类及本地图标资产初始化结果。贵州众赢开发库已迁移，当前开发库的分类种子写入状态与真机动态验收未核实。
+[小程序首页八宫格分类与后端分类图标初始化计划](plans/2026-11-18_小程序首页八宫格分类与后端分类图标初始化计划.md)记录来源项目初始化及贵州众赢开发库图片维护结果。2026-11-23 已核实本机开发库存在 8 个一级分类，并按用户提供的 `output/192/` 图片更新为 `192×192` PNG 资产；新绑定、文件哈希和公开分类服务返回地址已核验，真机动态验收未执行。
 
 [小程序功能图标统一计划](plans/2026-11-18_小程序功能图标统一计划.md)已结束：页面功能图标统一至 NutUI，原生 TabBar 使用同源 PNG，品牌和业务图片保留，适用轻量门禁通过。唯一图标库约束已写入小程序规则和 UI 规范，21 个旧 SVG 复核已不存在；微信编译与动态验收未执行。
 

@@ -31,7 +31,7 @@
   height: 88px;
   padding: 10px 10px 10px 28px;
   border-radius: 44px;
-  background: $background;
+  background: $surface-tint;
   color: $secondary;
 }
 .category-search-input { flex: 1; min-width: 0; height: 68px; padding: 0 12px; font-size: 28px; color: $text; }
@@ -54,7 +54,7 @@
 .category-columns { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .category-sidebar { width: 176px; height: 100%; flex: none; background: $background; }
 .category-page .category-menu-item { position: relative; display: flex; align-items: center; justify-content: center; min-height: 104px; width: 100%; padding: 20px 16px; font-size: 26px; text-align: center; overflow-wrap: anywhere; color: $secondary; }
-.category-page .category-menu-item.is-selected { color: $primary; background: $surface; font-weight: 600; }
+.category-page .category-menu-item.is-selected { color: $primary; background: $primary-soft; font-weight: 600; }
 .category-menu-item.is-selected::before { content: ''; position: absolute; left: 0; top: 32px; width: 6px; height: 40px; border-radius: 0 4px 4px 0; background: $primary; }
 .category-main { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; }
 .category-keyword { flex: none; margin: 20px 20px 12px; font-size: 24px; color: $secondary; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -83,7 +83,7 @@
 }
 .category-page .category-product-open { display: flex; align-items: flex-end; justify-content: flex-end; width: 88px; height: 88px; flex: none; }
 .category-plus { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: $primary; color: $surface; }
-.category-product-open[disabled] .category-plus { opacity: .6; }
+.category-product-open[disabled] .category-plus { background: $background; color: $disabled; }
 .category-load-state { display: flex; align-items: center; justify-content: center; min-height: 88px; padding: 12px 16px; font-size: 24px; color: $secondary; text-align: center; }
 .category-page .category-text-action { display: flex; align-items: center; justify-content: center; min-height: 88px; padding: 12px 16px; color: $primary; font-size: 24px; }
 .category-page .category-refresh { width: 100%; }
@@ -91,5 +91,5 @@
 .category-empty > .app-icon { margin: 0 auto 24px; }
 .category-empty-title { font-size: 28px; font-weight: 600; color: $text; margin-bottom: 16px; }
 .category-page .category-empty-primary { margin-top: 24px; padding: 20px 16px; min-height: 88px; border-radius: 12px; background: $primary; color: $surface; font-size: 26px; }
-.category-warning { flex: none; padding: 12px 24px; font-size: 24px; background: $primary-soft; color: $primary; overflow-wrap: anywhere; }
+.category-warning { flex: none; padding: 12px 24px; font-size: 24px; background: $warning-soft; color: $warning; overflow-wrap: anywhere; }
 .category-no-categories { padding: 12px 20px; color: $secondary; font-size: 24px; }

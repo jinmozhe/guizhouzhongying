@@ -27,6 +27,8 @@ describe('private session isolation', () => {
     expect(identity.user.id).toBe('a')
     expect(identity.epoch).toBe(session.sessionScope())
     expect(mocks.request.mock.calls.filter(([path]) => path === '/auth/login')).toHaveLength(1)
+    expect(mocks.request).toHaveBeenCalledWith('/auth/login', { method: 'POST', data: { code: 'one-use' }, timeoutMs: 20_000 })
+    expect(mocks.login).toHaveBeenCalledWith({ timeout: 8000 })
   })
   it('shares one identity request between startup and an explicit login', async () => {
     let resolve!: (value: unknown) => void
@@ -64,7 +66,9 @@ describe('private session isolation', () => {
     expect(after.epoch).toBe(before.epoch)
     expect(after.user.id).toBe(before.user.id)
     expect(session.phoneReady()).toBe(true)
-    expect(mocks.request).toHaveBeenLastCalledWith('/users/me/phone', expect.objectContaining({ method: 'POST', data: { code: 'phone-once' }, accessToken: 'access-a' }))
+    expect(mocks.request).toHaveBeenLastCalledWith('/users/me/phone', expect.objectContaining({
+      method: 'POST', data: { code: 'phone-once' }, accessToken: 'access-a', timeoutMs: 20_000,
+    }))
     expect(mocks.request.mock.calls.filter(([path]) => path === '/auth/login')).toHaveLength(1)
   })
   it('does not retry a phone code when binding fails', async () => {

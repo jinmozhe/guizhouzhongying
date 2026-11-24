@@ -33,6 +33,7 @@ import { StandardConfirmModal } from "@/components/StandardConfirmModal";
 import { canAccess, useCurrentAdmin } from "@/features/auth";
 import { adminApi } from "@/lib/api/admin";
 import { ApiError, errorMessage } from "@/lib/api/http";
+import { syncSiteProfileCache } from "@/lib/site-brand";
 
 type SiteFormValues = Pick<SiteSettingPatchIn, "name" | "title" | "keywords" | "description">;
 type RegistrationFormValues = { enabled: boolean };
@@ -100,6 +101,7 @@ function SiteSettingsTab({ canUpdate }: { canUpdate: boolean }) {
 
   const acceptSavedForm = (data: AdminSiteSettingRead) => {
     queryClient.setQueryData(SITE_QUERY_KEY, data);
+    syncSiteProfileCache(queryClient, data);
     hydrate(data);
   };
 
@@ -123,6 +125,7 @@ function SiteSettingsTab({ canUpdate }: { canUpdate: boolean }) {
       adminApi.uploadSiteLogo(file, revision),
     onSuccess: (data, { revision }) => {
       queryClient.setQueryData(SITE_QUERY_KEY, data);
+      syncSiteProfileCache(queryClient, data);
       // 只有同一基准上的 LOGO 写入可以推进文本草稿版本。
       setHydratedRevision((current) => current === revision ? data.revision : current);
       setConflict(false);
@@ -138,6 +141,7 @@ function SiteSettingsTab({ canUpdate }: { canUpdate: boolean }) {
     mutationFn: (revision: number) => adminApi.deleteSiteLogo(revision),
     onSuccess: (data, revision) => {
       queryClient.setQueryData(SITE_QUERY_KEY, data);
+      syncSiteProfileCache(queryClient, data);
       setHydratedRevision((current) => current === revision ? data.revision : current);
       setConflict(false);
       message.success("站点 LOGO 已移除");

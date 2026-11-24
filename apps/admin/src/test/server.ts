@@ -75,6 +75,15 @@ export const handlers = [
   http.get("http://localhost:3001/api/v1/system/status", () =>
     HttpResponse.json({ code: "OK", message: "操作成功", data: { status: "available" }, request_id: "test-request" }),
   ),
+  http.get("http://localhost:3000/api/v1/system/site-profile", () =>
+    ok({
+      name: siteSetting.name,
+      logo_url: null,
+      title: siteSetting.title,
+      keywords: siteSetting.keywords,
+      description: siteSetting.description,
+    }),
+  ),
   http.get("http://localhost:3000/api/v1/admin/auth/me", () => ok(admin)),
   http.get("http://localhost:3000/api/v1/admin/settings/site", () => ok(siteSetting)),
   http.patch("http://localhost:3000/api/v1/admin/settings/site", () => ok({ ...siteSetting, revision: 2 })),

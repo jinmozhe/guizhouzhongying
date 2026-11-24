@@ -1,3 +1,4 @@
+import { colors, richTextStyle } from '@/styles/colors'
 import { useCallback, useEffect, useState } from 'react'
 import Taro, { useDidHide, useDidShow, usePullDownRefresh } from '@tarojs/taro'
 import { Input, ScrollView, Swiper, SwiperItem, Text, View } from '@tarojs/components'
@@ -15,7 +16,8 @@ import { ProductImage } from '@/components/ProductImage'
 import { QueryState } from '@/components/QueryState'
 import { phoneReady, sessionScope } from '@/lib/session'
 import { beginAuthentication, consumeProductIntent } from '@/lib/auth-navigation'
-import { addToCart } from '@/features/cart'
+import { addToCart, useCartBadge } from '@/features/cart'
+import { maxDeductiblePoints, ProductPointsTag } from '@/features/catalog'
 import { startCheckout } from '@/features/checkout'
 import { MerchantCard } from '@/features/local-commerce'
 import { canSelect, matchingSkus, resolvedSku, specGroups } from './domain/sku'
@@ -56,7 +58,10 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
   const selectedSku = resolvedSku(product.skus, selection)
   const displaySelection = open ? selection : confirmed.selection
   const displaySku = resolvedSku(product.skus, displaySelection)
-  const price = displaySku ? `¥${displaySku.price}` : priceLabel(matchingSkus(product.skus, displaySelection).map((sku) => sku.price))
+  const displaySkus = displaySku ? [displaySku] : matchingSkus(product.skus, displaySelection)
+  const price = displaySku ? `¥${displaySku.price}` : priceLabel(displaySkus.map((sku) => sku.price))
+  const priceClassName = price.startsWith('¥') ? 'price' : 'price price-unavailable'
+  const points = maxDeductiblePoints(product.fulfillment_mode, displaySkus)
   const validQuantity = /^\d+$/.test(quantity) && Number(quantity) >= 1 && Number(quantity) <= 99
   const canSell = product.skus.some((sku) => sku.is_active)
   const hasDescription = product.description_format === 'restricted_html_v1'
@@ -64,6 +69,8 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
   const [intent, setIntent] = useState<'cart' | 'buy' | 'select'>('select')
   const [actionNotice, setActionNotice] = useState('')
   const [unknownCart, setUnknownCart] = useState(false)
+  const { badge, isError: cartReadFailed } = useCartBadge()
+  const cartLabel = `购物车${badge ? `，${badge} 件商品` : ''}${cartReadFailed ? '，数量刷新失败' : ''}`
   const restorePurchase = useCallback(() => {
     if (!phoneReady()) return
     const pending = consumeProductIntent(product.id)
@@ -88,16 +95,37 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
     }
     if (intent === 'cart') {
       if (unknownCart) throw new Error('请先查询购物车，确认上一次添加结果')
-      try { await addToCart({ sku_id: selectedSku.id, quantity: Number(quantity) }) }
+      let cartRefreshed: boolean
+      try {
+        const result = await addToCart({ sku_id: selectedSku.id, quantity: Number(quantity) })
+        cartRefreshed = result.cartRefreshed
+      }
       catch (error) {
         if (!(error instanceof ApiError) || error.kind === 'network' || error.kind === 'protocol' || error.status >= 500) setUnknownCart(true)
         throw error
       }
-      if (epoch === sessionScope()) { setActionNotice('已加入购物车'); setOpen(false) }
+      if (epoch !== sessionScope()) return
+      setOpen(false)
+      const successNotice = '已加入购物车'
+      setActionNotice(cartRefreshed ? '' : `${successNotice}，数量暂未刷新，请打开购物车查看。`)
+      try {
+        await Taro.showToast({
+          title: cartRefreshed ? successNotice : '已加购，数量待刷新',
+          icon: cartRefreshed ? 'success' : 'none',
+          duration: 1500,
+          mask: false,
+        })
+      } catch {
+        if (cartRefreshed && epoch === sessionScope()) setActionNotice(successNotice)
+      }
     } else if (intent === 'buy') await startCheckout([{ sku_id: selectedSku.id, quantity: Number(quantity) }], product.product_type)
     else { setConfirmed({ selection: { ...selection }, quantity }); setOpen(false) }
   } })
   function begin(next: 'cart' | 'buy') { setIntent(next); setActionNotice(''); action.reset(); openSheet() }
+  function openCart() {
+    void Taro.switchTab({ url: '/pages/cart/index' })
+      .catch(() => Taro.showToast({ title: '购物车打开失败，请重试', icon: 'none' }))
+  }
   function openSheet() { setSelection({ ...confirmed.selection }); setQuantity(confirmed.quantity); setOpen(true) }
   function select(name: string, value: string) {
     const next = { ...selection }
@@ -107,17 +135,18 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
     setQuantity('1')
   }
   return <View className='detail-page'>
-    {product.images.length ? <Swiper className='detail-hero' indicatorDots indicatorActiveColor='#B42318'>
+    {product.images.length ? <Swiper className='detail-hero' indicatorDots indicatorActiveColor={colors.primary} indicatorColor={colors.secondary}>
       {product.images.map((url) => <SwiperItem key={url}><ProductImage url={url} mode='aspectFit' style={{ height: '100%' }} onClick={() => { void previewImages(product.images, url) }} /></SwiperItem>)}
     </Swiper> : <QueryState title='暂无商品主图' />}
     <View className='detail-body'>
       <View className='surface'>
-        <View className='price'>{price}</View>
-        {displaySku?.market_price && <View className='muted'>参考划线价 ¥{displaySku.market_price}</View>}
+        <View className='detail-price-row'>
+          <View className={priceClassName}>{price}</View>
+          <ProductPointsTag points={points} maximum />
+        </View>
+        {displaySku?.market_price && <View className='muted'>市场价 <Text className='detail-market-price'>¥{displaySku.market_price}</Text></View>}
         <View className='title'>{product.name}</View>
-        <Text className='label'>到店消费 · 整单核销</Text>
-        {displaySku && <View className='muted'>每件最多可用 {displaySku.max_points_deduction} 积分，1积分抵1元</View>}
-        <View className='muted'>公开基础价格仅供浏览，库存与成交价格以服务端确认为准。</View>
+        <Text className='label label-info'>到店消费·整单核销·1积分抵1元</Text>
         {!canSell && <View className='note'>当前暂无可售规格</View>}
       </View>
       <View className='surface'>
@@ -136,7 +165,7 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
       </View>}
       {hasDescription && <View className='surface'>
         <View className='section-title'>商品说明</View>
-        <mp-html content={product.description} selectable copy-link={false} use-anchor={false} container-style='font-size: 14px; line-height: 1.7; color: #101828; overflow-wrap: anywhere;' />
+        <mp-html content={product.description} selectable copy-link={false} use-anchor={false} container-style={richTextStyle} />
       </View>}
       <View className='section-title'>商品详情</View>
       {!product.detail_images.length && <View className='surface muted'>暂无详情图片</View>}
@@ -144,14 +173,26 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
         <ProductImage url={image.url} mode='widthFix' onClick={() => { void previewImages(product.detail_images.map((item) => item.url), image.url) }} />
       </View>)}
       <Reviews productId={product.id} visible={visible} />
-      {actionNotice && <View className='note'>{actionNotice}</View>}
+      {actionNotice && <View className='note note-warning'>{actionNotice}</View>}
       {action.error && <QueryState title='操作未完成' error={action.error} detail='加购超时请先到购物车核对结果，勿盲目重复添加。' />}
       {unknownCart && <Button block fill='outline' onClick={() => { void Taro.switchTab({ url: '/pages/cart/index' }) }}>查询购物车确认添加结果</Button>}
     </View>
-    <View className='detail-actions trade-row'><Button fill='outline' disabled={!canSell || action.isPending} onClick={() => begin('cart')}>加入购物车</Button><Button type='primary' disabled={!canSell || action.isPending} onClick={() => begin('buy')}>立即购买</Button></View>
+    <View className='detail-actions'>
+      <Button className='detail-cart-entry' ariaLabel={cartLabel} onClick={openCart}>
+        <View className='detail-cart-content'>
+          <View className='detail-cart-icon'>
+            <Icon name='Cart' size={44} />
+            {badge && <Text className='detail-cart-badge'>{badge}</Text>}
+          </View>
+          <Text>购物车</Text>
+        </View>
+      </Button>
+      <Button className='detail-purchase-action' fill='outline' disabled={!canSell || action.isPending} onClick={() => begin('cart')}>加入购物车</Button>
+      <Button className='detail-purchase-action' type='primary' disabled={!canSell || action.isPending} onClick={() => begin('buy')}>立即购买</Button>
+    </View>
     <Popup className='sku-popup' visible={open} position='bottom' round closeable onClose={() => setOpen(false)} style={{ height: '80vh' }}>
       <View className='sku-sheet'>
-        <View className='sku-header'><ProductImage url={product.images[0]} /><View><View className='price'>{price}</View><View className='sku-name'>{product.name}</View></View></View>
+        <View className='sku-header'><ProductImage url={product.images[0]} /><View><View className={priceClassName}>{price}</View><View className='sku-name'>{product.name}</View></View></View>
         <ScrollView scrollY className='sku-scroll'>
           {!groups.length && <View className='note'>默认规格</View>}
           {groups.map((group) => <View key={group.name}>
@@ -166,7 +207,7 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
           <View className='section-title'>数量</View>
           <View className='quantity-control'>
             <Button fill='outline' ariaLabel='减少数量' disabled={!validQuantity || Number(quantity) <= 1} onClick={() => setQuantity(String(Number(quantity) - 1))}><Icon name='Minus' size={28} /></Button>
-            <Input type='number' value={quantity} maxlength={3} onInput={(event) => setQuantity(event.detail.value)} ariaLabel='规格预览数量' />
+            <Input placeholderClass='input-placeholder' type='number' value={quantity} maxlength={3} onInput={(event) => setQuantity(event.detail.value)} ariaLabel='规格预览数量' />
             <Button fill='outline' ariaLabel='增加数量' disabled={!validQuantity || Number(quantity) >= 99} onClick={() => setQuantity(String(Number(quantity) + 1))}><Icon name='Plus' size={28} /></Button>
           </View>
           {!validQuantity && <View className='note'>请输入 1 至 99 的整数预览数量</View>}

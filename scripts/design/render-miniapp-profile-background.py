@@ -5,6 +5,7 @@ Outputs must be new files, so existing artwork cannot be overwritten accidentall
 """
 
 import argparse
+import json
 import math
 import random
 from pathlib import Path
@@ -12,11 +13,12 @@ from xml.sax.saxutils import escape
 
 WIDTH, HEIGHT, SEED = 1440, 4480, 20261117
 FADE_START, FADE_END = 2000, 4200
-STOPS = [(0, "#c92320"), (300, "#d42c26"), (550, "#f45b4d"),
-         (820, "#ff9a88"), (1100, "#fbdcd0"), (1450, "#fff4ec"),
-         (2200, "#fcf2eb"), (3200, "#fff5ef"), (4480, "#ffffff")]
-LINES = [([(45, 400), (245, 140), (815, 420), (1160, 50)], "#ffe2c8", 0.32),
-         ([(1040, 2600), (1360, 2420), (1455, 2655)], "#c58b72", 0.25)]
+PALETTE = json.loads((Path(__file__).resolve().parents[2] / "apps/miniapp/src/styles/palette.json").read_text(encoding="utf-8"))
+STOPS = [(0, PALETTE["primary"]), (300, PALETTE["primary"]), (550, PALETTE["brandDeep"]),
+         (820, PALETTE["tint"]), (1100, PALETTE["tint"]), (1450, PALETTE["background"]),
+         (2200, PALETTE["background"]), (3200, PALETTE["surface"]), (4480, PALETTE["surface"])]
+LINES = [([(45, 400), (245, 140), (815, 420), (1160, 50)], PALETTE["accent"], 0.32),
+         ([(1040, 2600), (1360, 2420), (1455, 2655)], PALETTE["brandDeep"], 0.25)]
 SCREENS = [(320, 568), (375, 667), (390, 844), (430, 932),
            (360, 800), (412, 915), (390, 1180), (390, 1400)]
 
@@ -38,14 +40,14 @@ def geometry():
             for points in pairs:
                 upper = sum(y for _, y in points) / 3 < 1000
                 light = rng.random() < 0.5
-                color = ("#ffb69c" if light else "#851710") if upper else ("#ffffff" if light else "#c6afa2")
+                color = (PALETTE["accent"] if light else PALETTE["primary"]) if upper else (PALETTE["surface"] if light else PALETTE["tint"])
                 opacity = round(rng.uniform(0.04, 0.13) if upper else rng.uniform(0.06, 0.17), 3)
                 triangles.append((points, color, opacity))
     for y0, y1 in [(3200, 3800), (3800, HEIGHT)]:
         for x0, x1 in zip(xs, xs[1:]):
             points = [(x0, y0), (x1, y0), (x1, y1)]
-            triangles.append((points, "#c6afa2", round(rng.uniform(0.06, 0.12), 3)))
-            triangles.append(([(x0, y0), (x1, y1), (x0, y1)], "#ffffff", 0.1))
+            triangles.append((points, PALETTE["tint"], round(rng.uniform(0.06, 0.12), 3)))
+            triangles.append(([(x0, y0), (x1, y1), (x0, y1)], PALETTE["surface"], 0.1))
     return triangles
 
 
@@ -56,8 +58,8 @@ def svg(triangles):
     lines += [f'    <stop offset="{y / HEIGHT:.6f}" stop-color="{color}"/>' for y, color in STOPS]
     lines += ['  </linearGradient>',
               f'  <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="0" y1="{FADE_START}" x2="0" y2="{FADE_END}">',
-              '    <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>',
-              '    <stop offset="1" stop-color="#ffffff" stop-opacity="1"/>',
+              f'    <stop offset="0" stop-color="{PALETTE["surface"]}" stop-opacity="0"/>',
+              f'    <stop offset="1" stop-color="{PALETTE["surface"]}" stop-opacity="1"/>',
               '  </linearGradient></defs>', f'  <path fill="url(#base)" d="M0 0h{WIDTH}v{HEIGHT}H0z"/>']
     for points, color, opacity in triangles:
         path = "M" + "L".join(f"{x} {y}" for x, y in points) + "z"
@@ -65,7 +67,7 @@ def svg(triangles):
     for points, color, opacity in LINES:
         path = "M" + "L".join(f"{x} {y}" for x, y in points)
         lines.append(f'  <path fill="none" stroke="{color}" stroke-opacity="{opacity}" stroke-width="1.5" d="{path}"/>')
-    lines += ['  <path fill="none" stroke="#c58b72" stroke-opacity="0.23" stroke-width="1.5" d="M18 2080C270 2130 270 2510-30 2570"/>',
+    lines += [f'  <path fill="none" stroke="{PALETTE["brandDeep"]}" stroke-opacity="0.23" stroke-width="1.5" d="M18 2080C270 2130 270 2510-30 2570"/>',
               f'  <path fill="url(#fade)" d="M0 0h{WIDTH}v{HEIGHT}H0z"/>', '</svg>']
     return "\n".join(lines) + "\n"
 
@@ -97,14 +99,14 @@ def render_previews(directory, triangles):
         t = step / 100
         curve.append(tuple(round((1-t)**3*a + 3*(1-t)**2*t*b + 3*(1-t)*t*t*c + t**3*d)
                            for a, b, c, d in zip((18, 2080), (270, 2130), (270, 2510), (-30, 2570))))
-    overlay.line(curve, fill=(*rgb("#c58b72"), 59), width=2)
+    overlay.line(curve, fill=(*rgb(PALETTE["brandDeep"]), 59), width=2)
     for y in range(FADE_START, HEIGHT):
         alpha = round(min(1, (y - FADE_START) / (FADE_END - FADE_START)) * 255)
         overlay.line((0, y, WIDTH, y), fill=(255, 255, 255, alpha))
     with (directory / "profile-background-preview.png").open("xb") as target:
         image.save(target, format="PNG", optimize=True)
 
-    sheet = Image.new("RGB", (1200, 1440), "#e8e7e4")
+    sheet = Image.new("RGB", (1200, 1440), PALETTE["background"])
     sheet_draw = ImageDraw.Draw(sheet)
     font = ImageFont.load_default(size=20)
     for index, (width, height) in enumerate(SCREENS):
@@ -117,7 +119,7 @@ def render_previews(directory, triangles):
         crop.thumbnail((264, 640), Image.Resampling.LANCZOS)
         x, y = index % 4 * 300 + 18, index // 4 * 720 + 54
         sheet.paste(crop, (x, y))
-        sheet_draw.text((x, y - 32), f"{width} x {height}", fill="#343434", font=font)
+        sheet_draw.text((x, y - 32), f"{width} x {height}", fill=PALETTE["text"], font=font)
     with (directory / "profile-background-viewport-previews.png").open("xb") as target:
         sheet.save(target, format="PNG", optimize=True)
 

@@ -1,4 +1,4 @@
-import type { CategoryRead, PageResultPublicProductRead, PublicProductRead } from '@pinjie/api-client'
+import type { CategoryRead, PageResultPublicProductRead, PublicProductRead, PublicSkuRead } from '@pinjie/api-client'
 import { compareMoney } from '../../lib/money'
 
 export const CATEGORY_PAGE_SIZE = 20
@@ -30,23 +30,25 @@ export function uniqueProducts(pages: PageResultPublicProductRead[]) {
   })
 }
 
+export function maxDeductiblePoints(fulfillmentMode: PublicProductRead['fulfillment_mode'], activeSkus: readonly PublicSkuRead[]) {
+  if (fulfillmentMode !== 'local') return 0
+
+  return activeSkus.reduce((highest, sku) => {
+    const wholeYuan = Number(sku.price.split('.')[0])
+    return Math.max(highest, Math.min(sku.max_points_deduction, wholeYuan))
+  }, 0)
+}
+
 export function productPrice(product: PublicProductRead) {
   const skus = product.skus.filter((sku) => sku.is_active).sort((left, right) => compareMoney(left.price, right.price))
   const lowest = skus[0]
   const multiple = skus.length > 1
   const market = multiple ? undefined : lowest?.market_price
-  const points = product.fulfillment_mode === 'local'
-    ? skus.reduce((highest, sku) => {
-      const wholeYuan = Number(sku.price.split('.')[0])
-      return Math.max(highest, Math.min(sku.max_points_deduction, wholeYuan))
-    }, 0)
-    : 0
-
   return {
     amount: lowest?.price,
     startsAt: multiple && compareMoney(lowest.price, skus[skus.length - 1].price) < 0,
     multiple,
     market: market && compareMoney(market, lowest.price) > 0 ? market : undefined,
-    points,
+    points: maxDeductiblePoints(product.fulfillment_mode, skus),
   }
 }

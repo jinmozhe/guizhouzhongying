@@ -20,12 +20,13 @@ const sharpPath = values['sharp-root']
   : requireFromApp.resolve('sharp')
 const sharp = requireFromApp(sharpPath)
 const manifest = JSON.parse(await readFile(join(app, 'src/tab-bar.json'), 'utf8'))
+const palette = JSON.parse(await readFile(join(app, 'src/styles/palette.json'), 'utf8'))
 const packageFile = requireFromApp.resolve('@nutui/icons-react-taro/package.json')
 const installed = JSON.parse(await readFile(packageFile, 'utf8'))
 const declared = JSON.parse(await readFile(join(app, 'package.json'), 'utf8')).dependencies['@nutui/icons-react-taro']
 assert.equal(installed.version, declared, 'Installed NutUI version must equal the pinned app dependency')
 assert.equal(manifest.items.length, 4, 'Expected four native tabs')
-for (const color of [manifest.color, manifest.selectedColor]) assert.match(color, /^#[0-9a-f]{6}$/i)
+for (const color of [palette.secondary, palette.primary]) assert.match(color, /^#[0-9a-f]{6}$/i)
 const target = join(app, 'src/assets')
 assert(!(await lstat(target)).isSymbolicLink(), 'Asset directory must not be a link')
 const outputs = []
@@ -44,7 +45,7 @@ for (const item of manifest.items) {
   const svg = Buffer.from(matches[0][1], 'base64').toString('utf8')
   assert.match(svg, /^<svg\b/)
   assert(!/<(?:script|image|use)\b|(?:href|style)=/i.test(svg), 'Unexpected external or styled SVG content')
-  for (const [suffix, color] of [['', manifest.color], ['-active', manifest.selectedColor]]) {
+  for (const [suffix, color] of [['', palette.secondary], ['-active', palette.primary]]) {
     const colored = svg.replace(/fill="(?!none")[^"]*"/g, `fill="${color}"`)
     assert.notEqual(colored, svg, 'Expected a recolorable NutUI fill')
     const bytes = await sharp(Buffer.from(colored), { density: 192 })

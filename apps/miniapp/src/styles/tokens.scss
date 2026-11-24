@@ -1,79 +1,81 @@
-$primary: #B42318;
-$primary-pressed: #912018;
-$primary-soft: #FFF1EF;
-$background: #F7F8FA;
-$surface: #FFFFFF;
-$text: #1D2939;
-$secondary: #475467;
-$disabled: #98A2B3;
-$border: #E4E7EC;
+@use './palette' as p;
+
+$primary: p.$primary;
+$primary-pressed: p.$text;
+$primary-soft: p.$tint;
+$brand-deep: p.$brand-deep;
+$accent: p.$accent;
+$reward: p.$reward;
+$reward-end: p.$reward-end;
+$reward-soft: p.$reward-soft;
+$reward-ink: p.$reward-ink;
+$price: p.$price;
+$background: p.$background;
+$surface: p.$surface;
+$surface-tint: p.$tint;
+$text: p.$text;
+$secondary: p.$secondary;
+$disabled: p.$secondary;
+$border: p.$border;
+$control-border: p.$secondary;
+$success: p.$success;
+$success-soft: p.$success-soft;
+$info: p.$info;
+$warning: p.$reward-ink;
+$warning-soft: p.$reward-soft;
+$danger: p.$reward-ink;
+$danger-soft: p.$reward-soft;
+$mask: rgba($text, 0.44);
+$press-overlay: rgba($text, 0.08);
 $space: 24px;
 $radius: 20px;
 
-$catalog-points-background: #FFF2DA;
-$catalog-points-ink: #8E5007;
+$catalog-points-background: $reward-soft;
+$catalog-points-ink: $reward-ink;
 
 // Cart empty state illustration.
-$cart-empty-background: #F9EAE1;
-$cart-empty-ink: #B98B74;
+$cart-empty-background: $surface-tint;
+$cart-empty-ink: $secondary;
 
-// Unified authentication page, scoped to the approved warm illustration design.
-$auth-background: #FFFAF5;
-$auth-text: #302B28;
-$auth-muted: #85766F;
-$auth-primary: #BE2317;
-$auth-button-muted: #D7A49E;
-$auth-soft: #FFF2EC;
-$auth-decoration: #F8E8DE;
-$auth-line: #EAD5C8;
-$auth-hint: #9F775C;
-$auth-mask: rgba(40, 33, 27, 0.44);
+// Page aliases share the global palette, not independent themes.
+$auth-background: $background;
+$auth-text: $text;
+$auth-muted: $secondary;
+$auth-primary: $primary;
+$auth-button-muted: $border;
+$auth-soft: $surface-tint;
+$auth-decoration: $surface-tint;
+$auth-line: $border;
+$auth-hint: $control-border;
+$auth-mask: $mask;
 
 // Profile illustration and fields, scoped to the account profile page.
-$profile-background: #FFF5F0;
-$profile-field: #FAF8F6;
-$profile-border: #EBE0DA;
-$profile-muted: #776D66;
-$profile-placeholder: #948C87;
-$profile-avatar-background: #F5F3F1;
-$profile-avatar-ink: #ADA59F;
-$profile-camera-background: #F5E8E2;
-$profile-camera-ink: #A85F48;
+$profile-background: $background;
+$profile-field: $background;
+$profile-border: $control-border;
+$profile-muted: $secondary;
+$profile-placeholder: $secondary;
+$profile-avatar-background: $surface-tint;
+$profile-avatar-ink: $secondary;
+$profile-camera-background: $surface-tint;
+$profile-camera-ink: $primary;
 
 // Personal center illustration, asset summary and service tiles.
-$account-muted: #667085;
-$account-line: #F0EDEA;
-$account-avatar-background: #FCE5DF;
-$account-avatar-ink: #CD4D40;
-$account-hint: #8E554C;
-$account-brand: #99776D;
-$account-brand-line: #DCC6BD;
-$account-order-ink: #383F49;
+$account-muted: $secondary;
+$account-line: $border;
+$account-avatar-background: $surface-tint;
+$account-avatar-ink: $primary;
+$account-hint: $primary;
+$account-brand: $secondary;
+$account-brand-line: $border;
+$account-order-ink: $primary;
 $account-service-backgrounds: (
-  'member': #FFF2DA,
-  'gold': #FFF2DA,
-  'coral': #FFE9E4,
-  'blue': #E6F2FF,
-  'orange': #FFF0E2,
-  'teal': #E1F5F1,
-  'indigo': #EEEDFF,
-  'rose': #FDEDF0,
-  'cyan': #E7F5FA,
-  'green': #E6F3EB,
-  'slate': #EDF2F8,
-  'purple': #F0EAFB,
+  'brand': $surface-tint,
+  'reward': $reward-soft,
+  'info': $surface-tint,
 );
 $account-service-colors: (
-  'member': #BE7008,
-  'gold': #C57A09,
-  'coral': #E45342,
-  'blue': #287FC1,
-  'orange': #D97618,
-  'teal': #149D8E,
-  'indigo': #7367D6,
-  'rose': #EC6471,
-  'cyan': #2D94B4,
-  'green': #39966A,
-  'slate': #6C8099,
-  'purple': #8C70C5,
+  'brand': $primary,
+  'reward': $reward-ink,
+  'info': $info,
 );

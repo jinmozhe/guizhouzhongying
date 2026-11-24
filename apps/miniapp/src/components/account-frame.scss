@@ -31,9 +31,10 @@
   color: t.$surface;
 }
 .account-frame-back::after, .account-frame-retry-back::after { border: 0; }
-.account-frame-back[disabled], .account-frame-retry-back[disabled] { opacity: 0.55; }
+.account-frame-back[disabled] { color: t.$surface; }
+.account-frame-retry-back[disabled] { color: t.$disabled; }
 .account-frame-scroll { position: relative; flex: 1; height: 0; min-height: 0; }
 .account-frame-body { padding: 64px 32px calc(64px + env(safe-area-inset-bottom)); }
-.account-frame-error { margin-bottom: 24px; padding: 24px; border-radius: t.$radius; background: t.$surface; color: t.$primary; }
+.account-frame-error { margin-bottom: 24px; padding: 24px; border-radius: t.$radius; background: t.$danger-soft; color: t.$danger; }
 .account-frame-layout-error { position: relative; margin: calc(env(safe-area-inset-top) + 100px) 32px 32px; padding: 24px; border-radius: t.$radius; background: t.$surface; }
 .account-frame .account-frame-retry-back { min-height: 88px; margin: 0; padding: 12px 0; border: 0; background: transparent; color: t.$primary; font-size: 24px; line-height: 2; }

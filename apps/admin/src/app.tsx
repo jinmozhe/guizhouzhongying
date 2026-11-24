@@ -23,6 +23,7 @@ import { AdminAvatar } from "./components/AdminAvatar";
 import { AdminContext } from "./features/auth/auth-context";
 import { adminApi } from "./lib/api/admin";
 import { ApiError, errorMessage, isSessionError, setSessionExpiredHandler } from "./lib/api/http";
+import { useDocumentBrandTitle, useSiteBrand } from "./lib/site-brand";
 import logoSvg from "./assets/logo.svg";
 import "./styles.css";
 
@@ -124,6 +125,21 @@ function AccountMenu({ admin }: { admin: AdminRead }) {
   );
 }
 
+function AdminHeaderBrand() {
+  const brand = useSiteBrand();
+  return (
+    <Link to="/welcome">
+      <img src={brand.logoUrl ?? logoSvg} alt={brand.adminTitle} />
+      <h1>{brand.adminTitle}</h1>
+    </Link>
+  );
+}
+
+function AdminFooter() {
+  const brand = useSiteBrand();
+  return <footer className="admin-footer">{brand.footerText}</footer>;
+}
+
 function AdminLayoutFrame({
   initialState,
   children,
@@ -131,6 +147,9 @@ function AdminLayoutFrame({
   initialState: AdminInitialState;
   children: ReactNode;
 }) {
+  const brand = useSiteBrand();
+  useDocumentBrandTitle(brand.adminTitle);
+
   if (initialState.bootstrapError) {
     return (
       <main className="bootstrap-state">
@@ -163,8 +182,10 @@ function AdminLayoutFrame({
 export const layout = ({ initialState }: { initialState?: unknown }) => {
   const state = initialState as AdminInitialState | undefined;
   return {
+    ...state?.settings,
     title: "贵州众赢管理后台",
     logo: logoSvg,
+    headerTitleRender: () => <AdminHeaderBrand />,
     menuItemRender: (item: { path?: string }, dom: ReactNode) =>
       item.path ? <Link to={item.path}>{dom}</Link> : dom,
     avatarProps: state?.currentAdmin
@@ -178,15 +199,12 @@ export const layout = ({ initialState }: { initialState?: unknown }) => {
         }
       : undefined,
     actionsRender: () => [],
-    footerRender: () => (
-      <footer className="admin-footer">贵州众赢管理后台 · 贵州众赢</footer>
-    ),
+    footerRender: () => <AdminFooter />,
     childrenRender: (children: ReactNode) => (
       <AdminLayoutFrame initialState={state ?? { settings: defaultSettings }}>
         {children}
       </AdminLayoutFrame>
     ),
-    ...state?.settings,
     siderWidth: 256,
     token: {
       bgLayout: "#f5f7fa",

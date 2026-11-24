@@ -74,6 +74,7 @@
 | 文件 | 说明 |
 | --- | --- |
 | [design/miniapp/README.md](design/miniapp/README.md) | 已确认 V1 风格与 V2 完整静态设计图集入口、文件职责与验收边界 |
+| [design/miniapp/color-standard.md](design/miniapp/color-standard.md) | 用户最终色板定版的小程序统一配色：颜色语义、组件搭配、渐变、状态、对比度与全页面迁移要求 |
 | [design/miniapp/catalog-v2.md](design/miniapp/catalog-v2.md) | 188 张页面、弹层和状态图及 36 张分组总览的完整链接目录 |
 | [design/miniapp/api-coverage.md](design/miniapp/api-coverage.md) | 页面与现有消费端接口、业务状态、源码证据及未接通能力的映射 |
 | [design/miniapp/flows.md](design/miniapp/flows.md) | 浏览购买、订单售后、身份地址与会员资金的全链路设计和状态覆盖 |
@@ -124,6 +125,8 @@
 | [container-build-and-run.md](operations/container-build-and-run.md) | 三个应用镜像构建、TCR 远程缓存边界、系统包更新、迁移初始化、生产 Compose 和健康验证 |
 | [tencent-tcr-personal-cam-accounts.md](operations/tencent-tcr-personal-cam-accounts.md) | TCR 发布与拉取身份隔离、CAM 单项目与命名空间共享范围、可选本机及服务器登录、验证、轮换和排障 |
 | [1panel-source-deployment.md](operations/1panel-source-deployment.md) | 贵州众赢单机源码发布、1Panel Python 环境、Admin 静态站点及回滚 |
+| [1panel-v2-native-deployment-guide.md](operations/1panel-v2-native-deployment-guide.md) | 贵州众赢 1Panel v2.5.1 原生网页运行环境（pip + requirements.txt）、Admin 静态站、双域名 HTTPS、Worker 与避坑指南 |
+| [miniapp-production-launch-guide.md](operations/miniapp-production-launch-guide.md) | 贵州众赢微信小程序生产上线完整指南：公众平台配置、后端登录与支付开关、生产构建、上传体验版、真机验收与避坑速查 |
 | [1panel-production-runbook.md](operations/1panel-production-runbook.md) | 1Panel 镜像编排、迁移、OpenResty、日志、备份、恢复和回滚 |
 | [product-detail-images.md](operations/product-detail-images.md) | 商品详情图集的迁移、可信元数据回填、启用顺序与恢复边界 |
 | [database-backup-restore.md](operations/database-backup-restore.md) | 备份参数、本地恢复演练、生产恢复和数据库迁移保护步骤 |

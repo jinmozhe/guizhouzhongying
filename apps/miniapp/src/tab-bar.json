@@ -1,6 +1,4 @@
 {
-  "color": "#475467",
-  "selectedColor": "#B42318",
   "items": [
     { "pagePath": "pages/home/index", "text": "首页", "asset": "home", "icon": "Home" },
     { "pagePath": "pages/category/index", "text": "分类", "asset": "category", "icon": "Category" },

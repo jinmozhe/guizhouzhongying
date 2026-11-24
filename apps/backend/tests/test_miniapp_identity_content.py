@@ -1,12 +1,15 @@
 """Security regressions. Execution requires explicit pytest authorization; no real WeChat requests."""
 
+import json
 import logging
+from io import StringIO
 from unittest.mock import MagicMock
 
 import httpx
 import pytest
 from fastapi import Response
 from jwt import InvalidTokenError
+from loguru import logger
 from pydantic import ValidationError
 
 from app.api.dependencies import require_consumer_profile
@@ -107,11 +110,39 @@ def test_secrets_are_not_repr_or_error_body_candidates() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("failure", ["expired", "server", "malformed", "timeout"])
-async def test_exchange_failures_hide_external_payload(failure: str) -> None:
+@pytest.mark.parametrize(
+    ("failure", "reason"),
+    [
+        ("expired", None),
+        ("server", None),
+        ("malformed", "invalid_json"),
+        ("timeout", "read_timeout"),
+        ("connect", "connect_timeout"),
+        ("write", "write_timeout"),
+        ("pool", "pool_timeout"),
+        ("deadline", "total_timeout"),
+        ("connection", "connection_failed"),
+        ("protocol", "http_error"),
+    ],
+)
+async def test_exchange_failures_hide_external_payload(failure: str, reason: str | None) -> None:
+    attempts = 0
+
     def transport(request: httpx.Request) -> httpx.Response:
-        if failure == "timeout":
-            raise httpx.ReadTimeout("unit-secret in external URL", request=request)
+        nonlocal attempts
+        attempts += 1
+        errors = {
+            "timeout": httpx.ReadTimeout,
+            "connect": httpx.ConnectTimeout,
+            "write": httpx.WriteTimeout,
+            "pool": httpx.PoolTimeout,
+            "connection": httpx.ConnectError,
+            "protocol": httpx.RemoteProtocolError,
+        }
+        if failure in errors:
+            raise errors[failure]("unit-secret in external URL", request=request)
+        if failure == "deadline":
+            raise TimeoutError("unit-secret")
         if failure == "expired":
             return httpx.Response(200, json={"errcode": 40163, "errmsg": "unit-secret"})
         if failure == "malformed":
@@ -133,10 +164,30 @@ async def test_exchange_failures_hide_external_payload(failure: str) -> None:
                 release_version="unit",
             ),
         )
-        with pytest.raises(AppException) as rejected:
-            await service._exchange("unit-code")
+        output = StringIO()
+        sink_id = logger.add(output, serialize=True)
+        try:
+            with pytest.raises(AppException) as rejected:
+                await service._exchange("unit-code")
+        finally:
+            logger.remove(sink_id)
         assert "unit-secret" not in str(rejected.value)
         assert rejected.value.status_code == (401 if failure == "expired" else 503)
+        assert attempts == 1
+        logged = output.getvalue()
+        for sensitive in ("unit-secret", "unit-code", service.settings.wechat_app_secret, "api.weixin.qq.com"):
+            assert sensitive not in logged
+        if reason is not None:
+            record = json.loads(logged)["record"]
+            assert record["exception"] is None
+            assert record["extra"]["reason"] == reason
+            assert record["extra"]["dependency"] == "wechat"
+            assert record["extra"]["operation"] == "code2session"
+            assert record["extra"]["request_id"] == service.metadata.request_id
+            assert record["extra"]["trace_id"] == service.metadata.trace_id
+            assert record["extra"]["duration_ms"] >= 0
+        else:
+            assert logged == ""
 
 
 @pytest.mark.asyncio
@@ -144,9 +195,11 @@ async def test_exchange_accepts_only_trusted_openid() -> None:
     def transport(request: httpx.Request) -> httpx.Response:
         assert request.url.host == "api.weixin.qq.com"
         assert request.url.params["grant_type"] == "authorization_code"
+        assert request.extensions["timeout"] == {"connect": 10.0, "read": 4.0, "write": 4.0, "pool": 1.0}
         return httpx.Response(200, json={"openid": "unit-trusted-openid", "session_key": "never-store-this"})
 
-    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
+    shared_timeout = httpx.Timeout(4.0, connect=2.0, pool=1.0)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport), timeout=shared_timeout) as http:
         service = ConsumerAuthService(
             session=MagicMock(),
             session_factory=MagicMock(),
@@ -164,3 +217,4 @@ async def test_exchange_accepts_only_trusted_openid() -> None:
         identity = await service._exchange("unit-code")
         assert identity.openid == "unit-trusted-openid"
         assert "session_key" not in identity.model_dump()
+        assert http.timeout == shared_timeout
