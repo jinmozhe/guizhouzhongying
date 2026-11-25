@@ -93,7 +93,7 @@ function MerchantLogo({ merchant }: { merchant: PublicMerchantRead }) {
     try { source = assetUrl(merchant.logo_url) } catch { /* Use the same placeholder as a missing logo. */ }
   }
   return source && source !== failedLogo
-    ? <Image key={source} src={source} mode='aspectFit' lazyLoad onError={() => setFailedLogo(source)} />
+    ? <Image key={source} src={source} mode='aspectFit' lazyLoad webp onError={() => setFailedLogo(source)} />
     : <Text className='merchant-logo-initial' ariaHidden>{Array.from(merchant.name)[0]}</Text>
 }
 

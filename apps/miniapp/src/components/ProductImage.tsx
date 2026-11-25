@@ -16,6 +16,6 @@ export function ProductImage({ url, mode = 'aspectFill', style, onClick }: { url
     {!url || rejected || failed ? <View className='image-failure'>
       {!url ? '暂无商品图片' : rejected ? '图片来源未获准入' : '图片加载失败'}
       {failed && !rejected && <Button onClick={(event) => { event.stopPropagation(); setFailed(false); setAttempt(attempt + 1) }}>重试图片</Button>}
-    </View> : <Image key={attempt} src={source} mode={mode} lazyLoad onError={() => setFailed(true)} onClick={onClick} style={{ width: '100%', height: mode === 'widthFix' ? 'auto' : '100%' }} />}
+    </View> : <Image key={attempt} src={source} mode={mode} lazyLoad webp onError={() => setFailed(true)} onClick={onClick} style={{ width: '100%', height: mode === 'widthFix' ? 'auto' : '100%' }} />}
   </View>
 }

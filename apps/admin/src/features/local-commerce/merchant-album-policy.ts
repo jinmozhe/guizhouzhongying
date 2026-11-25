@@ -9,6 +9,7 @@ export function assetToAlbumImage(asset: AssetRead): MerchantAlbumImageRead {
   return {
     asset_id: asset.id,
     url: asset.url,
+    thumb_url: asset.thumb_url ?? null,
     original_name: asset.original_name,
     file_size: asset.file_size,
     width: asset.width ?? null,

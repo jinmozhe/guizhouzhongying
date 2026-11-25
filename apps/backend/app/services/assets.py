@@ -26,6 +26,7 @@ from app.domains.assets.schemas import (
     AssetBulkDeleteResult,
     AssetPage,
     AssetRead,
+    ImageProfile,
     UploaderType,
     UploadScene,
 )
@@ -38,8 +39,8 @@ async def recover_asset_deletions(*, session_factory: async_sessionmaker[AsyncSe
     storage = create_storage_provider(settings)
     for deletion in await storage.pending_deletions():
         async with session_factory() as session, transaction_scope(session):
-            # Wait for a live deletion's asset lock and use its committed database outcome.
-            asset = await AssetRepository(session).get_by_file_key(deletion.file_key, for_update=True)
+            # 等待活跃删除事务释放锁，并按主图或缩略图键统一判定数据库最终结果。
+            asset = await AssetRepository(session).get_by_any_file_key(deletion.file_key, for_update=True)
             if asset is not None:
                 await storage.restore(deletion)
             else:
@@ -61,13 +62,13 @@ class ScenePolicy:
 
 _IMAGE_MIMES = frozenset({"image/jpeg", "image/png", "image/webp"})
 _SCENE_POLICIES = {
-    UploadScene.AVATAR: ScenePolicy(2 * 1024 * 1024, frozenset({"jpg", "jpeg", "png", "webp"}), _IMAGE_MIMES),
+    UploadScene.AVATAR: ScenePolicy(10 * 1024 * 1024, frozenset({"jpg", "jpeg", "png", "webp"}), _IMAGE_MIMES),
     UploadScene.ARTICLE: ScenePolicy(
-        5 * 1024 * 1024,
+        20 * 1024 * 1024,
         frozenset({"jpg", "jpeg", "png", "webp", "gif"}),
         _IMAGE_MIMES | {"image/gif"},
     ),
-    UploadScene.PRODUCT: ScenePolicy(10 * 1024 * 1024, frozenset({"jpg", "jpeg", "png", "webp"}), _IMAGE_MIMES),
+    UploadScene.PRODUCT: ScenePolicy(20 * 1024 * 1024, frozenset({"jpg", "jpeg", "png", "webp"}), _IMAGE_MIMES),
     UploadScene.DOCUMENT: ScenePolicy(
         30 * 1024 * 1024,
         frozenset({"pdf", "doc", "docx", "xls", "xlsx"}),
@@ -83,6 +84,46 @@ _SCENE_POLICIES = {
     ),
 }
 _USER_SCENES = frozenset({UploadScene.AVATAR, UploadScene.ATTACHMENT, UploadScene.TEMP})
+_SCENE_DEFAULT_IMAGE_PROFILE: dict[UploadScene, ImageProfile] = {
+    UploadScene.AVATAR: ImageProfile.AVATAR,
+    UploadScene.PRODUCT: ImageProfile.PRODUCT_GALLERY,
+    UploadScene.ARTICLE: ImageProfile.PRODUCT_DETAIL,
+}
+_SCENE_ALLOWED_IMAGE_PROFILES: dict[UploadScene, frozenset[ImageProfile]] = {
+    UploadScene.AVATAR: frozenset({ImageProfile.AVATAR}),
+    UploadScene.PRODUCT: frozenset(
+        {
+            ImageProfile.PRODUCT_GALLERY,
+            ImageProfile.PRODUCT_DETAIL,
+            ImageProfile.MERCHANT_ALBUM,
+            ImageProfile.LOGO_ICON,
+        }
+    ),
+    UploadScene.ARTICLE: frozenset(
+        {
+            ImageProfile.PRODUCT_DETAIL,
+            ImageProfile.PRODUCT_GALLERY,
+            ImageProfile.LOGO_ICON,
+        }
+    ),
+}
+
+_IMAGE_STAGE_ERROR_MESSAGES: dict[str, tuple[int, ErrorCode, str]] = {
+    "file_too_large": (413, ErrorCode.ASSET_FILE_TOO_LARGE, "文件大小超过场景限制"),
+    "image_decode_busy": (503, ErrorCode.ASSET_STORAGE_FAILED, "图片处理繁忙，请稍后重试"),
+    "image_too_tall_for_detail": (
+        422,
+        ErrorCode.ASSET_TYPE_NOT_ALLOWED,
+        "商品详情单图压缩至 1200px 宽后高度超过 2400px，请切分为高度不超过 2400px 的多张图片后上传",
+    ),
+    "animated_image_not_allowed": (422, ErrorCode.ASSET_TYPE_NOT_ALLOWED, "当前场景仅支持静态图片，不支持动图"),
+    "image_budget_exceeded": (
+        422,
+        ErrorCode.ASSET_TYPE_NOT_ALLOWED,
+        "图片细节过于复杂，压缩后仍超过体积预算，请适当裁剪后重试",
+    ),
+    "image_resource_limit": (422, ErrorCode.ASSET_TYPE_NOT_ALLOWED, "图片像素尺寸超过安全处理上限"),
+}
 
 
 class AssetService:
@@ -102,6 +143,30 @@ class AssetService:
         self._metadata = metadata
         self._assets = AssetRepository(session)
 
+    def _resolve_image_profile(
+        self,
+        *,
+        scene: UploadScene,
+        uploader: AssetUploader,
+        image_profile: ImageProfile | None,
+    ) -> ImageProfile | None:
+        allowed = _SCENE_ALLOWED_IMAGE_PROFILES.get(scene)
+        if image_profile is None:
+            return _SCENE_DEFAULT_IMAGE_PROFILE.get(scene)
+        if allowed is None or image_profile not in allowed:
+            raise AppException(
+                status_code=422,
+                code=ErrorCode.ASSET_TYPE_NOT_ALLOWED,
+                message="当前上传场景不支持指定的图片处理档位",
+            )
+        if uploader.type == UploaderType.USER and image_profile != ImageProfile.AVATAR:
+            raise AppException(
+                status_code=403,
+                code=ErrorCode.PERMISSION_DENIED,
+                message="当前用户无权使用该图片处理档位",
+            )
+        return image_profile
+
     async def upload(
         self,
         *,
@@ -109,6 +174,7 @@ class AssetService:
         original_name: str,
         scene: UploadScene,
         uploader: AssetUploader,
+        image_profile: ImageProfile | None = None,
     ) -> AssetRead:
         if uploader.type == UploaderType.USER and scene not in _USER_SCENES:
             raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="当前用户无权使用该上传场景")
@@ -120,21 +186,22 @@ class AssetService:
                 code=ErrorCode.ASSET_TYPE_NOT_ALLOWED,
                 message="文件扩展名不在允许范围内",
             )
+        resolved_profile = self._resolve_image_profile(scene=scene, uploader=uploader, image_profile=image_profile)
         max_bytes = min(policy.max_bytes, self._settings.upload_max_file_size_mb * 1024 * 1024)
         try:
             staged = await self._storage.stage(
-                source, extension=extension, max_bytes=max_bytes, inspect_image=scene == UploadScene.PRODUCT
+                source,
+                extension=extension,
+                max_bytes=max_bytes,
+                inspect_image=scene == UploadScene.PRODUCT,
+                image_profile=resolved_profile.value if resolved_profile is not None else None,
             )
         except ValueError as exc:
-            if str(exc) == "image_decode_busy":
-                raise AppException(
-                    status_code=503, code=ErrorCode.ASSET_STORAGE_FAILED, message="图片处理繁忙，请稍后重试"
-                ) from exc
-            code = ErrorCode.ASSET_FILE_TOO_LARGE if str(exc) == "file_too_large" else ErrorCode.ASSET_TYPE_NOT_ALLOWED
-            message = "文件大小超过场景限制" if code == ErrorCode.ASSET_FILE_TOO_LARGE else "文件内容与声明类型不匹配"
-            raise AppException(
-                status_code=413 if code == ErrorCode.ASSET_FILE_TOO_LARGE else 422, code=code, message=message
-            ) from exc
+            status_code, code, message = _IMAGE_STAGE_ERROR_MESSAGES.get(
+                str(exc),
+                (422, ErrorCode.ASSET_TYPE_NOT_ALLOWED, "文件内容与声明类型不匹配"),
+            )
+            raise AppException(status_code=status_code, code=code, message=message) from exc
         except OSError as exc:
             raise AppException(
                 status_code=503, code=ErrorCode.ASSET_STORAGE_FAILED, message="文件存储暂时不可用"
@@ -159,16 +226,31 @@ class AssetService:
                 status_code=503, code=ErrorCode.SERVICE_UNAVAILABLE, message="资产服务暂时不可用"
             ) from exc
         if duplicate is not None:
-            if await self._storage.exists(duplicate.file_key):
+            primary_exists = await self._storage.exists(duplicate.file_key)
+            thumb_needed = duplicate.thumb_file_key is not None and not await self._storage.exists(
+                duplicate.thumb_file_key
+            )
+            if primary_exists and not thumb_needed:
                 await self._storage.discard(staged)
             else:
-                await self._commit_staged(staged, duplicate.file_key)
+                await self._commit_staged(
+                    staged,
+                    duplicate.file_key,
+                    thumb_file_key=duplicate.thumb_file_key if thumb_needed else None,
+                )
             return AssetRead.model_validate(duplicate)
 
         asset_id = new_uuid7()
         date_bucket = datetime.now(UTC).strftime("%Y%m%d")
-        file_key = f"{scene.value}/{date_bucket}/{staged.file_hash[:16]}_{asset_id.hex}.{extension}"
+        base_prefix = f"{scene.value}/{date_bucket}/{staged.file_hash[:16]}_{asset_id.hex}"
+        file_key = f"{base_prefix}.{staged.extension}"
         url = f"{self._settings.upload_base_url}/{file_key}"
+        thumb_file_key: str | None = None
+        thumb_url: str | None = None
+        if staged.thumbnail is not None:
+            thumb_file_key = f"{base_prefix}_thumb.webp"
+            thumb_url = f"{self._settings.upload_base_url}/{thumb_file_key}"
+
         asset = Asset(
             id=asset_id,
             uploader_type=uploader.type.value,
@@ -183,15 +265,20 @@ class AssetService:
             frame_count=staged.image.frame_count if staged.image else None,
             file_hash=staged.file_hash,
             url=url,
+            thumb_file_key=thumb_file_key,
+            thumb_url=thumb_url,
+            thumb_file_size=staged.thumbnail.file_size if staged.thumbnail else None,
+            thumb_width=staged.thumbnail.width if staged.thumbnail else None,
+            thumb_height=staged.thumbnail.height if staged.thumbnail else None,
             scene=scene.value,
         )
-        await self._commit_staged(staged, file_key)
+        await self._commit_staged(staged, file_key, thumb_file_key=thumb_file_key)
         try:
             async with transaction_scope(self._session):
                 self._assets.add(asset)
                 await self._session.flush()
         except IntegrityError as exc:
-            await self._delete_committed_file(file_key)
+            await self._delete_committed_files(file_key, thumb_file_key)
             duplicate = await self._assets.find_duplicate(
                 uploader_type=uploader.type.value,
                 uploader_id=uploader.id,
@@ -202,7 +289,7 @@ class AssetService:
                 return AssetRead.model_validate(duplicate)
             raise AppException(status_code=409, code=ErrorCode.STATE_CONFLICT, message="相同资产已存在") from exc
         except SQLAlchemyError as exc:
-            await self._delete_committed_file(file_key)
+            await self._delete_committed_files(file_key, thumb_file_key)
             raise AppException(
                 status_code=503, code=ErrorCode.SERVICE_UNAVAILABLE, message="资产服务暂时不可用"
             ) from exc
@@ -292,7 +379,6 @@ class AssetService:
             assets = await self._assets.get_many(asset_ids, for_update=True)
             if len(assets) != len(asset_ids):
                 raise AppException(status_code=404, code=ErrorCode.ASSET_NOT_FOUND, message=missing_message)
-            # 在循环外实例化 Repository，避免每次迭代重复创建对象
             commerce_access = CommerceAccessRepository(self._session)
             for asset in assets:
                 if await commerce_access.asset_is_category_icon(asset.id):
@@ -314,15 +400,19 @@ class AssetService:
                         status_code=409, code=ErrorCode.STATE_CONFLICT, message="头像资产正在被使用，无法删除"
                     )
             for asset in assets:
-                try:
-                    deletion = await self._storage.stage_delete(asset.file_key)
-                except (OSError, ValueError) as exc:
-                    raise AppException(
-                        status_code=503,
-                        code=ErrorCode.ASSET_STORAGE_FAILED,
-                        message="文件存储暂时不可用",
-                    ) from exc
-                deletions.append((asset.id, deletion))
+                keys_to_delete = [asset.file_key]
+                if asset.thumb_file_key is not None:
+                    keys_to_delete.append(asset.thumb_file_key)
+                for key in keys_to_delete:
+                    try:
+                        deletion = await self._storage.stage_delete(key)
+                    except (OSError, ValueError) as exc:
+                        raise AppException(
+                            status_code=503,
+                            code=ErrorCode.ASSET_STORAGE_FAILED,
+                            message="文件存储暂时不可用",
+                        ) from exc
+                    deletions.append((asset.id, deletion))
             for asset in assets:
                 await self._assets.delete(asset)
             operation_completed = True
@@ -345,11 +435,11 @@ class AssetService:
         except BaseException as original_exc:
             try:
                 if operation_completed:
-                    # Commit may have succeeded even if its acknowledgement was lost.
-                    # A new transaction waits for the database outcome before touching bytes.
                     for _, deletion in reversed(deletions):
                         async with self._session_factory() as session, transaction_scope(session):
-                            asset = await AssetRepository(session).get_by_file_key(deletion.file_key, for_update=True)
+                            asset = await AssetRepository(session).get_by_any_file_key(
+                                deletion.file_key, for_update=True
+                            )
                             if asset is None:
                                 await self._storage.purge(deletion)
                             else:
@@ -423,21 +513,24 @@ class AssetService:
             raise AppException(status_code=422, code=ErrorCode.ASSET_TYPE_NOT_ALLOWED, message="文件扩展名无效")
         return name, suffix
 
-    async def _commit_staged(self, staged: StagedFile, file_key: str) -> None:
+    async def _commit_staged(self, staged: StagedFile, file_key: str, *, thumb_file_key: str | None = None) -> None:
         try:
-            await self._storage.commit(staged, file_key=file_key)
+            await self._storage.commit(staged, file_key=file_key, thumb_file_key=thumb_file_key)
         except OSError as exc:
             await self._storage.discard(staged)
             raise AppException(
                 status_code=503, code=ErrorCode.ASSET_STORAGE_FAILED, message="文件存储暂时不可用"
             ) from exc
 
-    async def _delete_committed_file(self, file_key: str) -> None:
-        try:
-            deletion = await self._storage.stage_delete(file_key)
-            await self._storage.purge(deletion)
-        except OSError as exc:
-            logger.bind(file_key=file_key).opt(exception=exc).critical("failed to compensate committed asset file")
+    async def _delete_committed_files(self, file_key: str, thumb_file_key: str | None = None) -> None:
+        for key in (file_key, thumb_file_key):
+            if key is None:
+                continue
+            try:
+                deletion = await self._storage.stage_delete(key)
+                await self._storage.purge(deletion)
+            except OSError as exc:
+                logger.bind(file_key=key).opt(exception=exc).critical("failed to compensate committed asset file")
 
 
 async def resolve_admin_avatar(*, session: AsyncSession, settings: Settings, avatar: str | None) -> str | None:
@@ -459,11 +552,10 @@ async def resolve_admin_avatar(*, session: AsyncSession, settings: Settings, ava
     prefix = settings.upload_base_url.rstrip("/") + "/"
     if not path.startswith(prefix):
         return value
-    # The caller owns the transaction; deletion holds this same asset row lock.
     asset = await AssetRepository(session).get_by_file_key(path[len(prefix) :], for_update=True)
     if asset is None or asset.url != path:
         raise AppException(status_code=404, code=ErrorCode.ASSET_NOT_FOUND, message="头像资产不存在或已删除")
     return asset.url
 
 
-__all__ = ["AssetService", "AssetUploader", "resolve_admin_avatar"]
+__all__ = ["AssetService", "AssetUploader", "recover_asset_deletions", "resolve_admin_avatar"]

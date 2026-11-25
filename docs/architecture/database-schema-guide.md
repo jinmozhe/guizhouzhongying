@@ -2,7 +2,7 @@
 
 本文件沿用来源项目的模型基线，并按贵州众赢的源码和迁移链继续维护。第 13.1 节分别记录来源项目历史验证与贵州众赢本机开发库证据，第 13.5 节记录到店迁移及业务模型。
 
-> 文档状态：长期目标设计基线。当前源码迁移 head 和贵州众赢本机开发库版本均为 `20261125_01`，测试库、生产库和真实业务验收待独立验证。更新日期：2026-11-25。
+> 文档状态：长期目标设计基线。当前源码迁移 head 和贵州众赢本机开发库版本均为 `20261125_02`，测试库、生产库和真实业务验收待独立验证。更新日期：2026-11-25。
 >
 > 适用范围：第 4 章保留 15 个业务分组的基础表设计，第 13 章补充微信支付、到店核销、物业发分和商家结算的模型与迁移差异。
 >
@@ -16,9 +16,9 @@
 | --- | --- | --- |
 | 两份原稿表名 | 第 4 章各有 65 张实体，共用 `system_settings` 另计，合计 66 张 | 原“50 张”统计错误；模块 06 实为 7 张、模块 15 实为 11 张；配置行不可重复计表 |
 | 基础字典表名 | 原 66 张基础表，加小程序身份映射和商品详情图片关系，共 68 张 | 后续模型见第 13 章 |
-| 当前仓库表名 | ORM 业务表 79 张，Alembic head 为 `20261125_01` | `20261121_01` 增加 9 张到店业务表，`20261123_01` 增加商家地图坐标字段，`20261125_01` 增加 `merchant_album_images` 商家相册关联表，另有独立 Alembic 版本表 |
+| 当前仓库表名 | ORM 业务表 79 张，Alembic head 为 `20261125_02` | `20261121_01` 增加 9 张到店业务表，`20261123_01` 增加商家地图坐标字段，`20261125_01` 增加 `merchant_album_images` 商家相册关联表，`20261125_02` 为 `assets` 增加可选 480px 缩略图字段与约束，另有独立 Alembic 版本表 |
 | 字段与约束 | 23 张目标新增表及相应既有表改造已有 Model 和迁移；其余现行差异见第 13 章 | 静态清单与迁移图不代表实际数据库结构、并发行为或完整业务验收已经一致 |
-| 运行数据库 | 贵州众赢本机开发库已升至 `20261125_01`，迁移结构、`alembic check` 及表约束索引核验通过 | 此前已记录到店权限同步。测试库、生产环境及真实渠道待验证 |
+| 运行数据库 | 贵州众赢本机开发库已升至 `20261125_02`，迁移结构、`alembic check` 及表约束索引核验通过 | 此前已记录到店权限同步。测试库、生产环境及真实渠道待验证 |
 | 项目闭环 | 微信身份、支付、到店交易和运营已有源码、迁移和接口 | 端到端业务验收、渠道配置、Worker 托管及生产环境待验证 |
 
 15 个分组用于查阅，不等同于 15 个已实现的后端领域。新增领域继续遵守[模块边界](module-boundaries.md)。实现标记中的“目标新增”表示相对原基线新增，不代表尚未实现；是否已有 Model、迁移、业务入口和动态验证须分别读取标记及第 13 章。“现有表”不代表字段与本版完全一致。
@@ -483,11 +483,16 @@ erDiagram
 | `frame_count` | INTEGER | 是 | 逐帧完整解码 | 可信帧数，详情只允许 1 |
 | `file_hash` | VARCHAR(64) | 否 | 计算生成 | SHA-256 内容哈希（固定 64 字符） |
 | `url` | VARCHAR(1000) | 否 | 服务端拼接 | 公开访问 URL 或站内绝对路径 |
-| `scene` | VARCHAR(50) | 否 | 业务声明 | 受控场景（商品轮播、详情及品牌图片均使用 `product`） |
+| `thumb_file_key` | VARCHAR(500) | 是 | 计算生成 | 480px 缩略图相对存储键，全局唯一（`uq_assets_thumb_file_key`） |
+| `thumb_url` | VARCHAR(1000) | 是 | 服务端拼接 | 480px 缩略图公开访问 URL，未生成时为空 |
+| `thumb_file_size` | BIGINT | 是 | 字节统计 | 480px 缩略图文件大小（大于 0） |
+| `thumb_width` | INTEGER | 是 | 编码输出 | 480px 缩略图宽度，像素 |
+| `thumb_height` | INTEGER | 是 | 编码输出 | 480px 缩略图高度，像素 |
+| `scene` | VARCHAR(50) | 否 | 业务声明 | 受控场景（商品轮播、详情、商家相册及品牌图片均使用 `product`） |
 | `created_at` | TIMESTAMPTZ | 否 | 应用当前 UTC 时间 | 创建时间 |
 | `updated_at` | TIMESTAMPTZ | 否 | 系统写入 | 最近更新时间 |
 
-- 约束：唯一约束 `UNIQUE(uploader_type, uploader_id, scene, file_hash)` 防止同一主体重复上传相同文件。width、height、frame_count 必须三者同时为空或同时大于 0；历史资产通过显式工具回填，查询不猜测元数据。
+- 约束：唯一约束 `UNIQUE(uploader_type, uploader_id, scene, file_hash)` 防止同一主体重复上传相同文件。`width`、`height`、`frame_count` 必须三者同时为空或同时大于 0；`ck_assets_thumb_metadata` 要求 5 个缩略图字段同时为空或同时非空且尺寸与体积均为正数。历史资产可通过 `scripts.optimize_legacy_image_assets` 离线按需转为 WebP 并补齐 480px 缩略图。
 
 #### 4.04.2 商品图片关联表 `product_images`
 
@@ -2518,6 +2523,8 @@ PostgreSQL 语义核验来源：[约束与 NULL 规则](https://www.postgresql.o
 迁移 `20261123_01` 在 `merchants` 末尾新增可空的 `latitude` 和 `longitude`，两列均为 `NUMERIC(9,6)`，记录公开门店 GCJ-02 坐标。`ck_merchants_map_coordinates` 要求两列同时为空，或成对且纬度在 `[-90, 90]`、经度在 `[-180, 180]`。贵州众赢本机开发库于 2026-11-23 应用该迁移，存量商家坐标为空，原字段摘要核验一致。[迁移与验证记录](../../plans/2026-11-23_分类商家浏览与分页导航计划.md#本机开发库迁移与接口复测)
 
 迁移 `20261125_01` 新增 `merchant_album_images` 有序关联表，复用统一 `assets` 的 `product` 静态图片通道并接入资产删除引用保护。贵州众赢本机开发库于 2026-11-25 经仓库外 custom-format 备份与 `pg_restore --list` 校验后升级至 `20261125_01`，重复升级与 `alembic check` 无漂移，新表列、约束、索引及原有 5 条商家记录核验一致，详见[商家相册全栈实施计划](../../plans/2026-11-25_商家相册全栈实施计划.md)。
+
+迁移 `20261125_02` 在 `assets` 表新增可空的 `thumb_file_key`、`thumb_url`、`thumb_file_size`、`thumb_width` 和 `thumb_height` 列及 `uq_assets_thumb_file_key`、`ck_assets_thumb_metadata` 约束，支持商品轮播图与商家相册自动派生 480px WebP 缩略图。贵州众赢本机开发库于 2026-11-25 升级至 `20261125_02` 且 `alembic check` 无漂移，详见[图片自适应压缩与双文件缩略图全栈实施计划](../../plans/2026-11-25_图片自适应压缩与双文件缩略图全栈实施计划.md)。
 
 新增列：products.merchant_id/fulfillment_mode，product_skus.max_points_deduction，orders.order_gross_amount/points_deduction/merchant_id/merchant_snapshot/fulfillment_mode，order_items.points_deduction，refund_requests.points_returned。积分账本来源新增 property；原表所有者继续负责其字段及状态转换。商家快照仅保存公开资料，历史订单不回填推测商家。
 

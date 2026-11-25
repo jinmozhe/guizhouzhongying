@@ -97,7 +97,7 @@ export function MerchantPage() {
             ariaRole='button'
             ariaLabel={`预览商家相册第 ${index + 1} 张图片`}
           >
-            <ProductImage url={image.url} mode='aspectFill' onClick={() => { void previewImages(albumUrls, image.url) }} />
+            <ProductImage url={image.thumb_url ?? image.url} mode='aspectFill' onClick={() => { void previewImages(albumUrls, image.url) }} />
           </View>)}
         </View>
       </ScrollView>
@@ -107,7 +107,7 @@ export function MerchantPage() {
     {products.isError && <QueryState title='商品加载失败' error={products.error} retry={() => { void products.refetch() }} />}
     {products.data && !products.isError && <>
       {!products.data.items.length && <QueryState title='暂无可售商品' />}
-      {products.data.items.map((item) => <View className='surface' key={item.id} onClick={() => { void Taro.navigateTo({ url: `/subpackages/catalog/detail/index?id=${item.id}` }) }}><View className='trade-row'><View className='trade-thumb'><ProductImage url={item.images[0]} /></View><View>{item.name}</View></View></View>)}
+      {products.data.items.map((item) => <View className='surface' key={item.id} onClick={() => { void Taro.navigateTo({ url: `/subpackages/catalog/detail/index?id=${item.id}` }) }}><View className='trade-row'><View className='trade-thumb'><ProductImage url={item.cover_thumb_url ?? item.images[0]} /></View><View>{item.name}</View></View></View>)}
       {products.data.total_pages > 1 && <View className='trade-row spread'><Button disabled={page === 1 || products.isFetching} onClick={() => setPage(page - 1)}>上一页</Button><Text>{page} / {products.data.total_pages}</Text><Button disabled={page >= products.data.total_pages || products.isFetching} onClick={() => setPage(page + 1)}>下一页</Button></View>}
     </>}
   </View>

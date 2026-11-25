@@ -161,8 +161,8 @@ function SiteSettingsTab({ canUpdate }: { canUpdate: boolean }) {
       message.error("仅支持 PNG、JPEG 或 WebP 图片");
       return Upload.LIST_IGNORE;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      message.error("站点 LOGO 不能超过 2 MB");
+    if (file.size > 10 * 1024 * 1024) {
+      message.error("站点 LOGO 原图不能超过 10 MB");
       return Upload.LIST_IGNORE;
     }
     if (!query.isSuccess || pending || conflict) return Upload.LIST_IGNORE;
@@ -186,7 +186,7 @@ function SiteSettingsTab({ canUpdate }: { canUpdate: boolean }) {
           <section className="settings-section" aria-labelledby="site-logo-heading">
             <div className="settings-section-heading">
               <Typography.Title id="site-logo-heading" level={4}>站点 LOGO</Typography.Title>
-              <Typography.Paragraph type="secondary">用于 Web 公共站点，支持 PNG、JPEG、WebP，最大 2 MB。</Typography.Paragraph>
+              <Typography.Paragraph type="secondary">支持 PNG、JPEG、WebP（原图最大 10 MB），系统将自动压缩优化为 ≤ 400px 的 WebP 图片。</Typography.Paragraph>
             </div>
             <Flex align="center" gap={20} wrap="wrap">
               <div className="site-logo-preview">

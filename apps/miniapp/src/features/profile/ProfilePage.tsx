@@ -22,7 +22,7 @@ function Avatar({ url }: { url?: string | null }) {
   if (url) { try { source = assetUrl(url) } catch { invalid = true } }
   return <>
     <View className='profile-avatar'>
-      {source && !failed ? <Image src={source} mode='aspectFill' onError={() => setFailed(true)} /> : <View className='profile-avatar-placeholder'><Icon name='User' size={96} /></View>}
+      {source && !failed ? <Image src={source} mode='aspectFill' webp onError={() => setFailed(true)} /> : <View className='profile-avatar-placeholder'><Icon name='User' size={96} /></View>}
     </View>
     {invalid && <View className='profile-feedback'>头像来源未获准入</View>}
     {failed && <NativeButton className='profile-text-action' onClick={() => setFailed(false)}>头像加载失败，点击重试</NativeButton>}

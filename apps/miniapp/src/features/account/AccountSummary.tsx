@@ -24,7 +24,7 @@ function Avatar({ url, open }: { url?: string | null; open: () => void }) {
   if (url) { try { source = assetUrl(url) } catch { invalid = true } }
   return <View className='account-portrait'>
     <Button className='account-portrait-button' ariaLabel='头像' onClick={open}>
-      {source && !failed ? <Image src={source} mode='aspectFill' onError={() => setFailed(true)} /> : <View className='account-portrait-placeholder'><Icon name='User' size={72} /></View>}
+      {source && !failed ? <Image src={source} mode='aspectFill' webp onError={() => setFailed(true)} /> : <View className='account-portrait-placeholder'><Icon name='User' size={72} /></View>}
     </Button>
     {invalid && <View className='account-portrait-error'>头像来源未获准入</View>}
     {failed && <Button className='account-portrait-retry' onClick={() => setFailed(false)}>头像加载失败，重试</Button>}

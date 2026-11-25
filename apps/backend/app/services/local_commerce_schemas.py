@@ -47,6 +47,7 @@ class MerchantAlbumImageRead(BaseModel):
     model_config = ConfigDict(extra="forbid")
     asset_id: UUID = Field(description="图片资产 ID")
     url: str = Field(description="受控公开访问路径")
+    thumb_url: str | None = Field(default=None, description="480px 缩略图公开访问路径，历史资产可能为空")
     original_name: str = Field(description="原始文件名")
     file_size: int = Field(gt=0, description="文件大小，字节")
     width: int | None = Field(default=None, gt=0, description="核验后的展示宽度")
@@ -57,6 +58,7 @@ class MerchantAlbumImageRead(BaseModel):
 class PublicMerchantAlbumImageRead(BaseModel):
     model_config = ConfigDict(extra="forbid")
     url: str = Field(description="受控公开访问路径")
+    thumb_url: str | None = Field(default=None, description="480px 缩略图公开访问路径，历史资产可能为空")
     width: int = Field(gt=0, description="服务端核验的展示宽度")
     height: int = Field(gt=0, description="服务端核验的展示高度")
 

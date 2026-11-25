@@ -29,7 +29,7 @@ export function BrandLogoPicker({
   url,
   onChange,
   disabled = false,
-  maxSizeMb = 2,
+  maxSizeMb = 20,
 }: BrandLogoPickerProps) {
   const { message } = App.useApp();
   const { token } = theme.useToken();
@@ -45,7 +45,7 @@ export function BrandLogoPicker({
       return Upload.LIST_IGNORE;
     }
     if (file.size > maxSizeMb * 1024 * 1024) {
-      setError(`图片大小不能超过 ${maxSizeMb} MB`);
+      setError(`图片原图大小不能超过 ${maxSizeMb} MB`);
       return Upload.LIST_IGNORE;
     }
     setError(undefined);
@@ -56,10 +56,10 @@ export function BrandLogoPicker({
     setUploading(true);
     setError(undefined);
     try {
-      const asset = await adminApi.uploadAsset(file as globalThis.File, "product");
+      const asset = await adminApi.uploadAsset(file as globalThis.File, "product", "logo_icon");
       onChange?.(asset.id, asset.url);
       onSuccess?.(asset);
-      message.success("LOGO 图片上传成功");
+      message.success("LOGO 图片上传成功，已自动压缩优化为 WebP");
     } catch (caught) {
       const text = errorMessage(caught);
       setError(text);
@@ -183,7 +183,7 @@ export function BrandLogoPicker({
             </Button>
           </Flex>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            建议上传 1:1 正方形图片，支持 JPG、PNG 或 WebP，单张大小不超过 {maxSizeMb} MB。
+            建议上传 1:1 正方形图片，支持 JPG、PNG 或 WebP（原图 ≤ {maxSizeMb} MB），系统将自动压缩优化为 ≤ 400px 的 WebP 图片。
           </Typography.Text>
         </Flex>
       )}
