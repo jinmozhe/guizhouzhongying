@@ -1,17 +1,18 @@
 import { useState } from "react";
-import { Drawer, Button, Space, Table, Tag, Typography } from "antd";
+import { Drawer, Button, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { HistoryOutlined, TrophyOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import type { ColumnsType } from "antd/es/table";
 import type {
-  MemberProfileRead,
+  AdminMemberProfileRead,
   MembershipQualificationEventRead,
   MemberLevelEventRead,
 } from "@pinjie/api-client";
 import { CommerceList } from "@/components/CommerceList";
-import { PageFrame, QueryState } from "@/components/PageFrame";
+import { PageFrame, QueryState, formatTime } from "@/components/PageFrame";
 import { errorMessage } from "@/lib/api/http";
 import { commerceApi } from "@/lib/api/commerce";
+import { formatPhoneForDisplay } from "@/lib/phone";
 
 export default function MembersPage() {
   const [selectedUserForQualification, setSelectedUserForQualification] = useState<string | null>(null);
@@ -84,17 +85,31 @@ export default function MembersPage() {
       title="会员档案"
       description="查询会员档案和首次绑定的直接推荐人。按推荐人筛选可逐层查看，并可穿透审计会员资格贡献与等级升降历史。"
     >
-      <CommerceList<MemberProfileRead>
+      <CommerceList<AdminMemberProfileRead>
         resource="members"
         title="会员"
         rowKey="user_id"
         load={commerceApi.members}
         fields={[
+          { name: "phone", label: "手机号", placeholder: "输入手机号或尾号" },
           { name: "user_id", label: "会员用户号" },
           { name: "inviter_id", label: "直接推荐人" },
         ]}
         columns={[
           { title: "会员用户号", dataIndex: "user_id", ellipsis: true },
+          {
+            title: "手机号",
+            dataIndex: "phone_e164",
+            width: 150,
+            render: (_, row) => {
+              const phone = formatPhoneForDisplay(row.phone_e164);
+              if (!phone) return <Tag>未绑定</Tag>;
+              const content = <Typography.Text copyable>{phone}</Typography.Text>;
+              return row.phone_verified_at ? (
+                <Tooltip title={`验证时间：${formatTime(row.phone_verified_at)}`}>{content}</Tooltip>
+              ) : content;
+            },
+          },
           { title: "邀请码", dataIndex: "invitation_code" },
           {
             title: "等级",

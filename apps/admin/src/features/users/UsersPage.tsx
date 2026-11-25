@@ -3,6 +3,7 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
+  GiftOutlined,
   KeyOutlined,
   LaptopOutlined,
   PlusOutlined,
@@ -12,15 +13,17 @@ import {
 } from "@ant-design/icons";
 import { ProTable } from "@ant-design/pro-components";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Checkbox, Drawer, Flex, Form, Input, Modal, Pagination, Segmented, Select, Space, Tag, Typography, App } from "antd";
+import { Alert, Button, Checkbox, Drawer, Flex, Form, Input, Modal, Pagination, Segmented, Select, Space, Tag, Tooltip, Typography, App } from "antd";
 import { useState } from "react";
 
 import { PageFrame, QueryState, formatTime } from "@/components/PageFrame";
+import { PointsAdjustModal, type PointsAdjustTarget } from "@/components/PointsAdjustModal";
 import { StandardConfirmModal } from "@/components/StandardConfirmModal";
 import { StatusToggleTag } from "@/components/StatusToggleTag";
 import { canAccess, useCurrentAdmin } from "@/features/auth";
 import { adminApi } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/http";
+import { formatPhoneForDisplay } from "@/lib/phone";
 import { useLockedMutation } from "@/lib/useLockedMutation";
 
 type UserLifecycle = "all" | "active" | "inactive" | "deleted";
@@ -50,6 +53,7 @@ export function UsersPage() {
   const [selected, setSelected] = useState<AdminUserRead | null>(null);
   const [sessionPage, setSessionPage] = useState(1);
   const [editing, setEditing] = useState<AdminUserRead | null>(null);
+  const [pointsTarget, setPointsTarget] = useState<PointsAdjustTarget | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<AdminUserRead | null>(null);
   const [deleteTargets, setDeleteTargets] = useState<string[] | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
@@ -66,6 +70,7 @@ export function UsersPage() {
   const canUpdate = canAccess(current, "users:update");
   const canDelete = canAccess(current, "users:delete");
   const canRestore = canAccess(current, "users:restore");
+  const canAdjustPoints = canAccess(current, "points:adjust");
   const sessions = useQuery({
     queryKey: ["admin-user-sessions", selected?.id, sessionPage],
     queryFn: () => adminApi.userSessions(selected!.id, sessionPage),
@@ -312,8 +317,8 @@ export function UsersPage() {
                 className="table-toolbar-search"
                 allowClear
                 aria-label="搜索用户"
-                placeholder="用户名、显示名称或邮箱"
-                style={{ width: 240 }}
+                placeholder="用户名、显示名称、手机号或邮箱"
+                style={{ width: 260 }}
                 value={searchDraft}
                 onChange={(event) => setSearchDraft(event.target.value)}
                 onSearch={submitSearch}
@@ -334,6 +339,21 @@ export function UsersPage() {
           }}
           columns={[
             { title: "用户", dataIndex: "username", render: (_, row) => <div className="table-primary-cell"><Typography.Text strong>{row.display_name || row.username}</Typography.Text><Typography.Text type="secondary">{row.username}</Typography.Text></div> },
+            {
+              title: "手机号",
+              dataIndex: "phone_e164",
+              width: 150,
+              onHeaderCell: () => ({ style: { whiteSpace: "nowrap", verticalAlign: "middle" } }),
+              onCell: () => ({ style: { whiteSpace: "nowrap", verticalAlign: "middle" } }),
+              render: (_, row) => {
+                const phone = formatPhoneForDisplay(row.phone_e164);
+                if (!phone) return <Tag>未绑定</Tag>;
+                const content = <Typography.Text copyable>{phone}</Typography.Text>;
+                return row.phone_verified_at ? (
+                  <Tooltip title={`验证时间：${formatTime(row.phone_verified_at)}`}>{content}</Tooltip>
+                ) : content;
+              },
+            },
             { title: "邮箱", dataIndex: "email", responsive: ["lg"], render: (value) => value || "-" },
             { title: "状态", dataIndex: "is_active", width: 110, render: (_value, row) => {
               if (lifecycle === "deleted") {
@@ -373,6 +393,27 @@ export function UsersPage() {
             ) : (
               <Space className="table-actions" size={[4, 0]} wrap={false}>
                 {canUpdate && <Button type="link" size="small" icon={<EditOutlined />} onClick={() => { setEditing(row); editForm.setFieldsValue({ display_name: row.display_name ?? undefined, email: row.email ?? undefined }); }}>编辑</Button>}
+                {canAdjustPoints && (
+                  <Tooltip title={row.is_active ? undefined : "停用用户无法调整积分"}>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<GiftOutlined />}
+                      disabled={!row.is_active}
+                      onClick={() =>
+                        setPointsTarget({
+                          user_id: row.id,
+                          username: row.username,
+                          display_name: row.display_name ?? null,
+                          phone_e164: row.phone_e164 ?? null,
+                          phone_verified_at: row.phone_verified_at ?? null,
+                        })
+                      }
+                    >
+                      调整积分
+                    </Button>
+                  </Tooltip>
+                )}
                  {canUpdate && <Button type="link" size="small" icon={<PoweroffOutlined />} danger={row.is_active} loading={statusMutation.isPending && statusMutation.variables?.userId === row.id} disabled={statusMutation.isPending && statusMutation.variables?.userId === row.id} onClick={() => statusMutation.mutate({ userId: row.id, isActive: !row.is_active })}>{row.is_active ? "停用" : "启用"}</Button>}
                 {canAccess(current, "users:sessions:read") && <Button type="link" size="small" disabled={revokeSessionsMutation.isPending} icon={<LaptopOutlined />} onClick={() => { setSessionPage(1); setSelected(row); }}>会话</Button>}
                 {canAccess(current, "users:credentials:reset") && <Button type="link" size="small" icon={<KeyOutlined />} onClick={() => { setPasswordTarget(row); passwordForm.resetFields(); }}>重置密码</Button>}
@@ -499,6 +540,13 @@ export function UsersPage() {
         {!sessions.isError && sessions.data?.items.map((session) => <div className="session-row" key={session.id}><Flex justify="space-between"><Typography.Text strong>{session.device_name || "未知设备"}</Typography.Text>{session.revoked_at ? <Tag>已撤销</Tag> : <Tag color="success">有效</Tag>}</Flex><Typography.Text type="secondary">{session.ip_masked || "未知地址"} · 最近活动 {formatTime(session.last_seen_at)}</Typography.Text></div>)}
         {!sessions.isError && sessions.data && sessions.data.total_pages > 1 && <Pagination disabled={revokeSessionsMutation.isPending} current={sessionPage} pageSize={sessions.data.page_size} total={sessions.data.total} showSizeChanger={false} onChange={setSessionPage} />}
       </Drawer>
+
+      <PointsAdjustModal
+        open={Boolean(pointsTarget)}
+        initialTarget={pointsTarget}
+        lockTarget
+        onClose={() => setPointsTarget(null)}
+      />
 
     </PageFrame>
   );

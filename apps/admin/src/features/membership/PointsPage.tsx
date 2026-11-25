@@ -1,118 +1,167 @@
-import { useRef, useState } from "react";
-import {
-  Alert,
-  Button,
-  Drawer,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Space,
-  Table,
-  Tag,
-  Typography,
-  App,
-} from "antd";
-import { PlusOutlined, UnorderedListOutlined } from "@ant-design/icons";
+import { useState } from "react";
+import { Alert, Button, Drawer, Input, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { PlusOutlined, RollbackOutlined, UnorderedListOutlined } from "@ant-design/icons";
+import { ProTable, type ProColumns } from "@ant-design/pro-components";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnsType } from "antd/es/table";
-import type {
-  PointsAccountRead,
-  PointsLedgerRead,
-  PointsManualAdjustment,
-} from "@pinjie/api-client";
-import { PageFrame, QueryState } from "@/components/PageFrame";
-import { useLockedMutation } from "@/lib/useLockedMutation";
+import type { AdminPointsAccountRead, AdminPointsLedgerRead } from "@pinjie/api-client";
+
+import { PageFrame, QueryState, formatTime } from "@/components/PageFrame";
+import {
+  PointsAdjustModal,
+  type PointsAdjustTarget,
+  type PointsReversalContext,
+} from "@/components/PointsAdjustModal";
 import { canAccess, useCurrentAdmin } from "@/lib/auth-context";
 import { commerceApi } from "@/lib/api/commerce";
+import { errorMessage } from "@/lib/api/http";
+import { formatPhoneForDisplay } from "@/lib/phone";
+
+const ENTRY_TYPE_META: Record<string, { label: string; color: string }> = {
+  grant: { label: "授予", color: "green" },
+  reverse: { label: "冲销", color: "volcano" },
+  freeze: { label: "冻结", color: "gold" },
+  spend: { label: "消费扣除", color: "blue" },
+  release: { label: "退回释放", color: "cyan" },
+  expire: { label: "过期失效", color: "default" },
+};
+
+function accountDisplayName(row: Pick<AdminPointsAccountRead, "display_name" | "username" | "user_id">): string {
+  return row.display_name || row.username || row.user_id;
+}
+
+function ledgerSourceLabel(row: AdminPointsLedgerRead): string {
+  if (row.source_type === "property") {
+    return row.property_operator_name ? `物业发放（${row.property_operator_name}）` : "物业发放";
+  }
+  if (row.source_type === "manual") {
+    const operator = row.operator_admin_display_name || row.operator_admin_username;
+    return operator ? `平台后台（${operator}）` : "平台后台";
+  }
+  if (row.source_type === "order") return "订单";
+  if (row.source_type === "refund") return "退款";
+  if (row.source_type === "invite") return "邀请奖励";
+  if (row.source_type === "redemption") return "核销";
+  return row.source_type;
+}
 
 export default function PointsPage() {
-  const { message } = App.useApp();
   const admin = useCurrentAdmin();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [phoneFilterDraft, setPhoneFilterDraft] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
   const [ledgerPage, setLedgerPage] = useState(1);
 
   const canRead = canAccess(admin, "points:read");
   const canAdjust = canAccess(admin, "points:adjust");
 
-  // Selected account for ledger drawer
-  const [selectedAccount, setSelectedAccount] = useState<PointsAccountRead | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<AdminPointsAccountRead | null>(null);
+  const [adjustModalState, setAdjustModalState] = useState<{
+    open: boolean;
+    target: PointsAdjustTarget | null;
+    lockTarget: boolean;
+    reversal: PointsReversalContext | null;
+  }>({ open: false, target: null, lockTarget: false, reversal: null });
 
-  // Manual Adjustment Modal
-  const [adjustModalOpen, setAdjustModalOpen] = useState(false);
-  const [adjustForm] = Form.useForm();
-  const currentOp = Form.useWatch("operation", adjustForm);
-  const submitted = useRef<PointsManualAdjustment | null>(null);
-
-  const { data: accountsData, isLoading, error: accountsError, refetch: reloadAccounts } = useQuery({
-    queryKey: ["admin-points-accounts", page],
-    queryFn: () => commerceApi.pointsAccounts(page),
+  const {
+    data: accountsData,
+    isLoading,
+    isFetching,
+    error: accountsError,
+    refetch: reloadAccounts,
+  } = useQuery({
+    queryKey: ["admin-points-accounts", page, phoneFilter],
+    queryFn: () => commerceApi.pointsAccounts(page, 20, phoneFilter || undefined),
     enabled: canRead,
   });
 
-  const { data: ledgersData, isLoading: ledgersLoading, error: ledgersError, refetch: reloadLedgers } = useQuery({
+  const {
+    data: ledgersData,
+    isLoading: ledgersLoading,
+    error: ledgersError,
+    refetch: reloadLedgers,
+  } = useQuery({
     queryKey: ["admin-points-ledgers", selectedAccount?.id, ledgerPage],
     queryFn: () => commerceApi.pointsLedgers(selectedAccount!.id, ledgerPage),
     enabled: Boolean(selectedAccount) && canRead,
   });
 
-  const adjustMutation = useLockedMutation({
-    mutationFn: (values: PointsManualAdjustment) => {
-      submitted.current ??= {
-        user_id: values.user_id,
-        operation: values.operation,
-        points: values.points,
-        reverses_ledger_id: values.operation === "reverse" ? values.reverses_ledger_id || null : null,
-        note: values.note,
-        idempotency_key: globalThis.crypto.randomUUID(),
-      };
-      return commerceApi.adjustPoints(submitted.current);
-    },
-    onSuccess: () => {
-      message.success("积分人工调整成功");
-      setAdjustModalOpen(false);
-      submitted.current = null;
-      adjustForm.resetFields();
-      queryClient.invalidateQueries({ queryKey: ["admin-points-accounts"] });
-      if (selectedAccount) {
-        queryClient.invalidateQueries({ queryKey: ["admin-points-ledgers", selectedAccount.id] });
-      }
-    },
-    onError: (err: Error) => {
-      message.error(err.message || "积分调整失败");
-    },
+  const toTarget = (row: AdminPointsAccountRead): PointsAdjustTarget => ({
+    user_id: row.user_id,
+    username: row.username ?? null,
+    display_name: row.display_name ?? null,
+    phone_e164: row.phone_e164 ?? null,
+    phone_verified_at: row.phone_verified_at ?? null,
+    available_points: row.available_points,
+    frozen_points: row.frozen_points,
+    debt_points: row.debt_points,
   });
 
-  const columns: ColumnsType<PointsAccountRead> = [
-    { title: "用户标识 (User ID)", dataIndex: "user_id", key: "user_id", ellipsis: true },
+  const columns: ProColumns<AdminPointsAccountRead>[] = [
+    {
+      title: "用户",
+      dataIndex: "username",
+      render: (_, row) => (
+        <div className="table-primary-cell">
+          <Typography.Text strong>{accountDisplayName(row)}</Typography.Text>
+          {row.username && <Typography.Text type="secondary">{row.username}</Typography.Text>}
+        </div>
+      ),
+    },
+    {
+      title: "手机号",
+      dataIndex: "phone_e164",
+      width: 150,
+      render: (_, row) => {
+        const phone = formatPhoneForDisplay(row.phone_e164);
+        if (!phone) return <Tag>未绑定</Tag>;
+        const content = <Typography.Text copyable>{phone}</Typography.Text>;
+        return row.phone_verified_at ? (
+          <Tooltip title={`验证时间：${formatTime(row.phone_verified_at)}`}>{content}</Tooltip>
+        ) : content;
+      },
+    },
     {
       title: "可用积分",
       dataIndex: "available_points",
-      key: "available_points",
-      render: (v) => <Typography.Text strong style={{ color: "#389e0d" }}>{v}</Typography.Text>,
+      render: (_, row) => (
+        <Typography.Text strong style={{ color: "#389e0d" }}>
+          {row.available_points}
+        </Typography.Text>
+      ),
     },
     {
       title: "冻结积分",
       dataIndex: "frozen_points",
-      key: "frozen_points",
-      render: (v) => <Typography.Text type={v > 0 ? "warning" : "secondary"}>{v}</Typography.Text>,
+      render: (_, row) => (
+        <Typography.Text type={row.frozen_points > 0 ? "warning" : "secondary"}>
+          {row.frozen_points}
+        </Typography.Text>
+      ),
     },
     {
       title: "欠积分",
       dataIndex: "debt_points",
-      key: "debt_points",
-      render: (v) => <Typography.Text type={v > 0 ? "danger" : "secondary"}>{v}</Typography.Text>,
+      render: (_, row) => (
+        <Typography.Text type={row.debt_points > 0 ? "danger" : "secondary"}>
+          {row.debt_points}
+        </Typography.Text>
+      ),
     },
-    { title: "版本", dataIndex: "revision", key: "revision", width: 80 },
-    { title: "更新时间", dataIndex: "updated_at", key: "updated_at" },
+    { title: "版本", dataIndex: "revision", width: 80 },
+    {
+      title: "更新时间",
+      dataIndex: "updated_at",
+      width: 170,
+      render: (_, row) => formatTime(row.updated_at),
+    },
     {
       title: "操作",
       key: "actions",
       width: "1%",
       render: (_, row) => (
-        <Space size="small">
+        <Space size="small" wrap={false}>
           <Button
             size="small"
             icon={<UnorderedListOutlined />}
@@ -127,13 +176,12 @@ export default function PointsPage() {
             <Button
               size="small"
               onClick={() => {
-                adjustForm.resetFields();
-                adjustForm.setFieldsValue({
-                  user_id: row.user_id,
-                  operation: "grant",
-                  points: 100,
+                setAdjustModalState({
+                  open: true,
+                  target: toTarget(row),
+                  lockTarget: !row.phone_e164,
+                  reversal: null,
                 });
-                setAdjustModalOpen(true);
               }}
             >
               人工调整
@@ -144,12 +192,15 @@ export default function PointsPage() {
     },
   ];
 
-  const ledgerColumns: ColumnsType<PointsLedgerRead> = [
+  const ledgerColumns: ColumnsType<AdminPointsLedgerRead> = [
     {
       title: "条目类型",
       dataIndex: "entry_type",
       key: "entry_type",
-      render: (t) => <Tag color="blue">{t}</Tag>,
+      render: (t: string) => {
+        const meta = ENTRY_TYPE_META[t] ?? { label: t, color: "default" };
+        return <Tag color={meta.color}>{meta.label}</Tag>;
+      },
     },
     {
       title: "可用变动",
@@ -180,161 +231,277 @@ export default function PointsPage() {
       },
     },
     {
-      title: "来源信息",
+      title: "来源与操作人",
       key: "source",
-      render: (_, r) => <span>{r.source_type}: {r.source_id.slice(0, 8)}...</span>,
+      render: (_, r) => {
+        if (r.source_type === "property") {
+          const actorPhone = formatPhoneForDisplay(r.property_actor_phone_e164);
+          const actorName = r.property_actor_display_name || actorPhone || "物业操作员";
+          return (
+            <Space size={6} wrap={false}>
+              <Tag color="purple">物业发放</Tag>
+              <span>{r.property_operator_name || "物业"}</span>
+              <Typography.Text type="secondary">
+                {actorName}
+                {actorPhone && actorName !== actorPhone ? `（${actorPhone}）` : ""}
+              </Typography.Text>
+              {r.property_actor_user_id && (
+                <Tooltip title={`物业管理员用户 ID：${r.property_actor_user_id}`}>
+                  <Typography.Text copyable={{ text: r.property_actor_user_id }} type="secondary">
+                    UID:{r.property_actor_user_id.slice(0, 8)}
+                  </Typography.Text>
+                </Tooltip>
+              )}
+            </Space>
+          );
+        }
+        if (r.source_type === "manual") {
+          const adminName = r.operator_admin_display_name || r.operator_admin_username || r.source_id.slice(0, 8);
+          return (
+            <Space size={6} wrap={false}>
+              <Tag color="blue">平台后台</Tag>
+              <span>{adminName}</span>
+            </Space>
+          );
+        }
+        return (
+          <Space size={6} wrap={false}>
+            <Tag>{ledgerSourceLabel(r)}</Tag>
+            <Typography.Text copyable={{ text: r.source_id }} type="secondary">
+              {r.source_id.slice(0, 8)}
+            </Typography.Text>
+          </Space>
+        );
+      },
     },
     {
-      title: "冲销原流水",
-      dataIndex: "reverses_ledger_id",
-      key: "reverses_ledger_id",
-      ellipsis: true,
-      render: (v) => v || "-",
+      title: "冲销状态 / 原流水",
+      key: "reversal_state",
+      render: (_, r) => {
+        if (r.entry_type === "grant") {
+          const remaining = r.reversible_points ?? 0;
+          if (remaining <= 0) return <Tag>已全部冲销</Tag>;
+          return (
+            <Typography.Text type="secondary">
+              可冲销 {remaining}
+              {(r.reversed_points ?? 0) > 0 ? `（已冲 ${r.reversed_points}）` : ""}
+            </Typography.Text>
+          );
+        }
+        if (r.reverses_ledger_id) {
+          return (
+            <Typography.Text copyable={{ text: r.reverses_ledger_id }} type="secondary">
+              原流水 {r.reverses_ledger_id.slice(0, 8)}
+            </Typography.Text>
+          );
+        }
+        return "-";
+      },
     },
     { title: "说明备注", dataIndex: "note", key: "note", ellipsis: true, render: (v) => v || "-" },
-    { title: "发生时间", dataIndex: "created_at", key: "created_at" },
+    {
+      title: "发生时间",
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (v: string) => formatTime(v),
+    },
+    ...(canAdjust
+      ? [
+          {
+            title: "操作",
+            key: "actions",
+            width: "1%",
+            render: (_: unknown, r: AdminPointsLedgerRead) => {
+              if (r.entry_type !== "grant" || (r.reversible_points ?? 0) <= 0 || !selectedAccount) {
+                return "-";
+              }
+              return (
+                <Button
+                  type="link"
+                  size="small"
+                  danger
+                  icon={<RollbackOutlined />}
+                  onClick={() => {
+                    setAdjustModalState({
+                      open: true,
+                      target: toTarget(selectedAccount),
+                      lockTarget: true,
+                      reversal: {
+                        ledgerId: r.id,
+                        maxPoints: r.reversible_points ?? 0,
+                        sourceLabel: ledgerSourceLabel(r),
+                      },
+                    });
+                  }}
+                >
+                  冲销
+                </Button>
+              );
+            },
+          },
+        ]
+      : []),
   ];
+
+  const selectedDrawerTitle = selectedAccount
+    ? `积分不可变流水 - ${accountDisplayName(selectedAccount)}${
+        formatPhoneForDisplay(selectedAccount.phone_e164)
+          ? `（${formatPhoneForDisplay(selectedAccount.phone_e164)}）`
+          : ""
+      }`
+    : "积分不可变流水";
 
   return (
     <PageFrame
       title="积分管理"
-      description="查看商城用户积分账户资产（可用、冻结、欠积分），审计不可变积分流水并执行受控的人工授予与冲销操作。"
+      description="查看商城用户积分账户资产（可用、冻结、欠积分），审计不可变积分流水并按手机号执行受控的人工授予与冲销操作。"
     >
-      {canAdjust && (
-        <div style={{ marginBottom: 16 }}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              adjustForm.resetFields();
-              adjustForm.setFieldsValue({ operation: "grant", points: 100 });
-              setAdjustModalOpen(true);
-            }}
-          >
-            人工授予 / 冲销积分
-          </Button>
-        </div>
-      )}
-
       {!canRead ? (
         <Alert type="warning" title="无权查看积分账户列表" />
-      ) : accountsError ? (
-        <QueryState loading={false} error={accountsError.message} onRetry={() => void reloadAccounts()} />
       ) : (
-        <Table<PointsAccountRead>
-          rowKey="id"
-          loading={isLoading}
-          dataSource={accountsData?.items ?? []}
-          columns={columns.map((col) => ({
-            ...col,
-            onHeaderCell: () => ({ style: { whiteSpace: "nowrap" } }),
-            onCell: () => ({ style: { whiteSpace: "nowrap" } }),
-          }))}
-          scroll={{ x: "max-content" }}
-          pagination={{
-            current: page,
-            pageSize: 20,
-            showSizeChanger: false,
-            total: accountsData?.total ?? 0,
-            onChange: (p) => setPage(p),
-            showTotal: (total) => `共 ${total} 个积分账户`,
-          }}
-        />
+        <>
+          <QueryState
+            loading={isLoading}
+            error={accountsError ? errorMessage(accountsError) : undefined}
+            onRetry={() => void reloadAccounts()}
+          />
+          {!isLoading && !accountsError && (
+            <ProTable<AdminPointsAccountRead>
+              className="responsive-data-table"
+              rowKey="id"
+              headerTitle="积分账户列表"
+              dataSource={accountsData?.items ?? []}
+              loading={isFetching}
+              search={false}
+              cardProps={false}
+              options={{
+                density: true,
+                fullScreen: true,
+                reload: () => void reloadAccounts(),
+                setting: true,
+              }}
+              toolBarRender={() => [
+                <div className="responsive-table-toolbar" key="points-toolbar">
+                  {canAdjust && (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() =>
+                        setAdjustModalState({
+                          open: true,
+                          target: null,
+                          lockTarget: false,
+                          reversal: null,
+                        })
+                      }
+                    >
+                      人工授予 / 冲销积分
+                    </Button>
+                  )}
+                  <Input.Search
+                    allowClear
+                    aria-label="按手机号搜索积分账户"
+                    placeholder="输入手机号或尾号"
+                    style={{ width: 220 }}
+                    value={phoneFilterDraft}
+                    onChange={(event) => setPhoneFilterDraft(event.target.value)}
+                    onSearch={(value) => {
+                      setPage(1);
+                      setPhoneFilter(value.trim());
+                    }}
+                  />
+                  <Button
+                    onClick={() => {
+                      setPage(1);
+                      setPhoneFilterDraft("");
+                      setPhoneFilter("");
+                    }}
+                  >
+                    重置
+                  </Button>
+                </div>,
+              ]}
+              columns={columns.map((col) => ({
+                ...col,
+                onHeaderCell: () => ({ style: { whiteSpace: "nowrap", verticalAlign: "middle" } }),
+                onCell: () => ({ style: { whiteSpace: "nowrap", verticalAlign: "middle" } }),
+              }))}
+              scroll={{ x: "max-content" }}
+              pagination={{
+                current: page,
+                pageSize: 20,
+                showSizeChanger: false,
+                total: accountsData?.total ?? 0,
+                onChange: (p) => setPage(p),
+                showTotal: (total) => `共 ${total} 个积分账户`,
+              }}
+            />
+          )}
+        </>
       )}
 
-      {/* Ledger Drawer */}
+      {/* 积分流水抽屉 */}
       <Drawer
-        title={
-          <Typography.Text strong>
-            积分不可变流水 - 用户 {selectedAccount?.user_id}
-          </Typography.Text>
-        }
+        title={<Typography.Text strong>{selectedDrawerTitle}</Typography.Text>}
         open={Boolean(selectedAccount)}
         onClose={() => setSelectedAccount(null)}
-        size={800}
+        size={960}
       >
-        <QueryState loading={false} error={ledgersError?.message} onRetry={() => void reloadLedgers()} />
-        {!ledgersError && <Table<PointsLedgerRead>
-          rowKey="id"
-          loading={ledgersLoading}
-          dataSource={ledgersData?.items ?? []}
-          columns={ledgerColumns.map((col) => ({
-            ...col,
-            onHeaderCell: () => ({ style: { whiteSpace: "nowrap" } }),
-            onCell: () => ({ style: { whiteSpace: "nowrap" } }),
-          }))}
-          scroll={{ x: "max-content" }}
-          pagination={{
-            current: ledgerPage,
-            pageSize: 20,
-            showSizeChanger: false,
-            total: ledgersData?.total ?? 0,
-            onChange: (p) => setLedgerPage(p),
-            showTotal: (total) => `共 ${total} 条积分流水`,
-          }}
-        />}
+        <QueryState
+          loading={false}
+          error={ledgersError ? errorMessage(ledgersError) : undefined}
+          onRetry={() => void reloadLedgers()}
+        />
+        {!ledgersError && (
+          <Table<AdminPointsLedgerRead>
+            rowKey="id"
+            loading={ledgersLoading}
+            dataSource={ledgersData?.items ?? []}
+            columns={ledgerColumns.map((col) => ({
+              ...col,
+              onHeaderCell: () => ({ style: { whiteSpace: "nowrap", verticalAlign: "middle" } }),
+              onCell: () => ({ style: { whiteSpace: "nowrap", verticalAlign: "middle" } }),
+            }))}
+            scroll={{ x: "max-content" }}
+            pagination={{
+              current: ledgerPage,
+              pageSize: 20,
+              showSizeChanger: false,
+              total: ledgersData?.total ?? 0,
+              onChange: (p) => setLedgerPage(p),
+              showTotal: (total) => `共 ${total} 条积分流水`,
+            }}
+          />
+        )}
       </Drawer>
 
-      {/* Adjust Points Modal */}
-      <Modal
-        title="人工授予或冲销积分"
-        open={adjustModalOpen}
-        mask={{ closable: false }}
-        closable={!adjustMutation.isPending}
-        keyboard={!adjustMutation.isPending}
-        cancelButtonProps={{ disabled: adjustMutation.isPending }}
-        onCancel={() => {
-          if (adjustMutation.isPending) return;
-          setAdjustModalOpen(false);
-          adjustForm.resetFields();
-          submitted.current = null;
-          adjustMutation.reset();
+      {/* 公共积分人工授予/冲销弹窗 */}
+      <PointsAdjustModal
+        open={adjustModalState.open}
+        initialTarget={adjustModalState.target}
+        lockTarget={adjustModalState.lockTarget}
+        reversalContext={adjustModalState.reversal}
+        onClose={() => setAdjustModalState({ open: false, target: null, lockTarget: false, reversal: null })}
+        onSuccess={(updatedAccount) => {
+          if (selectedAccount) {
+            if (selectedAccount.id === updatedAccount.id) {
+              setSelectedAccount((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      available_points: updatedAccount.available_points,
+                      frozen_points: updatedAccount.frozen_points,
+                      debt_points: updatedAccount.debt_points,
+                      revision: updatedAccount.revision,
+                      updated_at: updatedAccount.updated_at,
+                    }
+                  : prev,
+              );
+            }
+            void queryClient.invalidateQueries({ queryKey: ["admin-points-ledgers", selectedAccount.id] });
+          }
         }}
-        onOk={() => { if (submitted.current) adjustMutation.mutate(submitted.current); else adjustForm.submit(); }}
-        confirmLoading={adjustMutation.isPending}
-      >
-        {adjustMutation.error && <Alert type="error" showIcon title={adjustMutation.error.message} description="重试将沿用同一请求及幂等键。取消前请核对积分流水，避免重复发起调整。" />}
-        <Form form={adjustForm} layout="vertical" disabled={adjustMutation.isPending || Boolean(submitted.current)} onFinish={adjustMutation.mutate}>
-          <Form.Item
-            name="user_id"
-            label="目标用户 ID (UUID)"
-            rules={[{ required: true, message: "请输入目标用户 UUID" }]}
-          >
-            <Input placeholder="输入用户 UUID" />
-          </Form.Item>
-          <Form.Item name="operation" label="操作类型" rules={[{ required: true }]}>
-            <Select
-              options={[
-                { value: "grant", label: "人工授予积分 (增加可用积分)" },
-                { value: "reverse", label: "冲销原授予积分 (回退原授予流水)" },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item
-            name="points"
-            label="积分点数"
-            rules={[{ required: true, message: "请输入积分数量" }]}
-          >
-            <InputNumber min={1} step={1} precision={0} style={{ width: "100%" }} placeholder="输入整数积分数量" />
-          </Form.Item>
-          {currentOp === "reverse" && (
-            <Form.Item
-              name="reverses_ledger_id"
-              label="被冲销的原积分流水 ID"
-              rules={[{ required: true, message: "冲销操作必须填写原流水 ID" }]}
-            >
-              <Input placeholder="输入原 PointsLedger 的 UUID" />
-            </Form.Item>
-          )}
-          <Form.Item
-            name="note"
-            label="操作原因及核对说明"
-            rules={[{ required: true, message: "请输入操作说明以便审计" }]}
-          >
-            <Input.TextArea rows={3} placeholder="详细记录授予或冲销原因，用于合规审计" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      />
     </PageFrame>
   );
 }

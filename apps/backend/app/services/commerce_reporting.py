@@ -26,6 +26,7 @@ from app.db.models.distribution import (
     WalletLedger,
     WithdrawalRequest,
 )
+from app.db.models.identity import User
 from app.db.models.order import Order
 from app.domains.distribution import CommissionRead, MemberProfileRead, WalletAccountRead, WithdrawalRead
 from app.domains.lifecycle import PaymentAttemptRead, ReconciliationRecordRead, RefundAttemptRead, RefundRequestRead
@@ -57,6 +58,14 @@ class AdminWalletRead(WalletAccountRead):
     user_id: UUID = Field(description="账户所属会员标识")
 
 
+class AdminMemberProfileRead(MemberProfileRead):
+    username: str | None = Field(default=None, description="会员登录用户名")
+    display_name: str | None = Field(default=None, description="会员展示名称")
+    phone_e164: str | None = Field(default=None, description="会员已验证手机号，E.164 格式")
+    phone_bound: bool = Field(default=False, description="会员是否已绑定已验证手机号")
+    phone_verified_at: datetime | None = Field(default=None, description="会员手机号平台验证时间")
+
+
 class WalletLedgerRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -82,6 +91,9 @@ class CommerceFilters(BaseModel):
     user_id: UUID | None = Field(default=None, description="用户标识，佣金列表使用受益人标识")
     order_id: UUID | None = Field(default=None, description="订单标识")
     inviter_id: UUID | None = Field(default=None, description="直接推荐人标识")
+    phone: str | None = Field(
+        default=None, min_length=1, max_length=32, description="会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
+    )
     status: str | None = Field(default=None, min_length=1, max_length=32, description="状态代码")
     channel: Literal["wechat", "alipay"] | None = Field(default=None, description="支付渠道")
     product_type: Literal["physical", "virtual"] | None = Field(default=None, description="商品类型")
@@ -114,7 +126,7 @@ _RESOURCES: dict[str, tuple[type[Base], type[BaseModel]]] = {
     "withdrawals": (WithdrawalRequest, WithdrawalRead),
     "payments": (PaymentAttempt, PaymentAttemptRead),
     "reconciliation-records": (ReconciliationRecord, ReconciliationRecordRead),
-    "members": (MemberProfile, MemberProfileRead),
+    "members": (MemberProfile, AdminMemberProfileRead),
     "commissions": (CommissionRecord, CommissionRead),
     "wallets": (WalletAccount, AdminWalletRead),
     "refund-executions": (RefundAttempt, RefundAttemptRead),
@@ -139,12 +151,66 @@ class CommerceReportingService:
         self.session = session
         self.audit = audit
 
+    @staticmethod
+    def _member_read(profile: MemberProfile, user: User | None) -> AdminMemberProfileRead:
+        return AdminMemberProfileRead(
+            user_id=profile.user_id,
+            invitation_code=profile.invitation_code,
+            level_id=profile.level_id,
+            level_changed_at=profile.level_changed_at,
+            revision=profile.revision,
+            inviter_id=profile.inviter_id,
+            bound_at=profile.bound_at,
+            created_at=profile.created_at,
+            username=user.username if user is not None else None,
+            display_name=user.display_name if user is not None else None,
+            phone_e164=user.phone_e164 if user is not None else None,
+            phone_bound=user.phone_bound if user is not None else False,
+            phone_verified_at=user.phone_verified_at if user is not None else None,
+        )
+
     async def page[T: BaseModel](self, resource: str, schema: type[T], filters: CommerceFilters) -> PageResult[T]:
         if resource not in _RESOURCES:
             raise AppException(status_code=422, code=ErrorCode.VALIDATION_ERROR, message="不支持的查询资源类型")
         model, expected_schema = _RESOURCES[resource]
         if schema is not expected_schema:
             raise ValueError("查询输出契约不匹配")
+        if resource == "members":
+            member_predicates: list[ColumnElement[bool]] = []
+            for name, value in filters.model_dump(exclude_none=True).items():
+                if name in {"page", "page_size"}:
+                    continue
+                if name == "phone":
+                    cleaned_phone = str(value).strip()
+                    if cleaned_phone:
+                        member_predicates.append(User.phone_e164.ilike(f"%{cleaned_phone}%"))
+                    continue
+                column = "user_id" if name == "record_id" else _FILTERS["members"].get(name)
+                if column is None:
+                    raise AppException(
+                        status_code=422, code=ErrorCode.VALIDATION_ERROR, message="此列表不支持该筛选条件"
+                    )
+                member_predicates.append(getattr(MemberProfile, column) == value)
+            base_from = MemberProfile.__table__.outerjoin(User.__table__, User.id == MemberProfile.user_id)
+            total = int(
+                await self.session.scalar(select(func.count()).select_from(base_from).where(*member_predicates)) or 0
+            )
+            joined_rows = (
+                await self.session.execute(
+                    select(MemberProfile, User)
+                    .outerjoin(User, User.id == MemberProfile.user_id)
+                    .where(*member_predicates)
+                    .order_by(MemberProfile.id.desc())
+                    .offset((filters.page - 1) * filters.page_size)
+                    .limit(filters.page_size)
+                )
+            ).all()
+            return PageResult[T].create(
+                items=[schema.model_validate(self._member_read(profile, user)) for profile, user in joined_rows],
+                total=total,
+                page=filters.page,
+                page_size=filters.page_size,
+            )
         predicates: list[ColumnElement[bool]] = []
         for name, value in filters.model_dump(exclude_none=True).items():
             if name in {"page", "page_size"}:
@@ -173,13 +239,32 @@ class CommerceReportingService:
     async def export(self, resource: str, selection: SelectedCommerceIds) -> CommerceExportRead:
         async def operation() -> CommerceExportRead:
             model, schema = _RESOURCES[resource]
-            key = getattr(model, "user_id" if resource == "members" else "id")
+            columns = list(schema.model_fields)
+            if resource == "members":
+                joined_rows = (
+                    await self.session.execute(
+                        select(MemberProfile, User)
+                        .outerjoin(User, User.id == MemberProfile.user_id)
+                        .where(MemberProfile.user_id.in_(selection.ids))
+                        .order_by(MemberProfile.user_id)
+                    )
+                ).all()
+                if len(joined_rows) != len(selection.ids):
+                    raise AppException(
+                        status_code=409,
+                        code=ErrorCode.STATE_CONFLICT,
+                        message="部分选中记录已不存在，请刷新后重新选择",
+                    )
+                values = [self._member_read(profile, user).model_dump(mode="json") for profile, user in joined_rows]
+                return CommerceExportRead(
+                    columns=columns, rows=[["" if row[c] is None else str(row[c]) for c in columns] for row in values]
+                )
+            key = getattr(model, "id")
             rows = list(await self.session.scalars(select(model).where(key.in_(selection.ids)).order_by(key)))
             if len(rows) != len(selection.ids):
                 raise AppException(
                     status_code=409, code=ErrorCode.STATE_CONFLICT, message="部分选中记录已不存在，请刷新后重新选择"
                 )
-            columns = list(schema.model_fields)
             values = [schema.model_validate(row).model_dump(mode="json") for row in rows]
             return CommerceExportRead(
                 columns=columns, rows=[["" if row[c] is None else str(row[c]) for c in columns] for row in values]

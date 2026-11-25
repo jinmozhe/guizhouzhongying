@@ -1,9 +1,10 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import OrderPointsReservation, PointsAccount, PointsLedger
+from app.db.models import OrderPointsReservation, PointsAccount, PointsLedger, User
 
 
 class PointsRepository:
@@ -83,6 +84,12 @@ class PointsRepository:
             .limit(page_size)
         )
         return list(rows), total
+
+    async def user_status(self, user_id: UUID) -> tuple[bool, datetime | None] | None:
+        row = (
+            await self.session.execute(select(User.is_active, User.deleted_at).where(User.id == user_id))
+        ).one_or_none()
+        return (bool(row[0]), row[1]) if row is not None else None
 
     async def flush(self) -> None:
         await self.session.flush()

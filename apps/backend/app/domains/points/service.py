@@ -84,6 +84,13 @@ class PointsService:
                         status_code=409, code=ErrorCode.STATE_CONFLICT, message="积分调整幂等键已用于不同请求"
                     )
                 return PointsAccountRead.model_validate(account)
+            user_state = await self._repository.user_status(data.user_id)
+            if user_state is None or user_state[1] is not None:
+                raise AppException(status_code=404, code=ErrorCode.USER_NOT_FOUND, message="目标用户不存在")
+            if not user_state[0]:
+                raise AppException(
+                    status_code=409, code=ErrorCode.STATE_CONFLICT, message="目标用户已停用，无法操作积分"
+                )
             account_for_user = await self._repository.account(data.user_id, lock=True)
             if account_for_user is None:
                 account = PointsAccount(id=new_uuid7(), user_id=data.user_id, revision=1)

@@ -18,10 +18,11 @@ from app.core.pagination import PageResult
 from app.core.request_metadata import request_metadata
 from app.core.response import ResponseModel, success_response
 from app.domains.admin.permissions import PermissionCode
-from app.domains.distribution import CommissionRead, MemberProfileRead, WithdrawalRead
+from app.domains.distribution import CommissionRead, WithdrawalRead
 from app.domains.lifecycle import PaymentAttemptRead, ReconciliationRecordRead, RefundAttemptRead, RefundRequestRead
 from app.domains.orders.schemas import AdminOrderSummary
 from app.services.commerce_reporting import (
+    AdminMemberProfileRead,
     AdminWalletRead,
     CommerceExportRead,
     CommerceFilters,
@@ -200,13 +201,13 @@ async def reconciliation_records_export(
 
 @router.get(
     "/admin/members",
-    response_model=ResponseModel[PageResult[MemberProfileRead]],
+    response_model=ResponseModel[PageResult[AdminMemberProfileRead]],
     summary="查询会员与推荐关系列表",
     dependencies=[Depends(require_permission(PermissionCode.MEMBERS_READ))],
 )
-async def members_page(service: Reporting, filters: Filters) -> ResponseModel[PageResult[MemberProfileRead]]:
+async def members_page(service: Reporting, filters: Filters) -> ResponseModel[PageResult[AdminMemberProfileRead]]:
     return success_response(
-        data=await service.page("members", MemberProfileRead, filters), request_id=current_request_id()
+        data=await service.page("members", AdminMemberProfileRead, filters), request_id=current_request_id()
     )
 
 

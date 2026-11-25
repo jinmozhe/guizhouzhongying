@@ -28,12 +28,17 @@ from app.domains.membership.schemas import (
     OrderShippingSettingRead,
     OrderShippingSettingUpdate,
     PointsAccountRead,
-    PointsLedgerRead,
     PointsManualAdjustment,
 )
 from app.services.engagement_schemas import (
     ConsumerPointsLedgerRead,
     ConsumerPointsRead,
+)
+from app.services.points_admin import (
+    AdminPointsAccountRead,
+    AdminPointsLedgerRead,
+    PointsPhoneLookupIn,
+    PointsTargetRead,
 )
 
 router = APIRouter(tags=["会员价格与运费"])
@@ -147,26 +152,39 @@ async def level_events(
 
 @router.get(
     "/admin/points-accounts",
-    response_model=ResponseModel[PageResult[PointsAccountRead]],
+    response_model=ResponseModel[PageResult[AdminPointsAccountRead]],
     dependencies=[Depends(require_permission(PermissionCode.POINTS_READ))],
     summary="分页查看积分账户",
 )
 async def points_accounts(
-    service: AdminPoints, page: Page = 1, page_size: PageSize = 20
-) -> ResponseModel[PageResult[PointsAccountRead]]:
-    return success_response(data=await service.accounts(page, page_size), request_id=current_request_id())
+    service: AdminPoints,
+    page: Page = 1,
+    page_size: PageSize = 20,
+    phone: Annotated[str | None, Query(max_length=32, description="按手机号或尾号筛选")] = None,
+) -> ResponseModel[PageResult[AdminPointsAccountRead]]:
+    return success_response(data=await service.accounts(page, page_size, phone=phone), request_id=current_request_id())
 
 
 @router.get(
     "/admin/points-accounts/{account_id}/ledgers",
-    response_model=ResponseModel[PageResult[PointsLedgerRead]],
+    response_model=ResponseModel[PageResult[AdminPointsLedgerRead]],
     dependencies=[Depends(require_permission(PermissionCode.POINTS_READ))],
     summary="查看积分账户流水",
 )
 async def points_ledgers(
     account_id: UUID, service: AdminPoints, page: Page = 1, page_size: PageSize = 20
-) -> ResponseModel[PageResult[PointsLedgerRead]]:
+) -> ResponseModel[PageResult[AdminPointsLedgerRead]]:
     return success_response(data=await service.ledgers(account_id, page, page_size), request_id=current_request_id())
+
+
+@router.post(
+    "/admin/points-adjustments/lookup-user",
+    response_model=ResponseModel[PointsTargetRead],
+    dependencies=[Depends(require_admin_csrf), Depends(require_permission(PermissionCode.POINTS_ADJUST))],
+    summary="按手机号查询可操作积分的目标用户",
+)
+async def lookup_points_target(payload: PointsPhoneLookupIn, service: AdminPoints) -> ResponseModel[PointsTargetRead]:
+    return success_response(data=await service.lookup_target(payload.phone_e164), request_id=current_request_id())
 
 
 @router.post(

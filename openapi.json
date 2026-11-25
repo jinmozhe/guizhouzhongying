@@ -3349,6 +3349,26 @@
             "description": "直接推荐人标识"
           },
           {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
+          },
+          {
             "name": "status",
             "in": "query",
             "required": false,
@@ -3685,6 +3705,26 @@
               "title": "Inviter Id"
             },
             "description": "直接推荐人标识"
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
           },
           {
             "name": "status",
@@ -4025,6 +4065,26 @@
             "description": "直接推荐人标识"
           },
           {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
+          },
+          {
             "name": "status",
             "in": "query",
             "required": false,
@@ -4363,6 +4423,26 @@
             "description": "直接推荐人标识"
           },
           {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
+          },
+          {
             "name": "status",
             "in": "query",
             "required": false,
@@ -4699,6 +4779,26 @@
               "title": "Inviter Id"
             },
             "description": "直接推荐人标识"
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
           },
           {
             "name": "status",
@@ -5096,6 +5196,26 @@
             "description": "直接推荐人标识"
           },
           {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
+          },
+          {
             "name": "status",
             "in": "query",
             "required": false,
@@ -5244,7 +5364,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponseModel_PageResult_MemberProfileRead__"
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_AdminMemberProfileRead__"
                 }
               }
             }
@@ -5432,6 +5552,26 @@
               "title": "Inviter Id"
             },
             "description": "直接推荐人标识"
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
           },
           {
             "name": "status",
@@ -5770,6 +5910,26 @@
               "title": "Inviter Id"
             },
             "description": "直接推荐人标识"
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
           },
           {
             "name": "status",
@@ -6192,6 +6352,26 @@
             "description": "直接推荐人标识"
           },
           {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
+          },
+          {
             "name": "status",
             "in": "query",
             "required": false,
@@ -6468,6 +6648,26 @@
               "title": "Inviter Id"
             },
             "description": "直接推荐人标识"
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式",
+              "title": "Phone"
+            },
+            "description": "会员手机号筛选，支持 11 位号码、尾号或 E.164 格式"
           },
           {
             "name": "status",
@@ -12751,6 +12951,25 @@
             "description": "每页数量"
           },
           {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 32
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "按手机号或尾号筛选",
+              "title": "Phone"
+            },
+            "description": "按手机号或尾号筛选"
+          },
+          {
             "name": "guizhouzhongying_admin_access",
             "in": "cookie",
             "required": false,
@@ -12773,7 +12992,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponseModel_PageResult_PointsAccountRead__"
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_AdminPointsAccountRead__"
                 }
               }
             }
@@ -12859,7 +13078,66 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponseModel_PageResult_PointsLedgerRead__"
+                  "$ref": "#/components/schemas/ResponseModel_PageResult_AdminPointsLedgerRead__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/points-adjustments/lookup-user": {
+      "post": {
+        "tags": [
+          "会员价格与运费"
+        ],
+        "summary": "按手机号查询可操作积分的目标用户",
+        "operationId": "lookup_points_target_api_v1_admin_points_adjustments_lookup_user_post",
+        "parameters": [
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PointsPhoneLookupIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_PointsTargetRead_"
                 }
               }
             }
@@ -18037,6 +18315,144 @@
         ],
         "title": "AdminLoginIn"
       },
+      "AdminMemberProfileRead": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": "用户标识"
+          },
+          "invitation_code": {
+            "type": "string",
+            "title": "Invitation Code",
+            "description": "会员邀请码"
+          },
+          "level_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "level_changed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Level Changed At",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          },
+          "inviter_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inviter Id",
+            "description": "首次绑定的推荐用户标识"
+          },
+          "bound_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bound At",
+            "description": "推荐关系首次绑定时间"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "创建时间"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username",
+            "description": "会员登录用户名"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "会员展示名称"
+          },
+          "phone_e164": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone E164",
+            "description": "会员已验证手机号，E.164 格式"
+          },
+          "phone_bound": {
+            "type": "boolean",
+            "title": "Phone Bound",
+            "description": "会员是否已绑定已验证手机号",
+            "default": false
+          },
+          "phone_verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Verified At",
+            "description": "会员手机号平台验证时间"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "invitation_code",
+          "level_id",
+          "level_changed_at",
+          "revision",
+          "inviter_id",
+          "bound_at",
+          "created_at"
+        ],
+        "title": "AdminMemberProfileRead"
+      },
       "AdminOrderSummary": {
         "properties": {
           "id": {
@@ -18192,6 +18608,340 @@
         ],
         "title": "AdminOrderSummary",
         "description": "管理端订单发现入口，不包含收货地址与订单明细。"
+      },
+      "AdminPointsAccountRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": "用户标识"
+          },
+          "available_points": {
+            "type": "integer",
+            "title": "Available Points",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "frozen_points": {
+            "type": "integer",
+            "title": "Frozen Points",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "debt_points": {
+            "type": "integer",
+            "title": "Debt Points",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "创建时间"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "最近更新时间"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username",
+            "description": "用户登录用户名"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "用户展示名称"
+          },
+          "phone_e164": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone E164",
+            "description": "用户已验证手机号，E.164 格式"
+          },
+          "phone_bound": {
+            "type": "boolean",
+            "title": "Phone Bound",
+            "description": "是否已绑定已验证手机号",
+            "default": false
+          },
+          "phone_verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Verified At",
+            "description": "手机号平台验证时间"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "available_points",
+          "frozen_points",
+          "debt_points",
+          "revision",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminPointsAccountRead"
+      },
+      "AdminPointsLedgerRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "entry_type": {
+            "type": "string",
+            "title": "Entry Type",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "available_delta": {
+            "type": "integer",
+            "title": "Available Delta",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "frozen_delta": {
+            "type": "integer",
+            "title": "Frozen Delta",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "debt_delta": {
+            "type": "integer",
+            "title": "Debt Delta",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "source_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Source Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "reverses_ledger_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverses Ledger Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "title": "Idempotency Key",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "操作说明或核对备注"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "创建时间"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "最近更新时间"
+          },
+          "operator_admin_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operator Admin Id",
+            "description": "后台人工操作管理员标识"
+          },
+          "operator_admin_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operator Admin Username",
+            "description": "后台人工操作管理员账号"
+          },
+          "operator_admin_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operator Admin Display Name",
+            "description": "后台人工操作管理员名称"
+          },
+          "property_operator_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Operator Id",
+            "description": "物业授权记录标识"
+          },
+          "property_operator_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Operator Name",
+            "description": "物业名称"
+          },
+          "property_actor_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Actor User Id",
+            "description": "实际发放积分的物业管理员对应用户标识"
+          },
+          "property_actor_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Actor Display Name",
+            "description": "物业管理员用户展示名称"
+          },
+          "property_actor_phone_e164": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Actor Phone E164",
+            "description": "物业管理员用户手机号，E.164 格式"
+          },
+          "reversed_points": {
+            "type": "integer",
+            "title": "Reversed Points",
+            "description": "该笔授予流水累计已冲销积分",
+            "default": 0
+          },
+          "reversible_points": {
+            "type": "integer",
+            "title": "Reversible Points",
+            "description": "该笔授予流水剩余可冲销积分",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "entry_type",
+          "available_delta",
+          "frozen_delta",
+          "debt_delta",
+          "source_type",
+          "source_id",
+          "reverses_ledger_id",
+          "idempotency_key",
+          "note",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AdminPointsLedgerRead"
       },
       "AdminProfileUpdateIn": {
         "properties": {
@@ -18619,6 +19369,37 @@
             ],
             "title": "Email",
             "description": "电子邮箱地址"
+          },
+          "phone_e164": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone E164",
+            "description": "已验证手机号，E.164 格式"
+          },
+          "phone_bound": {
+            "type": "boolean",
+            "title": "Phone Bound",
+            "description": "是否已绑定已验证手机号",
+            "default": false
+          },
+          "phone_verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Verified At",
+            "description": "手机号平台验证时间"
           },
           "avatar": {
             "anyOf": [
@@ -25687,89 +26468,6 @@
         ],
         "title": "MemberPriceRuleUpdate"
       },
-      "MemberProfileRead": {
-        "properties": {
-          "user_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "User Id",
-            "description": "用户标识"
-          },
-          "invitation_code": {
-            "type": "string",
-            "title": "Invitation Code",
-            "description": "会员邀请码"
-          },
-          "level_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Level Id",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "level_changed_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Level Changed At",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "revision": {
-            "type": "integer",
-            "title": "Revision",
-            "description": "资源并发控制版本"
-          },
-          "inviter_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Inviter Id",
-            "description": "首次绑定的推荐用户标识"
-          },
-          "bound_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bound At",
-            "description": "推荐关系首次绑定时间"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "创建时间"
-          }
-        },
-        "type": "object",
-        "required": [
-          "user_id",
-          "invitation_code",
-          "level_id",
-          "level_changed_at",
-          "revision",
-          "inviter_id",
-          "bound_at",
-          "created_at"
-        ],
-        "title": "MemberProfileRead"
-      },
       "MembershipQualificationEventRead": {
         "properties": {
           "id": {
@@ -26987,6 +27685,53 @@
         ],
         "title": "OrderShippingSettingUpdate"
       },
+      "PageResult_AdminMemberProfileRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminMemberProfileRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "当前页码，从 1 开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "每页资源数量"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "符合条件的资源总数"
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "description": "符合条件的总页数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PageResult[AdminMemberProfileRead]"
+      },
       "PageResult_AdminOrderSummary_": {
         "properties": {
           "items": {
@@ -27033,6 +27778,100 @@
           "total_pages"
         ],
         "title": "PageResult[AdminOrderSummary]"
+      },
+      "PageResult_AdminPointsAccountRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPointsAccountRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "当前页码，从 1 开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "每页资源数量"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "符合条件的资源总数"
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "description": "符合条件的总页数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PageResult[AdminPointsAccountRead]"
+      },
+      "PageResult_AdminPointsLedgerRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPointsLedgerRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "当前分页中的资源列表"
+          },
+          "page": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Page",
+            "description": "当前页码，从 1 开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Page Size",
+            "description": "每页资源数量"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total",
+            "description": "符合条件的资源总数"
+          },
+          "total_pages": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Pages",
+            "description": "符合条件的总页数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "PageResult[AdminPointsLedgerRead]"
       },
       "PageResult_AdminRead_": {
         "properties": {
@@ -28068,53 +28907,6 @@
         ],
         "title": "PageResult[MemberPriceRuleRead]"
       },
-      "PageResult_MemberProfileRead_": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/MemberProfileRead"
-            },
-            "type": "array",
-            "title": "Items",
-            "description": "当前分页中的资源列表"
-          },
-          "page": {
-            "type": "integer",
-            "minimum": 1.0,
-            "title": "Page",
-            "description": "当前页码，从 1 开始"
-          },
-          "page_size": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Page Size",
-            "description": "每页资源数量"
-          },
-          "total": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Total",
-            "description": "符合条件的资源总数"
-          },
-          "total_pages": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Total Pages",
-            "description": "符合条件的总页数"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "items",
-          "page",
-          "page_size",
-          "total",
-          "total_pages"
-        ],
-        "title": "PageResult[MemberProfileRead]"
-      },
       "PageResult_MembershipQualificationEventRead_": {
         "properties": {
           "items": {
@@ -28302,100 +29094,6 @@
           "total_pages"
         ],
         "title": "PageResult[PaymentAttemptRead]"
-      },
-      "PageResult_PointsAccountRead_": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/PointsAccountRead"
-            },
-            "type": "array",
-            "title": "Items",
-            "description": "当前分页中的资源列表"
-          },
-          "page": {
-            "type": "integer",
-            "minimum": 1.0,
-            "title": "Page",
-            "description": "当前页码，从 1 开始"
-          },
-          "page_size": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Page Size",
-            "description": "每页资源数量"
-          },
-          "total": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Total",
-            "description": "符合条件的资源总数"
-          },
-          "total_pages": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Total Pages",
-            "description": "符合条件的总页数"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "items",
-          "page",
-          "page_size",
-          "total",
-          "total_pages"
-        ],
-        "title": "PageResult[PointsAccountRead]"
-      },
-      "PageResult_PointsLedgerRead_": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/PointsLedgerRead"
-            },
-            "type": "array",
-            "title": "Items",
-            "description": "当前分页中的资源列表"
-          },
-          "page": {
-            "type": "integer",
-            "minimum": 1.0,
-            "title": "Page",
-            "description": "当前页码，从 1 开始"
-          },
-          "page_size": {
-            "type": "integer",
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Page Size",
-            "description": "每页资源数量"
-          },
-          "total": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Total",
-            "description": "符合条件的资源总数"
-          },
-          "total_pages": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Total Pages",
-            "description": "符合条件的总页数"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "items",
-          "page",
-          "page_size",
-          "total",
-          "total_pages"
-        ],
-        "title": "PageResult[PointsLedgerRead]"
       },
       "PageResult_ProductRead_": {
         "properties": {
@@ -29570,113 +30268,6 @@
         ],
         "title": "PointsAccountRead"
       },
-      "PointsLedgerRead": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id",
-            "description": "资源唯一标识"
-          },
-          "account_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Account Id",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "entry_type": {
-            "type": "string",
-            "title": "Entry Type",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "available_delta": {
-            "type": "integer",
-            "title": "Available Delta",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "frozen_delta": {
-            "type": "integer",
-            "title": "Frozen Delta",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "debt_delta": {
-            "type": "integer",
-            "title": "Debt Delta",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "source_type": {
-            "type": "string",
-            "title": "Source Type",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "source_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Source Id",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "reverses_ledger_id": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "uuid"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reverses Ledger Id",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "idempotency_key": {
-            "type": "string",
-            "title": "Idempotency Key",
-            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
-          },
-          "note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note",
-            "description": "操作说明或核对备注"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "创建时间"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At",
-            "description": "最近更新时间"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "account_id",
-          "entry_type",
-          "available_delta",
-          "frozen_delta",
-          "debt_delta",
-          "source_type",
-          "source_id",
-          "reverses_ledger_id",
-          "idempotency_key",
-          "note",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "PointsLedgerRead"
-      },
       "PointsManualAdjustment": {
         "properties": {
           "user_id": {
@@ -29743,6 +30334,87 @@
           "idempotency_key"
         ],
         "title": "PointsManualAdjustment"
+      },
+      "PointsPhoneLookupIn": {
+        "properties": {
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "用户手机号，支持直接填写 11 位中国大陆手机号或 E.164 格式"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "phone_e164"
+        ],
+        "title": "PointsPhoneLookupIn"
+      },
+      "PointsTargetRead": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id",
+            "description": "目标用户唯一标识"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "description": "用户登录用户名"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "用户展示名称"
+          },
+          "phone_e164": {
+            "type": "string",
+            "title": "Phone E164",
+            "description": "已验证手机号，E.164 格式"
+          },
+          "phone_verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Phone Verified At",
+            "description": "手机号平台验证时间"
+          },
+          "available_points": {
+            "type": "integer",
+            "title": "Available Points",
+            "description": "当前可用积分"
+          },
+          "frozen_points": {
+            "type": "integer",
+            "title": "Frozen Points",
+            "description": "当前冻结积分"
+          },
+          "debt_points": {
+            "type": "integer",
+            "title": "Debt Points",
+            "description": "当前欠积分"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_id",
+          "username",
+          "phone_e164",
+          "phone_verified_at",
+          "available_points",
+          "frozen_points",
+          "debt_points"
+        ],
+        "title": "PointsTargetRead"
       },
       "ProductCreate": {
         "properties": {
@@ -34142,6 +34814,38 @@
         ],
         "title": "ResponseModel[OrderShippingSettingRead]"
       },
+      "ResponseModel_PageResult_AdminMemberProfileRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResult_AdminMemberProfileRead_",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PageResult[AdminMemberProfileRead]]"
+      },
       "ResponseModel_PageResult_AdminOrderSummary__": {
         "properties": {
           "code": {
@@ -34173,6 +34877,70 @@
           "request_id"
         ],
         "title": "ResponseModel[PageResult[AdminOrderSummary]]"
+      },
+      "ResponseModel_PageResult_AdminPointsAccountRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResult_AdminPointsAccountRead_",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PageResult[AdminPointsAccountRead]]"
+      },
+      "ResponseModel_PageResult_AdminPointsLedgerRead__": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageResult_AdminPointsLedgerRead_",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PageResult[AdminPointsLedgerRead]]"
       },
       "ResponseModel_PageResult_AdminRead__": {
         "properties": {
@@ -34878,38 +35646,6 @@
         ],
         "title": "ResponseModel[PageResult[MemberPriceRuleRead]]"
       },
-      "ResponseModel_PageResult_MemberProfileRead__": {
-        "properties": {
-          "code": {
-            "type": "string",
-            "title": "Code",
-            "description": "稳定程序代码"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message",
-            "description": "面向调用方的中文结果消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/PageResult_MemberProfileRead_",
-            "description": "响应业务数据"
-          },
-          "request_id": {
-            "type": "string",
-            "title": "Request Id",
-            "description": "用于定位本次请求的唯一标识"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "code",
-          "message",
-          "data",
-          "request_id"
-        ],
-        "title": "ResponseModel[PageResult[MemberProfileRead]]"
-      },
       "ResponseModel_PageResult_MembershipQualificationEventRead__": {
         "properties": {
           "code": {
@@ -35037,70 +35773,6 @@
           "request_id"
         ],
         "title": "ResponseModel[PageResult[PaymentAttemptRead]]"
-      },
-      "ResponseModel_PageResult_PointsAccountRead__": {
-        "properties": {
-          "code": {
-            "type": "string",
-            "title": "Code",
-            "description": "稳定程序代码"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message",
-            "description": "面向调用方的中文结果消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/PageResult_PointsAccountRead_",
-            "description": "响应业务数据"
-          },
-          "request_id": {
-            "type": "string",
-            "title": "Request Id",
-            "description": "用于定位本次请求的唯一标识"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "code",
-          "message",
-          "data",
-          "request_id"
-        ],
-        "title": "ResponseModel[PageResult[PointsAccountRead]]"
-      },
-      "ResponseModel_PageResult_PointsLedgerRead__": {
-        "properties": {
-          "code": {
-            "type": "string",
-            "title": "Code",
-            "description": "稳定程序代码"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message",
-            "description": "面向调用方的中文结果消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/PageResult_PointsLedgerRead_",
-            "description": "响应业务数据"
-          },
-          "request_id": {
-            "type": "string",
-            "title": "Request Id",
-            "description": "用于定位本次请求的唯一标识"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "code",
-          "message",
-          "data",
-          "request_id"
-        ],
-        "title": "ResponseModel[PageResult[PointsLedgerRead]]"
       },
       "ResponseModel_PageResult_ProductRead__": {
         "properties": {
@@ -35741,6 +36413,38 @@
           "request_id"
         ],
         "title": "ResponseModel[PointsAccountRead]"
+      },
+      "ResponseModel_PointsTargetRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PointsTargetRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[PointsTargetRead]"
       },
       "ResponseModel_ProductDetailRead_": {
         "properties": {
@@ -39311,6 +40015,37 @@
             ],
             "title": "Email",
             "description": "电子邮箱地址"
+          },
+          "phone_e164": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone E164",
+            "description": "已验证手机号，E.164 格式"
+          },
+          "phone_bound": {
+            "type": "boolean",
+            "title": "Phone Bound",
+            "description": "是否已绑定已验证手机号",
+            "default": false
+          },
+          "phone_verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone Verified At",
+            "description": "手机号平台验证时间"
           },
           "avatar": {
             "anyOf": [

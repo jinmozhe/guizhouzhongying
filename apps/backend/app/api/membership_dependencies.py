@@ -14,6 +14,7 @@ from app.core.request_metadata import request_metadata
 from app.domains.membership.service import MembershipService
 from app.domains.points.service import PointsService
 from app.services.admin_audit import AdminAuditCoordinator
+from app.services.points_admin import AdminPointsService
 from app.services.security_events import AuditCoordinator
 
 
@@ -52,8 +53,8 @@ def get_admin_points_service(
     request: Request,
     session: DatabaseSession,
     current: Annotated[CurrentAdmin, Depends(get_current_admin)],
-) -> PointsService:
-    return PointsService(
+) -> AdminPointsService:
+    points = PointsService(
         session=session,
         actor_id=current.admin.id,
         audit=AdminAuditCoordinator(
@@ -68,8 +69,9 @@ def get_admin_points_service(
             session_id=current.login_session.id,
         ),
     )
+    return AdminPointsService(session=session, points_service=points)
 
 
-AdminPoints = Annotated[PointsService, Depends(get_admin_points_service)]
+AdminPoints = Annotated[AdminPointsService, Depends(get_admin_points_service)]
 
 __all__ = ["AdminMembership", "AdminPoints", "Membership", "UserMembership"]
