@@ -18,7 +18,16 @@ class Asset(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             "AND width > 0 AND height > 0 AND frame_count > 0)",
             name="ck_assets_image_metadata",
         ),
+        CheckConstraint(
+            "(thumb_file_key IS NULL AND thumb_url IS NULL AND thumb_file_size IS NULL "
+            "AND thumb_width IS NULL AND thumb_height IS NULL) OR "
+            "(thumb_file_key IS NOT NULL AND thumb_url IS NOT NULL AND thumb_file_size IS NOT NULL "
+            "AND thumb_width IS NOT NULL AND thumb_height IS NOT NULL "
+            "AND thumb_file_size > 0 AND thumb_width > 0 AND thumb_height > 0)",
+            name="ck_assets_thumb_metadata",
+        ),
         CheckConstraint("char_length(file_hash) = 64", name="ck_assets_file_hash_length"),
+        UniqueConstraint("thumb_file_key", name="uq_assets_thumb_file_key"),
         UniqueConstraint(
             "uploader_type",
             "uploader_id",
@@ -44,6 +53,13 @@ class Asset(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     frame_count: Mapped[int | None] = mapped_column(Integer, comment="完整解码确认的图片帧数")
     file_hash: Mapped[str] = mapped_column(String(64), nullable=False, comment="SHA-256 内容哈希")
     url: Mapped[str] = mapped_column(String(1000), nullable=False, comment="公开访问 URL 或站内路径")
+    thumb_file_key: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="480px 缩略图存储相对文件键")
+    thumb_url: Mapped[str | None] = mapped_column(
+        String(1000), nullable=True, comment="480px 缩略图公开访问 URL 或站内路径"
+    )
+    thumb_file_size: Mapped[int | None] = mapped_column(BigInteger, nullable=True, comment="480px 缩略图文件字节数")
+    thumb_width: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="480px 缩略图宽度，像素")
+    thumb_height: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="480px 缩略图高度，像素")
     scene: Mapped[str] = mapped_column(String(50), nullable=False, comment="受控文件使用场景")
 
 

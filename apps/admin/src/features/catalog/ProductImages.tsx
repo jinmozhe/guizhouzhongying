@@ -38,7 +38,7 @@ export function ProductImages({ value = [], onChange, onUploading }: { value?: s
         uploadLock.current = true;
         onUploading?.(true);
         setUploading(true);
-        void adminApi.uploadAsset(file, "product").then(async (asset) => {
+        void adminApi.uploadAsset(file, "product", "product_gallery").then(async (asset) => {
           const current = latestValue.current;
           if (!current.includes(asset.id) && current.length < 20) onChange?.([...current, asset.id]);
           await client.invalidateQueries({ queryKey: ["commerce-image-assets"] });
@@ -54,7 +54,7 @@ export function ProductImages({ value = [], onChange, onUploading }: { value?: s
           itemRender={(asset, index) => (
             <Flex align="center" justify="space-between" wrap gap={token.marginSM}
               style={{ padding: `${token.paddingContentVerticalSM}px ${token.paddingContentHorizontal}px`, borderBottom: index < images.length - 1 ? `${token.lineWidth}px ${token.lineType} ${token.colorSplit}` : undefined }}>
-              <Space style={{ minWidth: 0, overflowWrap: "anywhere" }}><Image src={asset.url} alt={asset.original_name} width={40} height={40} /><span>{asset.original_name}</span></Space>
+              <Space style={{ minWidth: 0, overflowWrap: "anywhere" }}><Image src={asset.thumb_url ?? asset.url} preview={{ src: asset.url }} alt={asset.original_name} width={40} height={40} /><span>{asset.original_name}</span></Space>
               <Button style={{ flexShrink: 0 }} disabled={value.includes(asset.id) || value.length >= 20} onClick={() => onChange?.([...value, asset.id])}>{value.includes(asset.id) ? "已选" : "选择"}</Button>
             </Flex>
           )} />

@@ -203,6 +203,7 @@ class ProductRead(ProductInput):
 class ProductImageRead(BaseModel):
     asset_id: UUID
     url: str
+    thumb_url: str | None = None
     original_name: str
     file_size: int = Field(gt=0)
     width: int | None = Field(default=None, gt=0)
@@ -233,6 +234,7 @@ class PublicProductRead(BaseModel):
     merchant_id: UUID | None
     fulfillment_mode: Literal["legacy", "local"]
     images: list[str] = Field(description="图片公开地址")
+    cover_thumb_url: str | None = Field(default=None, description="商品首图 480px 缩略图公开地址，历史资产可能为空")
     skus: list[PublicSkuRead] = Field(description="启用且未归档的商品变体，无成本字段")
     attributes: list[AdoptionRead] = Field(description="当前采用定义及描述值")
 

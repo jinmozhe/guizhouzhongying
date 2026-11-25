@@ -1,6 +1,15 @@
 from app.core.config import Settings
 
-from .base import StagedDeletion, StagedFile, StorageProvider
+from .base import StagedDeletion, StagedFile, StagedThumbnail, StorageProvider
+from .images import (
+    IMAGE_PROFILES,
+    ImageMetadata,
+    ImageProfileSpec,
+    ProcessedImageResult,
+    ProcessedImageVariant,
+    inspect_image_bytes,
+    process_image_bytes,
+)
 from .local import LocalStorageProvider
 
 
@@ -11,9 +20,17 @@ def create_storage_provider(settings: Settings) -> StorageProvider:
 
 
 __all__ = [
-    "create_storage_provider",
+    "IMAGE_PROFILES",
+    "ImageMetadata",
+    "ImageProfileSpec",
     "LocalStorageProvider",
+    "ProcessedImageResult",
+    "ProcessedImageVariant",
     "StagedDeletion",
     "StagedFile",
+    "StagedThumbnail",
     "StorageProvider",
+    "create_storage_provider",
+    "inspect_image_bytes",
+    "process_image_bytes",
 ]

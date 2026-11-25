@@ -67,10 +67,11 @@ docker compose exec -T python /runtime/.venv/bin/python -m scripts.run_durable_t
 
 ## 4. 配置 HTTPS 和验收
 
-1. Admin 使用 1Panel 静态网站。把 [Admin 站点配置](../../deploy/1panel/admin.locations.conf) 合入站点的 `server` 块，替换已有的 `location /`，并核对同层配置无重复项。保留面板设置的 `root`、TLS 证书及证书签发路径。
-2. 小程序使用独立 API HTTPS 域名。1Panel 配置反代上游 `http://127.0.0.1:18168`，前提是 OpenResty 可访问宿主机环回地址。若 OpenResty 使用独立容器网络，将其接入 `1panel-network`，并在两个站点使用实际 Python 容器名和 `18168` 作为上游。保持 Backend 宿主机端口只绑定环回地址。
+1. Admin 使用 1Panel 静态网站。把 [Admin 站点配置](../../deploy/1panel/admin.locations.conf) 合入站点的 `server` 块，替换已有的 `location /`，并核对同层配置无重复项。保留面板设置的 `root`、TLS 证书及证书签发路径。`/static/uploads/` 与 `/static/settings/` 路径采用内容哈希与版本化命名，模板已附带 `Cache-Control: public, max-age=31536000, immutable` 强缓存与安全响应头。
+2. 小程序使用独立 API HTTPS 域名。1Panel 配置反代上游 `http://127.0.0.1:18168`，前提是 OpenResty 可访问宿主机环回地址。若 OpenResty 使用独立容器网络，将其接入 `1panel-network`，并在两个站点使用实际 Python 容器名和 `18168` 作为上游。建议在小程序 API 站点的 `/static/uploads/` 与 `/static/settings/` 同样设置 `Cache-Control: public, max-age=31536000, immutable` 与 `X-Content-Type-Options: nosniff` 响应头，避免小程序重复下载图片。保持 Backend 宿主机端口只绑定环回地址。
 3. 转发有效的 `Host`、`X-Forwarded-Proto` 和客户端 IP。站点覆盖外部传入的 `X-Forwarded-For`。根据 Backend 实际收到的 TCP 对端配置精确的 `TRUSTED_PROXY_CIDRS`，仅信任实际反代来源。
-4. 验证 OpenResty 配置语法后应用。核验 Backend `/health/live`、`/health/ready`、Admin `/healthz`、Admin 同域登录与刷新、上传和配置媒体、独立 API 域名的关键入口。首个成功发布记录完整 Git SHA、Python 和 uv 来源 digest、Admin 静态归档哈希、数据库 revision、备份编号和结果。
+4. 如需将既有历史静态图片离线转换为 WebP 并按需补齐 480px 缩略图，可先执行 `docker compose exec -T python /runtime/.venv/bin/python -m scripts.optimize_legacy_image_assets --dry-run --confirm-database YOUR_DATABASE` 预演核对，确认备份后再传入 `--apply`。
+5. 验证 OpenResty 配置语法后应用。核验 Backend `/health/live`、`/health/ready`、Admin `/healthz`、Admin 同域登录与刷新、上传和配置媒体、独立 API 域名的关键入口。首个成功发布记录完整 Git SHA、Python 和 uv 来源 digest、Admin 静态归档哈希、数据库 revision、备份编号和结果。
 
 ## 5. 回滚
 

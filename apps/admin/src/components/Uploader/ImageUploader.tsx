@@ -1,4 +1,4 @@
-import type { UploadScene } from "@pinjie/api-client";
+import type { ImageProfile, UploadScene } from "@pinjie/api-client";
 import { UploadOutlined } from "@ant-design/icons";
 import { Alert, Button, Upload, App } from "antd";
 import type { UploadProps } from "antd";
@@ -12,6 +12,7 @@ export type ImageUploaderProps = {
   onChange?: (url: string) => void;
   onUploadingChange?: (uploading: boolean) => void;
   scene?: UploadScene;
+  imageProfile?: ImageProfile;
   disabled?: boolean;
   maxSizeMb?: number;
 };
@@ -22,8 +23,9 @@ export function ImageUploader({
   onChange,
   onUploadingChange,
   scene = "avatar",
+  imageProfile,
   disabled = false,
-  maxSizeMb = 2,
+  maxSizeMb = 10,
 }: ImageUploaderProps) {
   const { message } = App.useApp();
   const [uploading, setUploading] = useState(false);
@@ -35,7 +37,7 @@ export function ImageUploader({
       return Upload.LIST_IGNORE;
     }
     if (file.size > maxSizeMb * 1024 * 1024) {
-      setError(`图片大小不能超过 ${maxSizeMb} MB`);
+      setError(`图片原图大小不能超过 ${maxSizeMb} MB`);
       return Upload.LIST_IGNORE;
     }
     setError(undefined);
@@ -47,10 +49,11 @@ export function ImageUploader({
     onUploadingChange?.(true);
     setError(undefined);
     try {
-      const asset = await adminApi.uploadAsset(file as globalThis.File, scene);
+      const resolvedProfile = imageProfile ?? (scene === "avatar" ? "avatar" : undefined);
+      const asset = await adminApi.uploadAsset(file as globalThis.File, scene, resolvedProfile);
       onChange?.(asset.url);
       onSuccess?.(asset);
-      message.success("图片上传成功");
+      message.success("图片上传成功，已自动压缩优化为 WebP");
     } catch (caught) {
       const text = errorMessage(caught);
       setError(text);

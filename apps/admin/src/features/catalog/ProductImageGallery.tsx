@@ -64,7 +64,7 @@ export function ProductImageGallery({ initialImages, detail = false, onChange, o
     });
   };
   const fromAsset = (asset: AssetRead): ProductImageRead => ({
-    asset_id: asset.id, url: asset.url, original_name: asset.original_name, file_size: asset.file_size,
+    asset_id: asset.id, url: asset.url, thumb_url: asset.thumb_url ?? null, original_name: asset.original_name, file_size: asset.file_size,
     width: asset.width, height: asset.height, frame_count: asset.frame_count,
   });
 
@@ -77,7 +77,7 @@ export function ProductImageGallery({ initialImages, detail = false, onChange, o
         if (!entry || entry.status !== "queued" || !alive.current) break;
         publish(current.current.map((item) => item.key === entry.key ? { ...entry, status: "uploading" } : item));
         try {
-          const asset = await adminApi.uploadAsset(entry.file, "product");
+          const asset = await adminApi.uploadAsset(entry.file, "product", detail ? "product_detail" : "product_gallery");
           if (!alive.current) break;
           const image = fromAsset(asset);
           const error = validateGallery([...readyImages(current.current), image], detail);
@@ -99,7 +99,7 @@ export function ProductImageGallery({ initialImages, detail = false, onChange, o
   const enqueue = (file: globalThis.File) => {
     if (current.current.length >= 20) { setNotice("每组最多 20 张，请先移除多余图片"); return Upload.LIST_IGNORE; }
     if (!/\.(jpe?g|png|webp)$/i.test(file.name)) { setNotice("只支持 JPEG、PNG、WebP 图片"); return Upload.LIST_IGNORE; }
-    if (file.size > (detail ? 2 : 10) * 1024 * 1024) { setNotice(detail ? "详情单图不能超过 2 MiB" : "商品图片不能超过 10 MiB"); return Upload.LIST_IGNORE; }
+    if (file.size > 20 * 1024 * 1024) { setNotice("单张原图不能超过 20 MiB"); return Upload.LIST_IGNORE; }
     setNotice(undefined);
     serial.current += 1;
     publish([...current.current, { key: "upload:" + serial.current, status: "queued", file }]);
@@ -163,7 +163,11 @@ export function ProductImageGallery({ initialImages, detail = false, onChange, o
       <Typography.Text type="secondary">{entries.length}/20 张 · {(totalBytes / 1024 / 1024).toFixed(2)} MiB</Typography.Text>
       <Button danger icon={<DeleteOutlined />} disabled={!selected.length || busy} onClick={() => setRemoval([...selected])}>移除所选</Button>
     </Flex>
-    {detail && <Typography.Text type="secondary">静态详情图：单张 ≤ 2 MiB，整组 ≤ 20 MiB，单边 ≤ 4096 像素，每张 ≤ 800 万像素。</Typography.Text>}
+    {detail ? (
+      <Typography.Text type="secondary">静态详情图（原图 ≤ 20 MiB）：系统自动压宽至 ≤ 1200px 并转为 WebP，压缩后单张高度须 ≤ 2400px（过长请分段切图），整组 ≤ 20 张。</Typography.Text>
+    ) : (
+      <Typography.Text type="secondary">商品轮播图（原图 ≤ 20 MiB）：系统自动压缩优化为 ≤ 1200px 的 WebP，并同步生成 480px 列表缩略图。</Typography.Text>
+    )}
     {notice && <Alert showIcon type="warning" title={notice} />}
     {entries.some((entry) => entry.status === "error") && <Alert showIcon type="error" title="部分图片未完成，请重试或移除失败项后保存" />}
     {!entries.length ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={"暂无" + label} /> : (
@@ -173,7 +177,7 @@ export function ProductImageGallery({ initialImages, detail = false, onChange, o
           <Checkbox aria-label={"选择" + label + "第" + (index + 1) + "张"} checked={selected.includes(entry.key)} disabled={busy}
             onChange={(event) => setSelected(event.target.checked ? [...selected, entry.key] : selected.filter((key) => key !== entry.key))} />
           <Tag>{!detail && index === 0 ? "主图" : index + 1}</Tag>
-          {entry.status === "ready" && <Image src={entry.image.url} alt={entry.image.original_name} width={64} height={64} style={{ objectFit: "contain" }} />}
+          {entry.status === "ready" && <Image src={entry.image.thumb_url ?? entry.image.url} preview={{ src: entry.image.url }} alt={entry.image.original_name} width={64} height={64} style={{ objectFit: "contain" }} />}
           <div style={{ flex: "1 1 180px", minWidth: 0, overflowWrap: "anywhere" }}>
             <Typography.Text>{entry.status === "ready" ? entry.image.original_name : entry.file.name}</Typography.Text>
             <div><Typography.Text type={entry.status === "error" ? "danger" : "secondary"}>
@@ -214,7 +218,7 @@ export function ProductImageGallery({ initialImages, detail = false, onChange, o
           return <Flex key={asset.id} align="center" gap={8} style={{ minWidth: 0, paddingBlock: token.paddingXS }}>
             <Checkbox aria-label={"选择素材" + asset.original_name} checked={selected} disabled={busy || (!selected && Boolean(reason))}
               onChange={(event) => updateCandidates(event.target.checked ? [...candidates, asset.id] : candidates.filter((id) => id !== asset.id))} />
-            <Image src={asset.url} alt={asset.original_name} width={40} height={40} style={{ objectFit: "contain" }} />
+            <Image src={asset.thumb_url ?? asset.url} preview={{ src: asset.url }} alt={asset.original_name} width={40} height={40} style={{ objectFit: "contain" }} />
             <div style={{ minWidth: 0, flex: 1, overflowWrap: "anywhere" }}>{asset.original_name}
               {reason && <div><Typography.Text type="secondary">{reason}</Typography.Text></div>}
             </div>

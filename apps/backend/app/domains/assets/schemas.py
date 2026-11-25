@@ -16,6 +16,16 @@ class UploadScene(StrEnum):
     TEMP = "temp"
 
 
+class ImageProfile(StrEnum):
+    """服务端图片自动缩放、转 WebP 与 480px 缩略图派生档位。"""
+
+    PRODUCT_GALLERY = "product_gallery"
+    PRODUCT_DETAIL = "product_detail"
+    MERCHANT_ALBUM = "merchant_album"
+    LOGO_ICON = "logo_icon"
+    AVATAR = "avatar"
+
+
 class UploaderType(StrEnum):
     ADMIN = "admin"
     USER = "user"
@@ -38,6 +48,10 @@ class AssetRead(BaseModel):
     frame_count: int | None = Field(default=None, gt=0, description="服务端完整解码确认的帧数，未处理为空")
     file_hash: str = Field(description="文件内容的 SHA-256 哈希值")
     url: str = Field(description="文件的公开访问 URL 或站内路径")
+    thumb_url: str | None = Field(default=None, description="480px 缩略图公开访问 URL，未生成时为空")
+    thumb_file_size: int | None = Field(default=None, gt=0, description="480px 缩略图文件大小，单位为字节")
+    thumb_width: int | None = Field(default=None, gt=0, description="480px 缩略图宽度，像素")
+    thumb_height: int | None = Field(default=None, gt=0, description="480px 缩略图高度，像素")
     scene: UploadScene = Field(description="受控的文件使用场景")
     created_at: datetime = Field(description="创建时间")
     updated_at: datetime = Field(description="最近更新时间")
@@ -75,6 +89,7 @@ __all__ = [
     "AssetBulkDeleteResult",
     "AssetPage",
     "AssetRead",
+    "ImageProfile",
     "UploaderType",
     "UploadScene",
 ]

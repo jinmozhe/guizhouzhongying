@@ -239,13 +239,23 @@ export function AssetsPage() {
               render: (_, row) => (
                 <div className="asset-file-cell">
                   {isImage(row) ? (
-                    <Image className="asset-thumbnail" src={row.url} alt={row.original_name} width={44} height={44} />
+                    <Image
+                      className="asset-thumbnail"
+                      src={row.thumb_url ?? row.url}
+                      preview={{ src: row.url }}
+                      alt={row.original_name}
+                      width={44}
+                      height={44}
+                    />
                   ) : (
                     <span className="asset-file-icon"><FileOutlined /></span>
                   )}
                   <div className="table-primary-cell">
                     <Typography.Text strong ellipsis={{ tooltip: row.original_name }}>{row.original_name}</Typography.Text>
-                    <Typography.Text type="secondary">{formatBytes(row.file_size)} · {row.mime_type}</Typography.Text>
+                    <Typography.Text type="secondary">
+                      {row.width && row.height ? `${row.width}×${row.height} · ` : ""}
+                      {formatBytes(row.file_size)} · {row.mime_type}
+                    </Typography.Text>
                   </div>
                 </div>
               ),

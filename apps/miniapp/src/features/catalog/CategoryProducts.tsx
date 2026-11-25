@@ -206,7 +206,7 @@ export function CategoryProducts({
             const price = productPrice(product)
             return <View id={`product-${product.id}`} key={product.id} className='category-product-row'
               role='button' ariaLabel={`查看${product.name}详情`} onClick={() => { void openProduct(product.id) }}>
-              <View className='category-product-image'><ProductImage url={product.images[0]} /></View>
+              <View className='category-product-image'><ProductImage url={product.cover_thumb_url ?? product.images[0]} /></View>
               <View className='category-product-info'>
                 <View className='category-product-name'>{product.name}</View>
                 <ProductTags multiple={price.multiple} points={price.points} />

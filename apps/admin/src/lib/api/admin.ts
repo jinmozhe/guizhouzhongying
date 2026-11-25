@@ -43,10 +43,12 @@ import type {
   UserBulkStatusUpdateIn,
   UserPrincipalOut,
   UserRestoreBatchIn,
+  ImageProfile,
   UploadScene,
   UploaderType,
 } from "@pinjie/api-client";
 
+import { precompressImageForUpload } from "@/lib/image-precompress";
 import { apiRequest, jsonBody } from "./http";
 
 export const adminApi = {
@@ -61,10 +63,18 @@ export const adminApi = {
       method: "PATCH",
       body: jsonBody(input),
     }),
-  uploadAsset: (file: globalThis.File, scene: UploadScene = "avatar") => {
+  uploadAsset: async (
+    file: globalThis.File,
+    scene: UploadScene = "avatar",
+    imageProfile?: ImageProfile,
+  ) => {
+    const preparedFile = await precompressImageForUpload(file);
     const body = new globalThis.FormData();
-    body.set("file", file);
+    body.set("file", preparedFile);
     body.set("scene", scene);
+    if (imageProfile) {
+      body.set("image_profile", imageProfile);
+    }
     return apiRequest<AssetRead>("/api/v1/assets/upload", { method: "POST", body });
   },
   assets: ({ page, search, scene, uploaderType }: { page: number; search?: string; scene?: UploadScene; uploaderType?: UploaderType }) => {
@@ -229,9 +239,10 @@ export const adminApi = {
       method: "PATCH",
       body: jsonBody(input),
     }),
-  uploadSiteLogo: (file: globalThis.File, revision: number) => {
+  uploadSiteLogo: async (file: globalThis.File, revision: number) => {
+    const preparedFile = await precompressImageForUpload(file);
     const body = new globalThis.FormData();
-    body.set("file", file);
+    body.set("file", preparedFile);
     body.set("revision", String(revision));
     return apiRequest<AdminSiteSettingRead>("/api/v1/admin/settings/site/logo", {
       method: "PUT",

@@ -2154,7 +2154,7 @@ export const logoutApiV1AuthLogoutPost = <ThrowOnError extends boolean = false>(
 /**
  * 上传文件资产
  *
- * 按受控场景校验扩展名、真实文件头、体积与管理员上传权限后保存文件资产；消费者头像使用本人资料上传入口。
+ * 按受控场景校验扩展名、真实文件头、体积与上传权限；图片资产自动按档位缩放压缩为 WebP 并按需生成 480px 缩略图。
  */
 export const uploadAssetApiV1AssetsUploadPost = <ThrowOnError extends boolean = false>(options: Options<UploadAssetApiV1AssetsUploadPostData, ThrowOnError>): RequestResult<UploadAssetApiV1AssetsUploadPostResponses, UploadAssetApiV1AssetsUploadPostErrors, ThrowOnError> => (options.client ?? client).post<UploadAssetApiV1AssetsUploadPostResponses, UploadAssetApiV1AssetsUploadPostErrors, ThrowOnError>({
     ...formDataBodySerializer,

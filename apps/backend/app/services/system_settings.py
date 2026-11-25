@@ -292,7 +292,7 @@ class SystemSettingsService:
         except ValueError as exc:
             if str(exc) == "file_too_large":
                 raise AppException(
-                    status_code=413, code=ErrorCode.ASSET_FILE_TOO_LARGE, message="站点 LOGO 不能超过 2 MB"
+                    status_code=413, code=ErrorCode.ASSET_FILE_TOO_LARGE, message="站点 LOGO 原图不能超过 10 MB"
                 ) from exc
             raise AppException(
                 status_code=422,

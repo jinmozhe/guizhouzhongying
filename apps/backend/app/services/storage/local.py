@@ -10,12 +10,13 @@ import zipfile
 from pathlib import Path
 from typing import BinaryIO
 
-from .base import StagedDeletion, StagedFile
-from .images import ImageMetadata, inspect_image_bytes
+from .base import StagedDeletion, StagedFile, StagedThumbnail
+from .images import ImageMetadata, inspect_image_bytes, process_image_bytes
 
 _CHUNK_SIZE = 64 * 1024
 _IMAGE_DECODE_CONCURRENCY = 1
 _IMAGE_DECODE_QUEUE_TIMEOUT_SECONDS = 10
+_COMPRESSIBLE_IMAGE_MIMES = frozenset({"image/jpeg", "image/png", "image/webp"})
 
 
 def _detected_mime(header: bytes, path: Path, extension: str) -> str | None:
@@ -54,42 +55,100 @@ class LocalStorageProvider:
         self._semaphore = asyncio.Semaphore(io_concurrency)
         self._image_decode_semaphore = asyncio.Semaphore(_IMAGE_DECODE_CONCURRENCY)
 
+    def _staging_root(self) -> Path:
+        root = self._root.parent / f".{self._root.name}-staging"
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+
+    @staticmethod
+    def _write_staged_bytes(staging_root: Path, payload: bytes, *, prefix: str) -> Path:
+        descriptor, raw_path = tempfile.mkstemp(prefix=prefix, dir=staging_root)
+        path = Path(raw_path)
+        try:
+            with os.fdopen(descriptor, "wb") as target:
+                target.write(payload)
+                target.flush()
+                os.fsync(target.fileno())
+            return path
+        except BaseException:
+            path.unlink(missing_ok=True)
+            raise
+
+    @staticmethod
+    def _unlink_staged(staged: StagedFile) -> None:
+        Path(staged.token).unlink(missing_ok=True)
+        if staged.thumbnail is not None:
+            Path(staged.thumbnail.token).unlink(missing_ok=True)
+
     async def stage(
-        self, source: BinaryIO, *, extension: str, max_bytes: int, inspect_image: bool = False
+        self,
+        source: BinaryIO,
+        *,
+        extension: str,
+        max_bytes: int,
+        inspect_image: bool = False,
+        image_profile: str | None = None,
     ) -> StagedFile:
-        if not inspect_image:
-            return await self._stage(source, extension=extension, max_bytes=max_bytes, inspect_image=False)
+        needs_decode = inspect_image or image_profile is not None
+        if not needs_decode:
+            return await self._stage(
+                source, extension=extension, max_bytes=max_bytes, inspect_image=False, image_profile=None
+            )
         try:
             await asyncio.wait_for(self._image_decode_semaphore.acquire(), timeout=_IMAGE_DECODE_QUEUE_TIMEOUT_SECONDS)
         except TimeoutError as exc:
             raise ValueError("image_decode_busy") from exc
         try:
-            return await self._stage(source, extension=extension, max_bytes=max_bytes, inspect_image=True)
+            return await self._stage(
+                source,
+                extension=extension,
+                max_bytes=max_bytes,
+                inspect_image=inspect_image,
+                image_profile=image_profile,
+            )
         finally:
             self._image_decode_semaphore.release()
 
-    async def _stage(self, source: BinaryIO, *, extension: str, max_bytes: int, inspect_image: bool) -> StagedFile:
+    async def _stage(
+        self,
+        source: BinaryIO,
+        *,
+        extension: str,
+        max_bytes: int,
+        inspect_image: bool,
+        image_profile: str | None,
+    ) -> StagedFile:
         async with self._semaphore:
-            task = asyncio.create_task(asyncio.to_thread(self._stage_sync, source, extension, max_bytes, inspect_image))
+            task = asyncio.create_task(
+                asyncio.to_thread(self._stage_sync, source, extension, max_bytes, inspect_image, image_profile)
+            )
             try:
                 return await asyncio.shield(task)
             except asyncio.CancelledError:
-                # Keep the IO slot until the worker finishes; reclaim its unpublished file.
+                # 保持 I/O 并发槽位直到线程收尾，并回收未发布的暂存文件。
                 try:
                     staged = await task
                 except Exception:
                     raise
-                await asyncio.to_thread(Path(staged.token).unlink, missing_ok=True)
+                await asyncio.to_thread(self._unlink_staged, staged)
                 raise
 
-    def _stage_sync(self, source: BinaryIO, extension: str, max_bytes: int, inspect_image: bool = False) -> StagedFile:
-        staging_root = self._root.parent / f".{self._root.name}-staging"
-        staging_root.mkdir(parents=True, exist_ok=True)
+    def _stage_sync(
+        self,
+        source: BinaryIO,
+        extension: str,
+        max_bytes: int,
+        inspect_image: bool = False,
+        image_profile: str | None = None,
+    ) -> StagedFile:
+        staging_root = self._staging_root()
         digest = hashlib.sha256()
         size = 0
         header = bytearray()
         descriptor, raw_path = tempfile.mkstemp(prefix="upload-", dir=staging_root)
         path = Path(raw_path)
+        thumb_path: Path | None = None
+        processed_path: Path | None = None
         try:
             with os.fdopen(descriptor, "wb") as target:
                 while chunk := source.read(_CHUNK_SIZE):
@@ -107,13 +166,135 @@ class LocalStorageProvider:
             mime_type = _detected_mime(bytes(header), path, extension)
             if mime_type is None:
                 raise ValueError("file_type_mismatch")
+
+            if image_profile is not None and mime_type in _COMPRESSIBLE_IMAGE_MIMES:
+                raw_bytes = path.read_bytes()
+                processed = process_image_bytes(raw_bytes, mime_type, image_profile)
+                processed_path = self._write_staged_bytes(
+                    staging_root, processed.primary.payload, prefix="upload-webp-"
+                )
+                staged_thumb: StagedThumbnail | None = None
+                if processed.thumbnail is not None:
+                    thumb_path = self._write_staged_bytes(
+                        staging_root, processed.thumbnail.payload, prefix="upload-thumb-"
+                    )
+                    staged_thumb = StagedThumbnail(
+                        token=str(thumb_path),
+                        file_size=len(processed.thumbnail.payload),
+                        width=processed.thumbnail.width,
+                        height=processed.thumbnail.height,
+                    )
+                # 新暂存文件全部落盘后再清理原始未压缩暂存文件。
+                path.unlink(missing_ok=True)
+                return StagedFile(
+                    token=str(processed_path),
+                    file_size=len(processed.primary.payload),
+                    file_hash=hashlib.sha256(processed.primary.payload).hexdigest(),
+                    mime_type=processed.primary.mime_type,
+                    extension=processed.primary.extension,
+                    image=ImageMetadata(
+                        width=processed.primary.width,
+                        height=processed.primary.height,
+                        frame_count=processed.frame_count,
+                    ),
+                    thumbnail=staged_thumb,
+                )
+
             image = inspect_image_bytes(path.read_bytes(), mime_type) if inspect_image else None
             return StagedFile(
-                token=str(path), file_size=size, file_hash=digest.hexdigest(), mime_type=mime_type, image=image
+                token=str(path),
+                file_size=size,
+                file_hash=digest.hexdigest(),
+                mime_type=mime_type,
+                extension=extension,
+                image=image,
             )
         except BaseException:
             path.unlink(missing_ok=True)
+            if processed_path is not None:
+                processed_path.unlink(missing_ok=True)
+            if thumb_path is not None:
+                thumb_path.unlink(missing_ok=True)
             raise
+
+    async def stage_bytes(
+        self,
+        payload: bytes,
+        *,
+        mime_type: str,
+        extension: str,
+        image: ImageMetadata | None = None,
+        thumbnail_payload: bytes | None = None,
+        thumbnail_dimensions: tuple[int, int] | None = None,
+    ) -> StagedFile:
+        async with self._semaphore:
+            task = asyncio.create_task(
+                asyncio.to_thread(
+                    self._stage_bytes_sync,
+                    payload,
+                    mime_type,
+                    extension,
+                    image,
+                    thumbnail_payload,
+                    thumbnail_dimensions,
+                )
+            )
+            try:
+                return await asyncio.shield(task)
+            except asyncio.CancelledError:
+                staged = await task
+                await asyncio.to_thread(self._unlink_staged, staged)
+                raise
+
+    def _stage_bytes_sync(
+        self,
+        payload: bytes,
+        mime_type: str,
+        extension: str,
+        image: ImageMetadata | None,
+        thumbnail_payload: bytes | None,
+        thumbnail_dimensions: tuple[int, int] | None,
+    ) -> StagedFile:
+        if not payload:
+            raise ValueError("empty_file")
+        staging_root = self._staging_root()
+        primary_path = self._write_staged_bytes(staging_root, payload, prefix="stage-bytes-")
+        thumb_path: Path | None = None
+        try:
+            staged_thumb: StagedThumbnail | None = None
+            if thumbnail_payload is not None and thumbnail_dimensions is not None:
+                thumb_path = self._write_staged_bytes(staging_root, thumbnail_payload, prefix="stage-thumb-")
+                staged_thumb = StagedThumbnail(
+                    token=str(thumb_path),
+                    file_size=len(thumbnail_payload),
+                    width=thumbnail_dimensions[0],
+                    height=thumbnail_dimensions[1],
+                )
+            return StagedFile(
+                token=str(primary_path),
+                file_size=len(payload),
+                file_hash=hashlib.sha256(payload).hexdigest(),
+                mime_type=mime_type,
+                extension=extension,
+                image=image,
+                thumbnail=staged_thumb,
+            )
+        except BaseException:
+            primary_path.unlink(missing_ok=True)
+            if thumb_path is not None:
+                thumb_path.unlink(missing_ok=True)
+            raise
+
+    async def read_bytes(self, file_key: str, *, max_bytes: int) -> bytes:
+        async with self._semaphore:
+            return await asyncio.to_thread(self._read_bytes_sync, file_key, max_bytes)
+
+    def _read_bytes_sync(self, file_key: str, max_bytes: int) -> bytes:
+        with self._safe_path(file_key).open("rb") as source:
+            payload = source.read(max_bytes + 1)
+        if len(payload) > max_bytes:
+            raise ValueError("file_too_large")
+        return payload
 
     async def inspect_image(
         self, file_key: str, *, expected_hash: str, mime_type: str, max_bytes: int
@@ -144,18 +325,32 @@ class LocalStorageProvider:
             raise ValueError("image_hash_mismatch")
         return inspect_image_bytes(payload, mime_type)
 
-    async def commit(self, staged: StagedFile, *, file_key: str) -> None:
+    async def commit(self, staged: StagedFile, *, file_key: str, thumb_file_key: str | None = None) -> None:
         async with self._semaphore:
-            await asyncio.to_thread(self._commit_sync, staged, file_key)
+            await asyncio.to_thread(self._commit_sync, staged, file_key, thumb_file_key)
 
-    def _commit_sync(self, staged: StagedFile, file_key: str) -> None:
+    def _commit_sync(self, staged: StagedFile, file_key: str, thumb_file_key: str | None) -> None:
         target = self._safe_path(file_key)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        os.replace(staged.token, target)
+        thumb_target: Path | None = None
+        committed_thumb = False
+        if staged.thumbnail is not None and thumb_file_key is not None:
+            thumb_target = self._safe_path(thumb_file_key)
+            thumb_target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(staged.thumbnail.token, thumb_target)
+            committed_thumb = True
+        elif staged.thumbnail is not None:
+            Path(staged.thumbnail.token).unlink(missing_ok=True)
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(staged.token, target)
+        except BaseException:
+            if committed_thumb and thumb_target is not None:
+                thumb_target.unlink(missing_ok=True)
+            raise
 
     async def discard(self, staged: StagedFile) -> None:
         async with self._semaphore:
-            await asyncio.to_thread(Path(staged.token).unlink, missing_ok=True)
+            await asyncio.to_thread(self._unlink_staged, staged)
 
     async def exists(self, file_key: str) -> bool:
         async with self._semaphore:
@@ -167,7 +362,7 @@ class LocalStorageProvider:
             try:
                 return await asyncio.shield(task)
             except asyncio.CancelledError:
-                # Do not release the IO slot or lose the mapping while rename is still running.
+                # 防止在重命名进行中释放 I/O 槽位或丢失恢复映射。
                 deletion = await self._settle(task)
                 restore = asyncio.create_task(asyncio.to_thread(self._restore_sync, deletion))
                 await self._settle(restore)
@@ -218,7 +413,7 @@ class LocalStorageProvider:
         trash_root.mkdir(parents=True, exist_ok=True)
         self._sync_directory(trash_root.parent)
         target = trash_root / uuid.uuid4().hex
-        # Publish and fsync the recovery mapping BEFORE moving the original file.
+        # 在移动原文件之前先落盘并 fsync 恢复映射日志。
         journal = target.with_suffix(".json")
         with source.open("rb") as original:
             digest = hashlib.file_digest(original, "sha256").hexdigest()
@@ -265,7 +460,6 @@ class LocalStorageProvider:
             raise ValueError("deletion recovery mapping does not match")
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
-            # A completed restore or a crash before rename is safe only for the recorded bytes.
             with target.open("rb") as stream:
                 if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
                     raise OSError("recovery destination contains different content")
@@ -276,14 +470,12 @@ class LocalStorageProvider:
                 with source.open("rb") as stream:
                     if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
                         raise OSError("recovery content does not match")
-                # Linking is atomic and refuses to overwrite a concurrently created destination.
                 try:
                     os.link(source, target)
                 except FileExistsError:
                     if not source.samefile(target):
                         raise OSError("recovery destination was replaced") from None
             except FileNotFoundError:
-                # Another recovery may have completed the same restore after our existence check.
                 with target.open("rb") as stream:
                     if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
                         raise OSError("recovery destination contains different content") from None
@@ -321,7 +513,7 @@ class LocalStorageProvider:
                 if hashlib.file_digest(stream, "sha256").hexdigest() != record["sha256"]:
                     raise OSError("deletion content does not match")
         except FileNotFoundError:
-            pass  # A previous purge may have removed the bytes before clearing the journal.
+            pass
         target.unlink(missing_ok=True)
         self._sync_directory(target.parent)
         journal.unlink(missing_ok=True)
@@ -347,8 +539,11 @@ class LocalStorageProvider:
             return await asyncio.to_thread(self._pending_deletions_sync)
 
     def _pending_deletions_sync(self) -> list[StagedDeletion]:
-        result = []
-        for journal in sorted(self._trash_root().glob("*.json")):
+        result: list[StagedDeletion] = []
+        trash_root = self._trash_root()
+        if not trash_root.exists():
+            return result
+        for journal in sorted(trash_root.glob("*.json")):
             token = journal.with_suffix("")
             deletion = StagedDeletion(token=str(token), file_key="")
             self._deletion_paths(deletion)

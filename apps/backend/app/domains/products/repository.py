@@ -135,6 +135,24 @@ class ProductRepository(CatalogRepository):
             urls[product_id].append(url)
         return skus, image_ids, urls
 
+    async def cover_thumb_urls(self, product_ids: list[UUID]) -> dict[UUID, str | None]:
+        """批量查询各商品首图对应的 480px 缩略图地址。"""
+        result: dict[UUID, str | None] = {key: None for key in product_ids}
+        if not product_ids:
+            return result
+        rows = await self.session.execute(
+            select(ProductImage.product_id, Asset.thumb_url)
+            .join(Asset, Asset.id == ProductImage.asset_id)
+            .where(ProductImage.product_id.in_(product_ids))
+            .order_by(ProductImage.product_id, ProductImage.position)
+        )
+        seen: set[UUID] = set()
+        for product_id, thumb_url in rows.tuples():
+            if product_id not in seen:
+                seen.add(product_id)
+                result[product_id] = thumb_url
+        return result
+
     async def replace_images(self, product_id: UUID, asset_ids: list[UUID]) -> None:
         await self.session.execute(delete(ProductImage).where(ProductImage.product_id == product_id))
         for position, asset_id in enumerate(asset_ids):

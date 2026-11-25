@@ -218,7 +218,7 @@ export function AssetSelectModal({
                             }}
                           >
                             <Image
-                              src={asset.url}
+                              src={asset.thumb_url ?? asset.url}
                               alt={asset.original_name}
                               preview={false}
                               style={{

@@ -1535,6 +1535,30 @@ export type AssetRead = {
      */
     url: string;
     /**
+     * Thumb Url
+     *
+     * 480px 缩略图公开访问 URL，未生成时为空
+     */
+    thumb_url?: string | null;
+    /**
+     * Thumb File Size
+     *
+     * 480px 缩略图文件大小，单位为字节
+     */
+    thumb_file_size?: number | null;
+    /**
+     * Thumb Width
+     *
+     * 480px 缩略图宽度，像素
+     */
+    thumb_width?: number | null;
+    /**
+     * Thumb Height
+     *
+     * 480px 缩略图高度，像素
+     */
+    thumb_height?: number | null;
+    /**
      * 受控的文件使用场景
      */
     scene: UploadScene;
@@ -1946,6 +1970,10 @@ export type BodyUploadAssetApiV1AssetsUploadPost = {
      * 受控的文件使用场景
      */
     scene: UploadScene;
+    /**
+     * 可选的图片压缩与缩略图处理档位
+     */
+    image_profile?: ImageProfile | null;
 };
 
 /**
@@ -4846,6 +4874,13 @@ export type HttpValidationError = {
 };
 
 /**
+ * ImageProfile
+ *
+ * 服务端图片自动缩放、转 WebP 与 480px 缩略图派生档位。
+ */
+export type ImageProfile = 'product_gallery' | 'product_detail' | 'merchant_album' | 'logo_icon' | 'avatar';
+
+/**
  * InfrastructureOverviewRead
  */
 export type InfrastructureOverviewRead = {
@@ -5857,6 +5892,12 @@ export type MerchantAlbumImageRead = {
      * 受控公开访问路径
      */
     url: string;
+    /**
+     * Thumb Url
+     *
+     * 480px 缩略图公开访问路径，历史资产可能为空
+     */
+    thumb_url?: string | null;
     /**
      * Original Name
      *
@@ -9098,6 +9139,12 @@ export type ProductImageRead = {
      */
     url: string;
     /**
+     * Thumb Url
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    thumb_url?: string | null;
+    /**
      * Original Name
      *
      * 上传时经过路径剥离的原始文件名
@@ -9596,6 +9643,12 @@ export type PublicMerchantAlbumImageRead = {
      */
     url: string;
     /**
+     * Thumb Url
+     *
+     * 480px 缩略图公开访问路径，历史资产可能为空
+     */
+    thumb_url?: string | null;
+    /**
      * Width
      *
      * 服务端核验的展示宽度
@@ -9824,6 +9877,12 @@ export type PublicProductDetailRead = {
      */
     images: Array<string>;
     /**
+     * Cover Thumb Url
+     *
+     * 商品首图 480px 缩略图公开地址，历史资产可能为空
+     */
+    cover_thumb_url?: string | null;
+    /**
      * Skus
      *
      * 启用且未归档的商品变体，无成本字段
@@ -9907,6 +9966,12 @@ export type PublicProductRead = {
      * 图片公开地址
      */
     images: Array<string>;
+    /**
+     * Cover Thumb Url
+     *
+     * 商品首图 480px 缩略图公开地址，历史资产可能为空
+     */
+    cover_thumb_url?: string | null;
     /**
      * Skus
      *

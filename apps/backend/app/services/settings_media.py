@@ -14,9 +14,10 @@ from typing import Any, BinaryIO
 from PIL import Image, UnidentifiedImageError
 
 from app.domains.settings.schemas import SiteLogoValue
+from app.services.storage.images import process_image_bytes
 
 _CHUNK_SIZE = 64 * 1024
-_MAX_BYTES = 2 * 1024 * 1024
+_MAX_BYTES = 10 * 1024 * 1024
 _MAX_EDGE = 4096
 _MAX_PIXELS = 16_000_000
 _FORMAT_POLICY = {
@@ -89,31 +90,44 @@ class SettingsMediaStore:
         descriptor, raw_path = tempfile.mkstemp(prefix="site-logo-", dir=self.staging_root)
         path = Path(raw_path)
         size = 0
-        digest = hashlib.sha256()
+        raw_buffer = bytearray()
         try:
             with os.fdopen(descriptor, "wb") as target:
                 while chunk := source.read(_CHUNK_SIZE):
                     size += len(chunk)
                     if size > _MAX_BYTES:
                         raise ValueError("file_too_large")
-                    digest.update(chunk)
-                    target.write(chunk)
+                    raw_buffer.extend(chunk)
                 if size == 0:
                     raise ValueError("empty_file")
+                # 先校验真实格式并统一走 logo_icon 档位缩放压缩为 WebP。
+                raw_bytes = bytes(raw_buffer)
+                detected_mime = self._detect_mime_from_bytes(raw_bytes)
+                processed = process_image_bytes(raw_bytes, detected_mime, "logo_icon")
+                optimized = processed.primary.payload
+                target.write(optimized)
                 target.flush()
                 os.fsync(target.fileno())
-            image_format = self._validate_image(path)
-            extension, mime_type = _FORMAT_POLICY[image_format]
             return StagedSiteLogo(
                 token=str(path),
-                extension=extension,
-                mime_type=mime_type,
-                file_size=size,
-                sha256=digest.hexdigest(),
+                extension=processed.primary.extension,
+                mime_type=processed.primary.mime_type,
+                file_size=len(optimized),
+                sha256=hashlib.sha256(optimized).hexdigest(),
             )
         except BaseException:
             path.unlink(missing_ok=True)
             raise
+
+    @staticmethod
+    def _detect_mime_from_bytes(payload: bytes) -> str:
+        if payload.startswith(b"\xff\xd8\xff"):
+            return "image/jpeg"
+        if payload.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "image/png"
+        if payload.startswith(b"RIFF") and payload[8:12] == b"WEBP":
+            return "image/webp"
+        raise ValueError("unsupported_image_format")
 
     @staticmethod
     def _validate_image(path: Path) -> str:

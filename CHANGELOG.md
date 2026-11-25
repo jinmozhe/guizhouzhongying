@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+### 图片自适应压缩转 WebP 与 480px 双文件缩略图
+
+- 数据库新增 `20261125_02` Alembic 迁移，为 `assets` 表补充可选的 `thumb_file_key`、`thumb_url`、`thumb_file_size`、`thumb_width` 和 `thumb_height` 列及 `uq_assets_thumb_file_key`、`ck_assets_thumb_metadata` 约束；本机开发库 `guizhouzhongying_dev` 已升级至 `20261125_02` 且 `alembic check` 无漂移。
+- 后端重构图片上传流水线：`POST /api/v1/assets/upload` 新增可选 `image_profile` 档位参数（`product_gallery`、`product_detail`、`merchant_album`、`logo_icon`、`avatar`），入口接收上限放宽至 20 MiB（头像与站点 Logo 10 MiB），通过 Pillow 自动固化 EXIF 方向并剥离元数据、归一化 sRGB、只缩不放等比缩放、阶梯质量统一转为 WebP；商品详情单图压宽至 ≤ 1200px 后若高 > 2400px 直接拦截并提示切图；`product_gallery` 与 `merchant_album` 自动派生 480px 缩略图。`LocalStorageProvider` 同步扩展主图与缩略图双文件原子提交、补偿清理与删除日志恢复。
+- 后端扩展 `AssetRead`、`ProductImageRead`、`PublicProductRead`（`cover_thumb_url`）、`MerchantAlbumImageRead` 与 `PublicMerchantAlbumImageRead`（`thumb_url`），导出根 `openapi.json` 并重新生成 `@pinjie/api-client`。同时预留离线存量历史图片优化脚本 `scripts.optimize_legacy_image_assets`（默认 `--dry-run` 只读预演，显式 `--apply` 执行）。
+- 管理端新增零依赖原生 Canvas 超大图轻量预缩工具（`> 3 MiB` 或长边 `> 2400px` 时预缩至 2400px 以加快上传），全量上传入口透传对应 `image_profile` 并放宽原图上限，素材库与画廊列表优先展示 480px 缩略图、点击预览高清图。
+- 小程序全量网络业务 `<Image>` 开启 `webp` 属性，商品列表与商家详情横滑相册优先渲染 480px 缩略图，详情轮播与原生全屏预览保留高清图，iPad 维持非 `resizable` 兼容模式。1Panel OpenResty 配置为 `/static/uploads/` 与 `/static/settings/` 补充不可变强缓存响应头；重型自动化测试与微信动态验收未执行。
+
 ### 商家相册管理与小程序详情展示
 
 - 后端新增 `merchant_album_images` 有序关联表与 `20261125_01` Alembic 迁移，复用平台 `assets`（`product` 场景）保存门店环境、门头与资质证书等静态图片（JPG/PNG/WebP，单家最多 20 张，单图 ≤ 5 MiB，整组 ≤ 50 MiB，核验可信尺寸与单帧静态图），保存时按 `Asset.id` 升序统一加锁并接入资产删除引用拦截。

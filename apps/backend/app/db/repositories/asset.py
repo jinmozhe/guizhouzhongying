@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -22,6 +22,13 @@ class AssetRepository:
 
     async def get_by_file_key(self, file_key: str, *, for_update: bool = False) -> Asset | None:
         statement = select(Asset).where(Asset.file_key == file_key)
+        if for_update:
+            statement = statement.with_for_update().execution_options(populate_existing=True)
+        return (await self._session.execute(statement)).scalar_one_or_none()
+
+    async def get_by_any_file_key(self, file_key: str, *, for_update: bool = False) -> Asset | None:
+        """按主图或缩略图相对键查找资产，用于删除恢复与孤儿核验。"""
+        statement = select(Asset).where(or_(Asset.file_key == file_key, Asset.thumb_file_key == file_key))
         if for_update:
             statement = statement.with_for_update().execution_options(populate_existing=True)
         return (await self._session.execute(statement)).scalar_one_or_none()

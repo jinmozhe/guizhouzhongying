@@ -38,7 +38,6 @@ import { adminApi } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/http";
 import {
   MERCHANT_ALBUM_MAX_COUNT,
-  MERCHANT_ALBUM_MAX_FILE_BYTES,
   assetToAlbumImage,
   validateMerchantAlbum,
 } from "./merchant-album-policy";
@@ -249,7 +248,7 @@ function AlbumAssetPickerModal({
                         }}
                       >
                         <Image
-                          src={asset.url}
+                          src={asset.thumb_url ?? asset.url}
                           alt={asset.original_name}
                           preview={false}
                           style={{ maxHeight: 88, maxWidth: "100%", objectFit: "contain" }}
@@ -340,7 +339,7 @@ export function MerchantAlbumGallery({
         if (!entry || entry.status !== "queued" || !alive.current) break;
         publish(current.current.map((item) => (item.key === entry.key ? { ...entry, status: "uploading" } : item)));
         try {
-          const asset = await adminApi.uploadAsset(entry.file, "product");
+          const asset = await adminApi.uploadAsset(entry.file, "product", "merchant_album");
           if (!alive.current) break;
           const image = assetToAlbumImage(asset);
           const error = validateMerchantAlbum([...readyImages(current.current), image]);
@@ -374,8 +373,8 @@ export function MerchantAlbumGallery({
       setNotice("仅支持 JPG、PNG、WebP 格式静态图片");
       return Upload.LIST_IGNORE;
     }
-    if (file.size > MERCHANT_ALBUM_MAX_FILE_BYTES) {
-      setNotice("商家相册单张图片不能超过 5 MiB");
+    if (file.size > 20 * 1024 * 1024) {
+      setNotice("单张原图不能超过 20 MiB");
       return Upload.LIST_IGNORE;
     }
     setNotice(undefined);
@@ -450,7 +449,7 @@ export function MerchantAlbumGallery({
       </Flex>
 
       <Typography.Text type="secondary">
-        支持门店实景、店内环境、营业执照与资质证书等静态图片（JPG、PNG、WebP），最多 20 张，单图不超过 5 MiB，整组不超过 50 MiB。调整完成后点击底部“保存”统一生效。
+        支持门店实景、店内环境、营业执照与资质证书等静态图片（JPG、PNG、WebP，原图 ≤ 20 MiB），系统将自动压缩优化为 ≤ 1440px 的 WebP 并生成 480px 缩略图，最多 20 张。调整完成后点击底部“保存”统一生效。
       </Typography.Text>
 
       {!canBrowseAssets && (
@@ -493,7 +492,8 @@ export function MerchantAlbumGallery({
                 <Tag>{index + 1}</Tag>
                 {entry.status === "ready" && (
                   <Image
-                    src={entry.image.url}
+                    src={entry.image.thumb_url ?? entry.image.url}
+                    preview={{ src: entry.image.url }}
                     alt={entry.image.original_name}
                     width={64}
                     height={64}

@@ -233,6 +233,7 @@ class ProductService(SpecificationService):
             ProductImageRead(
                 asset_id=asset.id,
                 url=asset.url,
+                thumb_url=asset.thumb_url,
                 original_name=asset.original_name,
                 file_size=asset.file_size,
                 width=asset.width,
@@ -265,7 +266,15 @@ class ProductService(SpecificationService):
             raise AppException(status_code=404, code=ErrorCode.PRODUCT_NOT_FOUND, message="商品不存在")
         snapshot = await self.repository.catalog_snapshot([row.id])
         skus, _, images = await self.repository.details([row.id])
-        return await self._public_read(row, visible_categories, snapshot, skus[row.id], images[row.id])
+        cover_thumbs = await self.repository.cover_thumb_urls([row.id])
+        return await self._public_read(
+            row,
+            visible_categories,
+            snapshot,
+            skus[row.id],
+            images[row.id],
+            cover_thumb_url=cover_thumbs.get(row.id),
+        )
 
     async def _public_category_ids(self) -> set[UUID]:
         # Product visibility needs category status only, not each category's icon URL.
@@ -287,6 +296,8 @@ class ProductService(SpecificationService):
         snapshot: CatalogSnapshot,
         skus: list[ProductSku],
         images: list[str],
+        *,
+        cover_thumb_url: str | None = None,
     ) -> PublicProductRead:
         if row.status != "on_sale":
             raise AppException(status_code=404, code=ErrorCode.PRODUCT_NOT_FOUND, message="商品不存在")
@@ -310,6 +321,7 @@ class ProductService(SpecificationService):
             merchant_id=row.merchant_id,
             fulfillment_mode=cast(Literal["legacy", "local"], row.fulfillment_mode),
             images=images,
+            cover_thumb_url=cover_thumb_url,
             skus=visible_skus,
             attributes=await self.adoption_reads(row.id, current_only=True, snapshot=snapshot),
         )
@@ -366,8 +378,17 @@ class ProductService(SpecificationService):
         visible_categories = await self._public_category_ids() if rows else set()
         snapshot = await self.repository.catalog_snapshot(product_ids)
         skus, _, images = await self.repository.details(product_ids)
+        cover_thumbs = await self.repository.cover_thumb_urls(product_ids)
         return [
-            await self._public_read(row, visible_categories, snapshot, skus[row.id], images[row.id]) for row in rows
+            await self._public_read(
+                row,
+                visible_categories,
+                snapshot,
+                skus[row.id],
+                images[row.id],
+                cover_thumb_url=cover_thumbs.get(row.id),
+            )
+            for row in rows
         ]
 
     async def set_recommendation(self, product_id: UUID, data: ProductRecommendationUpdate) -> ProductRead:

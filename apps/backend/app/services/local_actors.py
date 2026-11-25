@@ -169,6 +169,7 @@ class LocalActorsService:
         return MerchantAlbumImageRead(
             asset_id=asset.id,
             url=asset.url,
+            thumb_url=asset.thumb_url,
             original_name=asset.original_name,
             file_size=asset.file_size,
             width=asset.width,
@@ -211,7 +212,14 @@ class LocalActorsService:
         for item in album_assets:
             if item.width is None or item.height is None:
                 raise AppException(status_code=500, code=ErrorCode.INTERNAL_ERROR, message="商家相册图片元数据不完整")
-            album_items.append(PublicMerchantAlbumImageRead(url=item.url, width=item.width, height=item.height))
+            album_items.append(
+                PublicMerchantAlbumImageRead(
+                    url=item.url,
+                    thumb_url=item.thumb_url,
+                    width=item.width,
+                    height=item.height,
+                )
+            )
         return PublicMerchantDetailRead.model_validate(row).model_copy(
             update={"logo_url": asset.url if asset else None, "album_images": album_items}
         )

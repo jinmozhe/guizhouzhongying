@@ -39,7 +39,7 @@ function CategoryIcon({
   } catch {
     return fallbackText ? <View className='home-category-fallback'>{fallbackText.slice(0, 1)}</View> : <Text className='muted'>图标来源无效</Text>
   }
-  return <Image className={className} src={source} mode='aspectFit' onError={() => setFailed(true)} />
+  return <Image className={className} src={source} mode='aspectFit' webp onError={() => setFailed(true)} />
 }
 
 function HomeRecommendations({ visible }: { visible: boolean }) {
@@ -66,7 +66,7 @@ function HomeRecommendations({ visible }: { visible: boolean }) {
               void Taro.navigateTo({ url: `/subpackages/catalog/detail/index?id=${encodeURIComponent(product.id)}` })
                 .catch(() => Taro.showToast({ title: '打开商品失败，请重试', icon: 'none' }))
             }}>
-            <View className='home-product-image'><ProductImage url={product.images[0]} /></View>
+            <View className='home-product-image'><ProductImage url={product.cover_thumb_url ?? product.images[0]} /></View>
             <View className='home-product-body'>
               <View className='home-product-name'>{product.name}</View>
               <ProductTags multiple={price.multiple} points={price.points} />
