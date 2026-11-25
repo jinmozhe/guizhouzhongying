@@ -3,7 +3,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Literal
 
-from sqlalchemy import delete, func, or_, select, update
+from sqlalchemy import delete, exists, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.interfaces import LoaderOption
@@ -14,7 +14,9 @@ from app.db.models import (
     AdminRefreshToken,
     AdminSession,
     AuditEvent,
+    Merchant,
     Permission,
+    PropertyOperator,
     RequestLog,
     Role,
     SecurityLoginEvent,
@@ -81,6 +83,7 @@ class UserRepository:
         page_size: int,
         search: str | None = None,
         lifecycle: Literal["all", "active", "inactive", "deleted"] = "all",
+        business_role: Literal["all", "member_only", "merchant", "property"] = "all",
     ) -> tuple[list[User], int]:
         filters: list[ColumnElement[bool]] = []
         if lifecycle == "all":
@@ -91,6 +94,14 @@ class UserRepository:
             filters.extend((User.deleted_at.is_(None), User.is_active.is_(False)))
         elif lifecycle == "deleted":
             filters.append(User.deleted_at.is_not(None))
+        has_merchant = exists(select(1).where(Merchant.user_id == User.id))
+        has_property = exists(select(1).where(PropertyOperator.user_id == User.id))
+        if business_role == "merchant":
+            filters.append(has_merchant)
+        elif business_role == "property":
+            filters.append(has_property)
+        elif business_role == "member_only":
+            filters.extend((~has_merchant, ~has_property))
         if search:
             cleaned = search.strip()
             if cleaned:

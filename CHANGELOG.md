@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+### 用户业务身份展示与快捷授权管理
+
+- 后端扩展 `AdminUserRead` 与 `LocalRolesRead`，新增结构化商家与物业业务身份摘要（`merchant_role`、`property_role`，含 `id`、`name`、`is_active`）；`GET /api/v1/admin/users` 新增 `business_role`（`all`、`member_only`、`merchant`、`property`）筛选并批量聚合查询避免 N+1；新增 `GET /api/v1/admin/property-operators/{operator_id}` 单条物业授权详情查询接口（`property-operators:read`）。同步导出根 `openapi.json` 并重新生成 `@pinjie/api-client`。
+- 后端 `LocalActorsService.roles` 在用户已绑定可信手机号且与业务表号码一致时返回 `merchant_role` 与 `property_role` 摘要，`merchant_id` 与 `property_operator_id` 继续仅在启用态非空，保持既有权限裁决与操作入口控制边界不变。
+- 管理端经 `features/local-commerce/index.ts` 公开导出 `MerchantEditModal` 与 `PropertyOperatorEditModal`；“用户管理”页新增“业务身份”列与业务身份筛选，仅当用户存在商家或物业身份且当前管理员拥有对应查看与更新权限时，显示“管理商家授权”或“管理物业授权”按钮拉起编辑弹窗（沿用原接口、权限与乐观锁 `revision`），无关联身份时不显示相关按钮。
+- 小程序“我的”页面顶部个人信息区消费 `/users/me/business-roles` 身份摘要，按标准配色语义展示普通会员以及关联商家/物业的名称与启停状态；服务区核销、应收与发分入口继续严格依赖启用态 ID 显隐。重型自动化测试与浏览器/微信动态验收未执行。
+
 ### 图片自适应压缩转 WebP 与 480px 双文件缩略图
 
 - 数据库新增 `20261125_02` Alembic 迁移，为 `assets` 表补充可选的 `thumb_file_key`、`thumb_url`、`thumb_file_size`、`thumb_width` 和 `thumb_height` 列及 `uq_assets_thumb_file_key`、`ck_assets_thumb_metadata` 约束；本机开发库 `guizhouzhongying_dev` 已升级至 `20261125_02` 且 `alembic check` 无漂移。

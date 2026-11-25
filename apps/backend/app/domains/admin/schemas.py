@@ -234,6 +234,14 @@ class UserRestoreBatchIn(_UserBulkTargetIn):
     pass
 
 
+class UserBusinessRoleSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: uuid.UUID = Field(description="商家或物业授权唯一标识")
+    name: str = Field(description="商家或物业名称")
+    is_active: bool = Field(description="当前业务授权是否启用")
+
+
 class AdminUserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
@@ -246,6 +254,8 @@ class AdminUserRead(BaseModel):
     phone_verified_at: datetime | None = Field(default=None, description="手机号平台验证时间")
     avatar: str | None = Field(default=None, description="用户头像站内资源路径")
     is_active: bool
+    merchant_role: UserBusinessRoleSummary | None = Field(default=None, description="关联的商家核销身份")
+    property_role: UserBusinessRoleSummary | None = Field(default=None, description="关联的物业发分身份")
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = Field(description="账户进入回收站的时间")

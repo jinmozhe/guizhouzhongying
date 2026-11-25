@@ -101,14 +101,17 @@ export const adminApi = {
     page,
     search,
     lifecycle,
+    businessRole = "all",
   }: {
     page: number;
     search?: string;
     lifecycle: "all" | "active" | "inactive" | "deleted";
+    businessRole?: "all" | "member_only" | "merchant" | "property";
   }) => {
     const query = new URLSearchParams({ page: String(page), page_size: "20" });
     if (search) query.set("search", search);
     query.set("lifecycle", lifecycle);
+    if (businessRole !== "all") query.set("business_role", businessRole);
     return apiRequest<PageResultAdminUserRead>(`/api/v1/admin/users?${query}`);
   },
   createUser: (input: AdminUserCreateIn) =>

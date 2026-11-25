@@ -25,7 +25,7 @@ from app.core.redis import check_redis
 from app.core.request_metadata import RequestMetadata
 from app.core.resources import AppResources
 from app.core.security import PasswordManager
-from app.db.models import Admin, AdminSession, Asset, AuditEvent, Role, User, UserSession
+from app.db.models import Admin, AdminSession, Asset, AuditEvent, Merchant, PropertyOperator, Role, User, UserSession
 from app.db.repositories import (
     AdminRepository,
     RequestLogRepository,
@@ -33,6 +33,7 @@ from app.db.repositories import (
     SessionRepository,
     UserRepository,
 )
+from app.db.repositories.local_commerce import LocalActorsRepository
 from app.domains.admin.permissions import PERMISSION_CODES, ROLE_ASSIGNABLE_PERMISSION_CODES
 from app.domains.admin.presenters import admin_read, role_read
 from app.domains.admin.schemas import (
@@ -69,6 +70,7 @@ from app.domains.admin.schemas import (
     SystemTelemetryRead,
     UserBulkDeleteIn,
     UserBulkStatusUpdateIn,
+    UserBusinessRoleSummary,
     UserPage,
     UserRestoreBatchIn,
 )
@@ -107,6 +109,7 @@ class AdminManagementService:
         self.started_at = started_at
         self.cache_keys: CacheKeys = cache_keys(settings)
         self.users = UserRepository(session)
+        self.local_actors = LocalActorsRepository(session)
         self.customer_accounts = CustomerAccountsService(session)
         self.admins = AdminRepository(session)
         self.sessions = SessionRepository(session)
@@ -125,7 +128,13 @@ class AdminManagementService:
         )
         self.actor_id = actor_id
 
-    def _user_read(self, user: User) -> AdminUserRead:
+    def _user_read(
+        self,
+        user: User,
+        *,
+        merchant: Merchant | None = None,
+        operator: PropertyOperator | None = None,
+    ) -> AdminUserRead:
         return AdminUserRead(
             id=user.id,
             username=user.username,
@@ -136,6 +145,16 @@ class AdminManagementService:
             phone_verified_at=user.phone_verified_at,
             avatar=user.avatar,
             is_active=user.is_active,
+            merchant_role=(
+                UserBusinessRoleSummary(id=merchant.id, name=merchant.name, is_active=merchant.is_active)
+                if merchant is not None
+                else None
+            ),
+            property_role=(
+                UserBusinessRoleSummary(id=operator.id, name=operator.name, is_active=operator.is_active)
+                if operator is not None
+                else None
+            ),
             created_at=user.created_at,
             updated_at=user.updated_at,
             deleted_at=user.deleted_at,
@@ -152,15 +171,27 @@ class AdminManagementService:
         page_size: int,
         search: str | None,
         lifecycle: Literal["all", "active", "inactive", "deleted"],
+        business_role: Literal["all", "member_only", "merchant", "property"] = "all",
     ) -> UserPage:
         items, total = await self.users.list_users(
             page=page,
             page_size=page_size,
             search=search,
             lifecycle=lifecycle,
+            business_role=business_role,
         )
+        user_ids = [item.id for item in items]
+        merchants_by_user = await self.local_actors.merchants_by_users(user_ids)
+        operators_by_user = await self.local_actors.operators_by_users(user_ids)
         return UserPage.create(
-            items=[self._user_read(item) for item in items],
+            items=[
+                self._user_read(
+                    item,
+                    merchant=merchants_by_user.get(item.id),
+                    operator=operators_by_user.get(item.id),
+                )
+                for item in items
+            ],
             page=page,
             page_size=page_size,
             total=total,
@@ -336,7 +367,9 @@ class AdminManagementService:
             user.is_active = False
             user.credential_version += 1
             await self.sessions.revoke_web_for_user(user.id, reason="account_restored_by_admin")
-            return self._user_read(user)
+            merchant = await self.local_actors.by_user(Merchant, user.id)
+            operator = await self.local_actors.by_user(PropertyOperator, user.id)
+            return self._user_read(user, merchant=merchant, operator=operator)
 
         return await self.audit.execute(
             action="users:restore",

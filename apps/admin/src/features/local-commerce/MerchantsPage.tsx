@@ -170,7 +170,7 @@ function EditorContent({
   );
 }
 
-function ExistingMerchantEditor({
+export function MerchantEditModal({
   merchantId,
   close,
   done,
@@ -217,7 +217,7 @@ function Editor({
   if (!target) {
     return <EditorContent detail={null} close={close} done={done} />;
   }
-  return <ExistingMerchantEditor merchantId={target.id} close={close} done={done} />;
+  return <MerchantEditModal merchantId={target.id} close={close} done={done} />;
 }
 
 export default function MerchantsPage() {

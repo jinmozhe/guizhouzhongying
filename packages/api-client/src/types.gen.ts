@@ -1145,6 +1145,14 @@ export type AdminUserRead = {
      */
     is_active: boolean;
     /**
+     * 关联的商家核销身份
+     */
+    merchant_role?: UserBusinessRoleSummary | null;
+    /**
+     * 关联的物业发分身份
+     */
+    property_role?: UserBusinessRoleSummary | null;
+    /**
      * Created At
      *
      * 创建时间
@@ -2106,6 +2114,30 @@ export type BrandUpdate = {
      * 资源并发控制版本
      */
     revision: number;
+};
+
+/**
+ * BusinessRoleSummaryRead
+ */
+export type BusinessRoleSummaryRead = {
+    /**
+     * Id
+     *
+     * 商家或物业授权唯一标识
+     */
+    id: string;
+    /**
+     * Name
+     *
+     * 商家或物业名称
+     */
+    name: string;
+    /**
+     * Is Active
+     *
+     * 当前业务授权是否启用
+     */
+    is_active: boolean;
 };
 
 /**
@@ -5092,6 +5124,14 @@ export type LocalRolesRead = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     property_operator_id: string | null;
+    /**
+     * 当前关联的商家核销身份摘要
+     */
+    merchant_role?: BusinessRoleSummaryRead | null;
+    /**
+     * 当前关联的物业发分身份摘要
+     */
+    property_role?: BusinessRoleSummaryRead | null;
 };
 
 /**
@@ -16463,6 +16503,30 @@ export type UserBulkStatusUpdateIn = {
 };
 
 /**
+ * UserBusinessRoleSummary
+ */
+export type UserBusinessRoleSummary = {
+    /**
+     * Id
+     *
+     * 商家或物业授权唯一标识
+     */
+    id: string;
+    /**
+     * Name
+     *
+     * 商家或物业名称
+     */
+    name: string;
+    /**
+     * Is Active
+     *
+     * 当前业务授权是否启用
+     */
+    is_active: boolean;
+};
+
+/**
  * UserPrincipalOut
  */
 export type UserPrincipalOut = {
@@ -17322,6 +17386,36 @@ export type CreateOperatorApiV1AdminPropertyOperatorsPostResponses = {
 };
 
 export type CreateOperatorApiV1AdminPropertyOperatorsPostResponse = CreateOperatorApiV1AdminPropertyOperatorsPostResponses[keyof CreateOperatorApiV1AdminPropertyOperatorsPostResponses];
+
+export type AdminOperatorApiV1AdminPropertyOperatorsOperatorIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Operator Id
+         */
+        operator_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/property-operators/{operator_id}';
+};
+
+export type AdminOperatorApiV1AdminPropertyOperatorsOperatorIdGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type AdminOperatorApiV1AdminPropertyOperatorsOperatorIdGetError = AdminOperatorApiV1AdminPropertyOperatorsOperatorIdGetErrors[keyof AdminOperatorApiV1AdminPropertyOperatorsOperatorIdGetErrors];
+
+export type AdminOperatorApiV1AdminPropertyOperatorsOperatorIdGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelOperatorRead;
+};
+
+export type AdminOperatorApiV1AdminPropertyOperatorsOperatorIdGetResponse = AdminOperatorApiV1AdminPropertyOperatorsOperatorIdGetResponses[keyof AdminOperatorApiV1AdminPropertyOperatorsOperatorIdGetResponses];
 
 export type UpdateOperatorApiV1AdminPropertyOperatorsOperatorIdPutData = {
     body: OperatorUpdate;
@@ -23838,6 +23932,10 @@ export type ListUsersApiV1AdminUsersGetData = {
          * Lifecycle
          */
         lifecycle?: 'all' | 'active' | 'inactive' | 'deleted';
+        /**
+         * Business Role
+         */
+        business_role?: 'all' | 'member_only' | 'merchant' | 'property';
     };
     url: '/api/v1/admin/users';
 };

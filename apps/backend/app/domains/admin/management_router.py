@@ -79,8 +79,15 @@ async def list_users(
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
     search: Annotated[str | None, Query(max_length=100)] = None,
     lifecycle: Annotated[Literal["all", "active", "inactive", "deleted"], Query()] = "all",
+    business_role: Annotated[Literal["all", "member_only", "merchant", "property"], Query()] = "all",
 ) -> ResponseModel[UserPage]:
-    result = await service.list_users(page=page, page_size=page_size, search=search, lifecycle=lifecycle)
+    result = await service.list_users(
+        page=page,
+        page_size=page_size,
+        search=search,
+        lifecycle=lifecycle,
+        business_role=business_role,
+    )
     return success_response(data=result, request_id=current_request_id())
 
 

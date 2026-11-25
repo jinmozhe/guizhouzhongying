@@ -154,10 +154,20 @@ class PublicMerchantDetailRead(PublicMerchantRead):
     )
 
 
+class BusinessRoleSummaryRead(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID = Field(description="商家或物业授权唯一标识")
+    name: str = Field(description="商家或物业名称")
+    is_active: bool = Field(description="当前业务授权是否启用")
+
+
 class LocalRolesRead(BaseModel):
     member: bool = True
     merchant_id: UUID | None
     property_operator_id: UUID | None
+    merchant_role: BusinessRoleSummaryRead | None = Field(default=None, description="当前关联的商家核销身份摘要")
+    property_role: BusinessRoleSummaryRead | None = Field(default=None, description="当前关联的物业发分身份摘要")
 
 
 class PhoneLookup(LocalInput):

@@ -21,6 +21,7 @@ from app.services.local_commerce_schemas import (
     MERCHANT_ALBUM_MAX_COUNT,
     MERCHANT_ALBUM_MAX_FILE_BYTES,
     MERCHANT_ALBUM_MAX_TOTAL_BYTES,
+    BusinessRoleSummaryRead,
     LocalRolesRead,
     MerchantAlbumImageRead,
     MerchantDetailRead,
@@ -155,13 +156,33 @@ class LocalActorsService:
             raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="当前用户不可用")
         merchant = await self.repository.by_user(Merchant, user_id)
         operator = await self.repository.by_user(PropertyOperator, user_id)
+        matched_merchant = (
+            merchant if merchant and user.phone_bound and merchant.phone_e164 == user.phone_e164 else None
+        )
+        matched_operator = (
+            operator if operator and user.phone_bound and operator.phone_e164 == user.phone_e164 else None
+        )
         return LocalRolesRead(
-            merchant_id=merchant.id
-            if merchant and merchant.is_active and user.phone_bound and merchant.phone_e164 == user.phone_e164
-            else None,
-            property_operator_id=operator.id
-            if operator and operator.is_active and user.phone_bound and operator.phone_e164 == user.phone_e164
-            else None,
+            merchant_id=matched_merchant.id if matched_merchant and matched_merchant.is_active else None,
+            property_operator_id=matched_operator.id if matched_operator and matched_operator.is_active else None,
+            merchant_role=(
+                BusinessRoleSummaryRead(
+                    id=matched_merchant.id,
+                    name=matched_merchant.name,
+                    is_active=matched_merchant.is_active,
+                )
+                if matched_merchant is not None
+                else None
+            ),
+            property_role=(
+                BusinessRoleSummaryRead(
+                    id=matched_operator.id,
+                    name=matched_operator.name,
+                    is_active=matched_operator.is_active,
+                )
+                if matched_operator is not None
+                else None
+            ),
         )
 
     @staticmethod
@@ -201,6 +222,12 @@ class LocalActorsService:
         if row is None:
             raise AppException(status_code=404, code=ErrorCode.NOT_FOUND, message="商家不存在")
         return await self.merchant_detail_read(row)
+
+    async def admin_operator(self, operator_id: UUID) -> OperatorRead:
+        row = await self.repository.actor(PropertyOperator, operator_id)
+        if row is None:
+            raise AppException(status_code=404, code=ErrorCode.NOT_FOUND, message="物业授权不存在")
+        return OperatorRead.model_validate(row)
 
     async def public_merchant(self, merchant_id: UUID) -> PublicMerchantDetailRead:
         row = await self.repository.actor(Merchant, merchant_id)

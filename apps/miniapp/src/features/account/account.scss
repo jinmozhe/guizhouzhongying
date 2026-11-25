@@ -33,6 +33,22 @@
 .account-screen .account-identity-button { position: relative; flex: 1; min-width: 0; min-height: 116px; padding: 12px 32px 18px 22px; text-align: left; }
 .account-name { overflow: hidden; font-size: 36px; font-weight: 700; line-height: 1.5; white-space: nowrap; text-overflow: ellipsis; }
 .account-welcome { font-size: 24px; color: t.$account-muted; }
+.account-roles { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.account-role-tag {
+  max-width: 100%;
+  padding: 4px 14px;
+  border-radius: 999px;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-role-tag--member { background: t.$surface-tint; color: t.$info; }
+.account-role-tag--merchant { background: t.$primary-soft; color: t.$primary; }
+.account-role-tag--property { background: t.$reward-soft; color: t.$reward-ink; }
+.account-role-tag--disabled { background: t.$background; color: t.$secondary; border: 1px solid t.$border; }
 .account-chevron { position: absolute; top: 36px; right: 16px; color: t.$disabled; }
 .account-assets { display: flex; align-items: stretch; margin: 8px -20px 22px; }
 .account-screen .account-asset { position: relative; flex: 1; min-width: 0; min-height: 88px; padding: 0 14px; }

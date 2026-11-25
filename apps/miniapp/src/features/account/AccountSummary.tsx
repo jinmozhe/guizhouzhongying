@@ -3,7 +3,14 @@ import type { ReactNode } from 'react'
 import { useDidShow } from '@tarojs/taro'
 import { Button, Image, View } from '@tarojs/components'
 import { useQuery } from '@tanstack/react-query'
-import type { ConsumerUserRead, ResponseModelConsumerMemberRead, ResponseModelConsumerPointsRead, ResponseModelConsumerUserRead, ResponseModelListConsumerWalletRead } from '@pinjie/api-client'
+import type {
+  ConsumerUserRead,
+  LocalRolesRead,
+  ResponseModelConsumerMemberRead,
+  ResponseModelConsumerPointsRead,
+  ResponseModelConsumerUserRead,
+  ResponseModelListConsumerWalletRead,
+} from '@pinjie/api-client'
 import { QueryState } from '@/components/QueryState'
 import { Icon } from '@/components/Icon'
 import { privateRequest, useSession } from '@/lib/session'
@@ -31,7 +38,19 @@ function Avatar({ url, open }: { url?: string | null; open: () => void }) {
   </View>
 }
 
-export function AccountSummary({ open, user, assets, children }: { open: Open; user?: ConsumerUserRead | null; assets?: Asset[]; children?: ReactNode }) {
+export function AccountSummary({
+  open,
+  user,
+  roles,
+  assets,
+  children,
+}: {
+  open: Open
+  user?: ConsumerUserRead | null
+  roles?: LocalRolesRead | null
+  assets?: Asset[]
+  children?: ReactNode
+}) {
   const loggedIn = !!user
   const target = loggedIn ? profilePath : accountPath
   const values = assets ?? [
@@ -39,12 +58,33 @@ export function AccountSummary({ open, user, assets, children }: { open: Open; u
     { label: '我的积分', value: '•••', path: pointsPath },
     { label: '佣金钱包', value: '•••', path: walletsPath },
   ]
+  const merchantRole = roles?.merchant_role ?? null
+  const propertyRole = roles?.property_role ?? null
+  const showRoleTags = loggedIn && !!roles
   return <View className='account-summary'>
     <View className='account-identity'>
       <Avatar url={user?.avatar} open={() => open(target)} />
       <Button className='account-identity-button' onClick={() => open(target)}>
         <View className='account-name'>{loggedIn ? user.display_name || '微信商城用户' : '未登录'}</View>
-        <View className='account-welcome'>欢迎来到众赢生活</View>
+        {showRoleTags ? (
+          <View className='account-roles'>
+            {roles.member !== false && (
+              <View className='account-role-tag account-role-tag--member'>普通会员</View>
+            )}
+            {merchantRole && (
+              <View className={`account-role-tag ${merchantRole.is_active ? 'account-role-tag--merchant' : 'account-role-tag--disabled'}`}>
+                商家 · {merchantRole.name}{merchantRole.is_active ? '' : '（已停用）'}
+              </View>
+            )}
+            {propertyRole && (
+              <View className={`account-role-tag ${propertyRole.is_active ? 'account-role-tag--property' : 'account-role-tag--disabled'}`}>
+                物业 · {propertyRole.name}{propertyRole.is_active ? '' : '（已停用）'}
+              </View>
+            )}
+          </View>
+        ) : (
+          <View className='account-welcome'>欢迎来到众赢生活</View>
+        )}
         <Icon className='account-chevron' name='ArrowRight' size={24} />
       </Button>
     </View>
@@ -62,7 +102,7 @@ export function AccountSummary({ open, user, assets, children }: { open: Open; u
   </View>
 }
 
-export function SignedInSummary({ open }: { open: Open }) {
+export function SignedInSummary({ open, roles }: { open: Open; roles?: LocalRolesRead | null }) {
   const session = useSession()
   const profile = useQuery({ queryKey: ['private', 'me', session.epoch], gcTime: 0, queryFn: ({ signal }) => privateRequest<ResponseModelConsumerUserRead>('/users/me', { signal }) })
   const membership = useQuery({ queryKey: ['private', 'membership', session.epoch], gcTime: 0, queryFn: ({ signal }) => privateRequest<ResponseModelConsumerMemberRead>('/distribution/me/profile', { signal }) })
@@ -90,7 +130,7 @@ export function SignedInSummary({ open }: { open: Open }) {
     { label: '我的积分', value: pointsValue, path: pointsPath },
     { label: '佣金钱包', value: walletValue('commission'), path: walletsPath },
   ]
-  return <AccountSummary open={open} user={profile.data ?? session.user} assets={assets}>
+  return <AccountSummary open={open} user={profile.data ?? session.user} roles={roles} assets={assets}>
     {profile.isPending && <View className='account-summary-notice'>正在更新账户资料</View>}
     {profile.isError && <QueryState title='账户信息读取失败' error={profile.error} retry={() => { void profile.refetch() }} />}
     {membership.isError && <QueryState title='会员状态读取失败' error={membership.error} retry={() => { void membership.refetch() }} />}

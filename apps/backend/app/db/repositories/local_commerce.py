@@ -54,6 +54,18 @@ class LocalActorsRepository:
             query = query.with_for_update()
         return (await self.session.scalars(query)).one_or_none()
 
+    async def merchants_by_users(self, user_ids: list[UUID]) -> dict[UUID, Merchant]:
+        if not user_ids:
+            return {}
+        rows = await self.session.scalars(select(Merchant).where(Merchant.user_id.in_(user_ids)))
+        return {row.user_id: row for row in rows if row.user_id is not None}
+
+    async def operators_by_users(self, user_ids: list[UUID]) -> dict[UUID, PropertyOperator]:
+        if not user_ids:
+            return {}
+        rows = await self.session.scalars(select(PropertyOperator).where(PropertyOperator.user_id.in_(user_ids)))
+        return {row.user_id: row for row in rows if row.user_id is not None}
+
     async def user(self, user_id: UUID, *, lock: bool = False) -> User | None:
         query = select(User).where(User.id == user_id).execution_options(populate_existing=True)
         if lock:
