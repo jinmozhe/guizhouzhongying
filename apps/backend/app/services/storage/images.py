@@ -184,7 +184,7 @@ def _normalize_srgb(image: Image.Image) -> tuple[Image.Image, bool]:
                 converted = ImageCms.profileToProfile(working, source_profile, srgb_profile, outputMode="RGB")
                 if converted is not None:
                     return converted, False
-        except OSError, ValueError, ImageCms.PyCMSError:
+        except (OSError, ValueError, ImageCms.PyCMSError):  # fmt: skip
             pass
 
     if working.mode != target_mode:

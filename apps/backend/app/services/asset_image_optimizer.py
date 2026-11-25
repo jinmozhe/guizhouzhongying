@@ -128,7 +128,7 @@ class AssetImageOptimizer:
             raw_bytes = await self._storage.read_bytes(old_key, max_bytes=_MAX_LEGACY_READ_BYTES)
         except FileNotFoundError:
             return LegacyOptimizationResult(asset_id, "file_missing", profile=profile, old_bytes=old_size)
-        except OSError, ValueError:
+        except (OSError, ValueError):  # fmt: skip
             return LegacyOptimizationResult(asset_id, "read_failed", profile=profile, old_bytes=old_size)
 
         if hashlib.sha256(raw_bytes).hexdigest() != old_hash:
@@ -247,7 +247,7 @@ class AssetImageOptimizer:
             try:
                 deletion = await self._storage.stage_delete(key)
                 await self._storage.purge(deletion)
-            except FileNotFoundError, OSError, ValueError:
+            except (FileNotFoundError, OSError, ValueError):  # fmt: skip
                 continue
 
 
