@@ -10,7 +10,11 @@ export function useCart() {
   return useQuery({
     queryKey: cartQueryKey(session.epoch),
     enabled: !!session.user?.phone_bound,
-    gcTime: 0,
+    // 登录后仅首次拉取用于点亮初始角标，后续由加购、购物车页操作与进入购物车页按需刷新。
+    staleTime: Infinity,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     queryFn: ({ signal }) => privateRequest<ResponseModelListConsumerCartItemRead>('/cart-items', { signal }),
   })
 }

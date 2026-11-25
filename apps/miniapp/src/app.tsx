@@ -6,6 +6,7 @@ import { configure } from '@nutui/icons-react-taro/dist/es/icons/configure'
 import { focusManager, onlineManager, QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/query'
 import { restoreSession } from './lib/session'
+import { consumePreviewAppHide, consumePreviewAppShow } from './platform/media'
 import { startRouteTrace, stopRouteTrace } from './platform/route-trace'
 import { CartBadge } from './features/cart'
 import './styles/app.scss'
@@ -19,8 +20,14 @@ export default function App({ children }: PropsWithChildren) {
   useLaunch((options) => {
     if (__ROUTE_TRACE_ENABLED__) startRouteTrace(options.path)
   })
-  useDidShow(() => { focusManager.setFocused(true) })
-  useDidHide(() => { focusManager.setFocused(false) })
+  useDidShow(() => {
+    if (consumePreviewAppShow()) return
+    focusManager.setFocused(true)
+  })
+  useDidHide(() => {
+    if (consumePreviewAppHide()) return
+    focusManager.setFocused(false)
+  })
   useEffect(() => {
     void restoreSession()
     let live = true
