@@ -40,14 +40,13 @@ function CartEmptyState({ needsLogin = false }: { needsLogin?: boolean }) {
 
 export function CartBadge() {
   const session = useSession()
-  const { badge, isError, refetch } = useCartBadge()
+  const { badge, isError } = useCartBadge()
   useEffect(() => {
     const operation = session.user?.phone_bound && !isError && badge
       ? Taro.setTabBarBadge({ index: 2, text: badge })
       : Taro.removeTabBarBadge({ index: 2 })
     void operation.catch(() => { /* App startup can precede the native tab bar. */ })
   }, [badge, isError, session.user])
-  useDidShow(() => { if (session.user?.phone_bound) void refetch() })
   return null
 }
 function Content() {
