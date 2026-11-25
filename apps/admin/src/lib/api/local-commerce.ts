@@ -1,5 +1,5 @@
 import type {
-  ActiveStatusBatch, BatchCompleted, MerchantInput, MerchantUpdate, MerchantRead,
+  ActiveStatusBatch, BatchCompleted, MerchantDetailRead, MerchantInput, MerchantUpdate,
   OperatorInput, OperatorUpdate, OperatorRead, PageResultMerchantRead, PageResultOperatorRead,
   PageResultReceivableRead, PageResultSettlementRead, PropertyTargetRead, SettlementCreate,
   SettlementPayment, SettlementRead, SettlementReversal, SettlementEventRead,
@@ -8,8 +8,9 @@ import { apiRequest, jsonBody } from "./http";
 
 export const localCommerceApi = {
   merchants: (page = 1, search = "") => apiRequest<PageResultMerchantRead>(`/api/v1/admin/merchants?page=${page}&page_size=20&search=${encodeURIComponent(search)}`),
-  createMerchant: (data: MerchantInput) => apiRequest<MerchantRead>("/api/v1/admin/merchants", { method: "POST", body: jsonBody(data) }),
-  updateMerchant: (id: string, data: MerchantUpdate) => apiRequest<MerchantRead>(`/api/v1/admin/merchants/${id}`, { method: "PUT", body: jsonBody(data) }),
+  merchant: (id: string) => apiRequest<MerchantDetailRead>(`/api/v1/admin/merchants/${id}`),
+  createMerchant: (data: MerchantInput) => apiRequest<MerchantDetailRead>("/api/v1/admin/merchants", { method: "POST", body: jsonBody(data) }),
+  updateMerchant: (id: string, data: MerchantUpdate) => apiRequest<MerchantDetailRead>(`/api/v1/admin/merchants/${id}`, { method: "PUT", body: jsonBody(data) }),
   merchantStatus: (data: ActiveStatusBatch) => apiRequest<BatchCompleted>("/api/v1/admin/merchants/status/batch", { method: "PATCH", body: jsonBody(data) }),
   operators: (page = 1, search = "") => apiRequest<PageResultOperatorRead>(`/api/v1/admin/property-operators?page=${page}&page_size=20&search=${encodeURIComponent(search)}`),
   createOperator: (data: OperatorInput) => apiRequest<OperatorRead>("/api/v1/admin/property-operators", { method: "POST", body: jsonBody(data) }),

@@ -1,10 +1,11 @@
 import { richTextStyle } from '@/styles/colors'
 import { useState } from 'react'
 import Taro, { useRouter } from '@tarojs/taro'
-import { Text, View } from '@tarojs/components'
+import { ScrollView, Text, View } from '@tarojs/components'
 import { useQuery } from '@tanstack/react-query'
-import type { ResponseModelPublicMerchantRead, ResponseModelPageResultPublicProductRead } from '@pinjie/api-client'
+import type { ResponseModelPublicMerchantDetailRead, ResponseModelPageResultPublicProductRead } from '@pinjie/api-client'
 import { getPublic } from '@/lib/api'
+import { previewImages } from '@/platform/media'
 import { ProductImage } from '@/components/ProductImage'
 import { QueryState } from '@/components/QueryState'
 import { Button } from '@/components/Button'
@@ -12,7 +13,7 @@ import { Icon } from '@/components/Icon'
 import './merchant.scss'
 
 export function MerchantCard({ merchantId }: { merchantId: string }) {
-  const query = useQuery({ queryKey: ['merchant-public', merchantId], queryFn: ({ signal }) => getPublic<ResponseModelPublicMerchantRead>(`/merchants/${merchantId}`, signal) })
+  const query = useQuery({ queryKey: ['merchant-public', merchantId], queryFn: ({ signal }) => getPublic<ResponseModelPublicMerchantDetailRead>(`/merchants/${merchantId}`, signal) })
   if (query.isPending) return <QueryState title='正在读取商家资料' />
   if (query.isError) return <QueryState title='商家资料读取失败' error={query.error} retry={() => { void query.refetch() }} />
   const merchant = query.data
@@ -68,12 +69,14 @@ export function MerchantCard({ merchantId }: { merchantId: string }) {
 export function MerchantPage() {
   const id = useRouter().params.id ?? ''
   const [page, setPage] = useState(1)
-  const merchant = useQuery({ queryKey: ['merchant-public', id], queryFn: ({ signal }) => getPublic<ResponseModelPublicMerchantRead>(`/merchants/${id}`, signal), enabled: !!id })
+  const merchant = useQuery({ queryKey: ['merchant-public', id], queryFn: ({ signal }) => getPublic<ResponseModelPublicMerchantDetailRead>(`/merchants/${id}`, signal), enabled: !!id })
   const products = useQuery({ queryKey: ['merchant-products', id, page], queryFn: ({ signal }) => getPublic<ResponseModelPageResultPublicProductRead>(`/products?merchant_id=${id}&page=${page}&page_size=20`, signal), enabled: !!id })
   if (!id) return <QueryState title='商家链接无效' />
   if (merchant.isPending) return <QueryState title='正在加载商家' />
   if (merchant.isError) return <QueryState title='商家加载失败' error={merchant.error} retry={() => { void merchant.refetch() }} />
   const row = merchant.data
+  const albumImages = row.album_images ?? []
+  const albumUrls = albumImages.map((item) => item.url)
   return <View className='page'>
     <View className='surface'><View className='trade-thumb'><ProductImage url={row.logo_url ?? undefined} /></View><View className='title'>{row.name}</View>
       {!row.is_active && <View className='note'>商家已暂停服务，未核销订单可申请退款。</View>}
@@ -81,6 +84,24 @@ export function MerchantPage() {
       {row.public_phone && <View>联系电话：{row.public_phone}</View>}
       {row.description_format === 'restricted_html_v1' && row.description && <mp-html container-style={richTextStyle} content={row.description} selectable copy-link={false} use-anchor={false} />}
     </View>
+    {albumImages.length > 0 && <View className='surface merchant-album'>
+      <View className='merchant-album-header'>
+        <Text className='merchant-album-title'>商家相册</Text>
+        <Text className='merchant-album-count'>共 {albumImages.length} 张</Text>
+      </View>
+      <ScrollView className='merchant-album-scroll' scrollX enhanced showScrollbar={false}>
+        <View className='merchant-album-row'>
+          {albumImages.map((image, index) => <View
+            key={`${image.url}-${index}`}
+            className='merchant-album-tile'
+            ariaRole='button'
+            ariaLabel={`预览商家相册第 ${index + 1} 张图片`}
+          >
+            <ProductImage url={image.url} mode='aspectFill' onClick={() => { void previewImages(albumUrls, image.url) }} />
+          </View>)}
+        </View>
+      </ScrollView>
+    </View>}
     <View className='section-title'>商家商品</View>
     {products.isPending && <QueryState title='正在加载商品' />}
     {products.isError && <QueryState title='商品加载失败' error={products.error} retry={() => { void products.refetch() }} />}

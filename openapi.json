@@ -210,7 +210,7 @@
         "tags": [
           "到店商家与物业"
         ],
-        "summary": "查看商家公开资料",
+        "summary": "查看商家公开资料及相册",
         "operationId": "public_merchant_api_v1_merchants__merchant_id__get",
         "parameters": [
           {
@@ -230,7 +230,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponseModel_PublicMerchantRead_"
+                  "$ref": "#/components/schemas/ResponseModel_PublicMerchantDetailRead_"
                 }
               }
             }
@@ -380,7 +380,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponseModel_MerchantRead_"
+                  "$ref": "#/components/schemas/ResponseModel_MerchantDetailRead_"
                 }
               }
             }
@@ -399,11 +399,68 @@
       }
     },
     "/api/v1/admin/merchants/{merchant_id}": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "查看单个商家详情及完整相册",
+        "operationId": "admin_merchant_api_v1_admin_merchants__merchant_id__get",
+        "parameters": [
+          {
+            "name": "merchant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Merchant Id"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_MerchantDetailRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "put": {
         "tags": [
           "到店商家与物业"
         ],
-        "summary": "修改商家资料与核销授权",
+        "summary": "修改商家资料、相册与核销授权",
         "operationId": "update_merchant_api_v1_admin_merchants__merchant_id__put",
         "parameters": [
           {
@@ -449,7 +506,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponseModel_MerchantRead_"
+                  "$ref": "#/components/schemas/ResponseModel_MerchantDetailRead_"
                 }
               }
             }
@@ -26597,6 +26654,245 @@
         ],
         "title": "MembershipQualificationEventRead"
       },
+      "MerchantAlbumImageRead": {
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Asset Id",
+            "description": "图片资产 ID"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "受控公开访问路径"
+          },
+          "original_name": {
+            "type": "string",
+            "title": "Original Name",
+            "description": "原始文件名"
+          },
+          "file_size": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "File Size",
+            "description": "文件大小，字节"
+          },
+          "width": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width",
+            "description": "核验后的展示宽度"
+          },
+          "height": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height",
+            "description": "核验后的展示高度"
+          },
+          "frame_count": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Count",
+            "description": "核验后的帧数"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "asset_id",
+          "url",
+          "original_name",
+          "file_size"
+        ],
+        "title": "MerchantAlbumImageRead"
+      },
+      "MerchantDetailRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "description": "资源名称"
+          },
+          "phone_e164": {
+            "type": "string",
+            "pattern": "^\\+[1-9][0-9]{6,14}$",
+            "title": "Phone E164",
+            "description": "国际格式授权手机号，中国手机号填写 +86"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true,
+            "description": "资源当前是否启用"
+          },
+          "logo_asset_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Asset Id",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Description",
+            "default": "",
+            "description": "资源说明文本"
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Address",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude",
+            "description": "公开门店纬度，GCJ-02"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,6}0*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude",
+            "description": "公开门店经度，GCJ-02"
+          },
+          "business_hours": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Business Hours",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "public_phone": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Public Phone",
+            "default": "",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 2147483647.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id",
+            "description": "用户标识"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "资源并发控制版本"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "album_image_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Album Image Count",
+            "description": "已绑定的商家相册图片数量",
+            "default": 0
+          },
+          "album_images": {
+            "items": {
+              "$ref": "#/components/schemas/MerchantAlbumImageRead"
+            },
+            "type": "array",
+            "title": "Album Images",
+            "description": "有序商家相册图片明细"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "phone_e164",
+          "id",
+          "user_id",
+          "revision"
+        ],
+        "title": "MerchantDetailRead"
+      },
       "MerchantInput": {
         "properties": {
           "name": {
@@ -26708,6 +27004,16 @@
             ],
             "title": "Sort Order",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "album_image_asset_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Album Image Asset Ids",
+            "description": "有序商家相册图片资产 ID，最多 20 张"
           }
         },
         "additionalProperties": false,
@@ -26855,6 +27161,13 @@
             ],
             "title": "Logo Url",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "album_image_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Album Image Count",
+            "description": "已绑定的商家相册图片数量",
+            "default": 0
           }
         },
         "additionalProperties": false,
@@ -26985,6 +27298,23 @@
             "exclusiveMinimum": 0.0,
             "title": "Revision",
             "description": "资源并发控制版本"
+          },
+          "album_image_asset_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array",
+                "maxItems": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Album Image Asset Ids",
+            "description": "完整有序商家相册图片资产 ID；省略时保留原相册，空数组解除全部关联"
           }
         },
         "additionalProperties": false,
@@ -31450,6 +31780,137 @@
         ],
         "title": "PublicDetailImageRead"
       },
+      "PublicMerchantAlbumImageRead": {
+        "properties": {
+          "url": {
+            "type": "string",
+            "title": "Url",
+            "description": "受控公开访问路径"
+          },
+          "width": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Width",
+            "description": "服务端核验的展示宽度"
+          },
+          "height": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Height",
+            "description": "服务端核验的展示高度"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "width",
+          "height"
+        ],
+        "title": "PublicMerchantAlbumImageRead"
+      },
+      "PublicMerchantDetailRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "资源唯一标识"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "资源名称"
+          },
+          "logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Url",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "资源说明文本"
+          },
+          "description_format": {
+            "type": "string",
+            "const": "restricted_html_v1",
+            "title": "Description Format",
+            "default": "restricted_html_v1",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude",
+            "description": "公开门店纬度，GCJ-02"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude",
+            "description": "公开门店经度，GCJ-02"
+          },
+          "business_hours": {
+            "type": "string",
+            "title": "Business Hours",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "public_phone": {
+            "type": "string",
+            "title": "Public Phone",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "资源当前是否启用"
+          },
+          "album_images": {
+            "items": {
+              "$ref": "#/components/schemas/PublicMerchantAlbumImageRead"
+            },
+            "type": "array",
+            "title": "Album Images",
+            "description": "公开有序商家相册图片列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "address",
+          "business_hours",
+          "public_phone",
+          "is_active"
+        ],
+        "title": "PublicMerchantDetailRead"
+      },
       "PublicMerchantRead": {
         "properties": {
           "id": {
@@ -34589,7 +35050,7 @@
         ],
         "title": "ResponseModel[MemberPriceRuleRead]"
       },
-      "ResponseModel_MerchantRead_": {
+      "ResponseModel_MerchantDetailRead_": {
         "properties": {
           "code": {
             "type": "string",
@@ -34602,7 +35063,7 @@
             "description": "面向调用方的中文结果消息"
           },
           "data": {
-            "$ref": "#/components/schemas/MerchantRead",
+            "$ref": "#/components/schemas/MerchantDetailRead",
             "description": "响应业务数据"
           },
           "request_id": {
@@ -34619,7 +35080,7 @@
           "data",
           "request_id"
         ],
-        "title": "ResponseModel[MerchantRead]"
+        "title": "ResponseModel[MerchantDetailRead]"
       },
       "ResponseModel_MiniappRegistrationRead_": {
         "properties": {
@@ -36606,7 +37067,7 @@
         ],
         "title": "ResponseModel[PropertyTargetRead]"
       },
-      "ResponseModel_PublicMerchantRead_": {
+      "ResponseModel_PublicMerchantDetailRead_": {
         "properties": {
           "code": {
             "type": "string",
@@ -36619,7 +37080,7 @@
             "description": "面向调用方的中文结果消息"
           },
           "data": {
-            "$ref": "#/components/schemas/PublicMerchantRead",
+            "$ref": "#/components/schemas/PublicMerchantDetailRead",
             "description": "响应业务数据"
           },
           "request_id": {
@@ -36636,7 +37097,7 @@
           "data",
           "request_id"
         ],
-        "title": "ResponseModel[PublicMerchantRead]"
+        "title": "ResponseModel[PublicMerchantDetailRead]"
       },
       "ResponseModel_PublicProductDetailRead_": {
         "properties": {

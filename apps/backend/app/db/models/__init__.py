@@ -66,6 +66,7 @@ from .inventory import InventoryAccount, InventoryMovement
 from .local_commerce import (
     LocalBindingEvent,
     Merchant,
+    MerchantAlbumImage,
     MerchantPaymentEvent,
     MerchantReceivable,
     MerchantSettlement,
@@ -85,6 +86,7 @@ __all__ = [
     "MerchantPaymentEvent",
     "LocalBindingEvent",
     "Merchant",
+    "MerchantAlbumImage",
     "MerchantReceivable",
     "MerchantSettlement",
     "OrderPointsReservation",

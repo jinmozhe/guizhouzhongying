@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+### 商家相册管理与小程序详情展示
+
+- 后端新增 `merchant_album_images` 有序关联表与 `20261125_01` Alembic 迁移，复用平台 `assets`（`product` 场景）保存门店环境、门头与资质证书等静态图片（JPG/PNG/WebP，单家最多 20 张，单图 ≤ 5 MiB，整组 ≤ 50 MiB，核验可信尺寸与单帧静态图），保存时按 `Asset.id` 升序统一加锁并接入资产删除引用拦截。
+- 后端拆分商家列表与详情契约：新增 `GET /api/v1/admin/merchants/{merchant_id}` 返回完整相册明细，管理端商家列表补充 `album_image_count` 聚合计数；`GET /api/v1/merchants/{merchant_id}` 返回 `PublicMerchantDetailRead` 公开有序相册投影，公开列表继续保持轻量；`PUT /api/v1/admin/merchants/{merchant_id}` 仅在显式提交 `album_image_asset_ids` 时更新相册，避免缺字段静默清空与契约破坏性变更。同步导出 `openapi.json` 并重新生成 `@pinjie/api-client`。
+- 管理端商家列表新增相册张数列；新增/编辑商家弹窗加宽至 `880px` 并拆分为“基础资料”与“商家相册”双 Tab，支持多图串行上传队列、失败原位重试、从素材库多选、任意位置排序与 `StandardConfirmModal` 移除二次确认，与基础资料一次保存生效。
+- 小程序商家详情页在商家基础信息下方、商家商品上方新增固定高度（`180 rpx`）横向滑动商家相册（默认显示 2.5 张图片，可左右滑动查看更多）并支持微信原生全屏左右滑动预览，无相册图片时自动隐藏区块。本机开发库 `guizhouzhongying_dev` 已备份并升级至 `20261125_01` 且 `alembic check` 无漂移；重型自动化测试与微信动态验收未执行。
+
 ### 管理端积分手机号查人与流水归属优化
 
 - 后端新增 `POST /api/v1/admin/points-adjustments/lookup-user` 接口（`points:adjust` + CSRF），支持按 11 位手机号或 E.164 号码核验有效已绑手机号用户并返回当前积分余额；`PointsService.adjust` 补充事务内目标用户存在及启用状态校验，继续保持后台发分计入升级资格、物业发分不计入的既有规则。
