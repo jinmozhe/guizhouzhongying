@@ -9,7 +9,7 @@ from app.core.error_codes import ErrorCode
 from app.core.exceptions import AppException
 from app.core.identifiers import new_uuid7
 from app.core.pagination import PageResult
-from app.db.models import LocalBindingEvent, Merchant, PropertyGrant, PropertyOperator, User
+from app.db.models import Asset, LocalBindingEvent, Merchant, PropertyGrant, PropertyOperator, User
 from app.db.repositories import SessionRepository
 from app.db.repositories.local_commerce import LocalActorsRepository
 from app.db.transaction import transaction_scope
@@ -18,7 +18,12 @@ from app.domains.points import PointsService
 from app.domains.products.repository import ProductRepository
 from app.services.admin_audit import AdminAuditCoordinator
 from app.services.local_commerce_schemas import (
+    MERCHANT_ALBUM_MAX_COUNT,
+    MERCHANT_ALBUM_MAX_FILE_BYTES,
+    MERCHANT_ALBUM_MAX_TOTAL_BYTES,
     LocalRolesRead,
+    MerchantAlbumImageRead,
+    MerchantDetailRead,
     MerchantInput,
     MerchantRead,
     MerchantUpdate,
@@ -28,12 +33,43 @@ from app.services.local_commerce_schemas import (
     PropertyGrantCreate,
     PropertyGrantRead,
     PropertyTargetRead,
+    PublicMerchantAlbumImageRead,
+    PublicMerchantDetailRead,
     PublicMerchantRead,
 )
+
+_ALBUM_ALLOWED_MIMES = frozenset({"image/jpeg", "image/png", "image/webp"})
+_ALBUM_ALLOWED_UPLOADERS = frozenset({"admin", "system"})
 
 
 def local_conflict(message: str) -> AppException:
     return AppException(status_code=409, code=ErrorCode.STATE_CONFLICT, message=message)
+
+
+def validate_merchant_album_assets(album_ids: list[UUID], assets_by_id: dict[UUID, Asset]) -> None:
+    """校验商家相册资产列表符合数量、格式、静态图、可信尺寸及体积预算约束。"""
+    if len(album_ids) > MERCHANT_ALBUM_MAX_COUNT:
+        raise local_conflict(f"商家相册最多支持 {MERCHANT_ALBUM_MAX_COUNT} 张图片")
+    if len(album_ids) != len(set(album_ids)):
+        raise local_conflict("商家相册图片不能重复")
+    total_bytes = 0
+    for asset_id in album_ids:
+        asset = assets_by_id.get(asset_id)
+        if asset is None:
+            raise local_conflict("商家相册引用的图片资产不存在或已删除")
+        if asset.uploader_type not in _ALBUM_ALLOWED_UPLOADERS or asset.scene != "product":
+            raise local_conflict("商家相册必须使用后台上传的商品/商家图片资产")
+        if asset.mime_type not in _ALBUM_ALLOWED_MIMES:
+            raise local_conflict("商家相册仅支持 JPG、PNG 或 WebP 格式图片")
+        if asset.width is None or asset.height is None or asset.frame_count is None:
+            raise local_conflict("存在未核验尺寸的历史图片资产，请先补齐元数据或重新上传")
+        if asset.frame_count != 1:
+            raise local_conflict("商家相册仅支持静态图片，不支持动图")
+        if asset.file_size > MERCHANT_ALBUM_MAX_FILE_BYTES:
+            raise local_conflict("商家相册单张图片大小不能超过 5 MiB")
+        total_bytes += asset.file_size
+    if total_bytes > MERCHANT_ALBUM_MAX_TOTAL_BYTES:
+        raise local_conflict("商家相册整组图片总大小不能超过 50 MiB")
 
 
 class LocalActorsService:
@@ -128,18 +164,57 @@ class LocalActorsService:
             else None,
         )
 
-    async def merchant_read(self, row: Merchant) -> MerchantRead:
-        asset = await self.repository.asset(row.logo_asset_id) if row.logo_asset_id else None
-        return MerchantRead.model_validate(row).model_copy(update={"logo_url": asset.url if asset else None})
+    @staticmethod
+    def _album_item_read(asset: Asset) -> MerchantAlbumImageRead:
+        return MerchantAlbumImageRead(
+            asset_id=asset.id,
+            url=asset.url,
+            original_name=asset.original_name,
+            file_size=asset.file_size,
+            width=asset.width,
+            height=asset.height,
+            frame_count=asset.frame_count,
+        )
 
-    async def public_merchant(self, merchant_id: UUID) -> PublicMerchantRead:
+    async def merchant_read(
+        self, row: Merchant, *, logo_url: str | None = None, album_image_count: int = 0
+    ) -> MerchantRead:
+        return MerchantRead.model_validate(row).model_copy(
+            update={"logo_url": logo_url, "album_image_count": album_image_count}
+        )
+
+    async def merchant_detail_read(self, row: Merchant) -> MerchantDetailRead:
+        asset = await self.repository.asset(row.logo_asset_id) if row.logo_asset_id else None
+        album_assets = await self.repository.merchant_album_images(row.id)
+        album_items = [self._album_item_read(item) for item in album_assets]
+        return MerchantDetailRead.model_validate(row).model_copy(
+            update={
+                "logo_url": asset.url if asset else None,
+                "album_image_count": len(album_items),
+                "album_images": album_items,
+            }
+        )
+
+    async def admin_merchant(self, merchant_id: UUID) -> MerchantDetailRead:
         row = await self.repository.actor(Merchant, merchant_id)
         if row is None:
             raise AppException(status_code=404, code=ErrorCode.NOT_FOUND, message="商家不存在")
-        result = PublicMerchantRead.model_validate(row)
+        return await self.merchant_detail_read(row)
+
+    async def public_merchant(self, merchant_id: UUID) -> PublicMerchantDetailRead:
+        row = await self.repository.actor(Merchant, merchant_id)
+        if row is None:
+            raise AppException(status_code=404, code=ErrorCode.NOT_FOUND, message="商家不存在")
         asset = await self.repository.asset(row.logo_asset_id) if row.logo_asset_id else None
-        result.logo_url = asset.url if asset else None
-        return result
+        album_assets = await self.repository.merchant_album_images(row.id)
+        album_items: list[PublicMerchantAlbumImageRead] = []
+        for item in album_assets:
+            if item.width is None or item.height is None:
+                raise AppException(status_code=500, code=ErrorCode.INTERNAL_ERROR, message="商家相册图片元数据不完整")
+            album_items.append(PublicMerchantAlbumImageRead(url=item.url, width=item.width, height=item.height))
+        return PublicMerchantDetailRead.model_validate(row).model_copy(
+            update={"logo_url": asset.url if asset else None, "album_images": album_items}
+        )
 
     async def category_merchants(self, category_id: UUID | None, search: str | None) -> list[PublicMerchantRead]:
         ids = await ProductRepository(self.session).public_merchant_ids(category_id, search)
@@ -163,9 +238,18 @@ class LocalActorsService:
 
     async def merchants(self, page: int, page_size: int, search: str | None) -> PageResult[MerchantRead]:
         rows, total = await self.repository.page(Merchant, page, page_size, search)
-        return PageResult[MerchantRead].create(
-            items=[await self.merchant_read(row) for row in rows], total=total, page=page, page_size=page_size
-        )
+        logo_ids = list({row.logo_asset_id for row in rows if row.logo_asset_id is not None})
+        logos = {item.id: item.url for item in await self.repository.assets(logo_ids)}
+        album_counts = await self.repository.merchant_album_counts([row.id for row in rows])
+        items = [
+            await self.merchant_read(
+                row,
+                logo_url=logos.get(row.logo_asset_id) if row.logo_asset_id is not None else None,
+                album_image_count=album_counts.get(row.id, 0),
+            )
+            for row in rows
+        ]
+        return PageResult[MerchantRead].create(items=items, total=total, page=page, page_size=page_size)
 
     async def operators(self, page: int, page_size: int, search: str | None) -> PageResult[OperatorRead]:
         rows, total = await self.repository.page(PropertyOperator, page, page_size, search)
@@ -197,18 +281,41 @@ class LocalActorsService:
             row = existing
             previous_user = row.user_id
             row.revision += 1
-        fields = data.model_dump(exclude={"revision"})
-        if isinstance(data, MerchantInput) and "latitude" not in data.model_fields_set:
+        fields = data.model_dump(exclude={"revision", "album_image_asset_ids"})
+        if isinstance(data, (MerchantInput, MerchantUpdate)) and "latitude" not in data.model_fields_set:
             fields.pop("latitude")
             fields.pop("longitude")
         for field, value in fields.items():
             setattr(row, field, value)
-        if isinstance(row, Merchant) and row.logo_asset_id is not None:
-            asset = await self.repository.asset(row.logo_asset_id, lock=True)
-            if asset is None or asset.uploader_type != "admin" or not asset.mime_type.startswith("image/"):
-                raise local_conflict("商家 LOGO 必须使用后台上传的图片资产")
+        update_album = isinstance(row, Merchant) and (
+            isinstance(data, MerchantInput)
+            or (isinstance(data, MerchantUpdate) and "album_image_asset_ids" in data.model_fields_set)
+        )
+        album_ids: list[UUID] = (
+            list(data.album_image_asset_ids or [])
+            if update_album and isinstance(data, (MerchantInput, MerchantUpdate))
+            else []
+        )
+        if isinstance(row, Merchant):
+            lock_ids: set[UUID] = set(album_ids)
+            if row.logo_asset_id is not None:
+                lock_ids.add(row.logo_asset_id)
+            locked_assets = await self.repository.assets(sorted(lock_ids), lock=True)
+            assets_by_id = {item.id: item for item in locked_assets}
+            if row.logo_asset_id is not None:
+                logo_asset = assets_by_id.get(row.logo_asset_id)
+                if (
+                    logo_asset is None
+                    or logo_asset.uploader_type != "admin"
+                    or not logo_asset.mime_type.startswith("image/")
+                ):
+                    raise local_conflict("商家 LOGO 必须使用后台上传的图片资产")
+            if update_album:
+                validate_merchant_album_assets(album_ids, assets_by_id)
         row.user_id = user.id if user else None
         await self.repository.save(row)
+        if isinstance(row, Merchant) and update_album:
+            await self.repository.replace_merchant_album_images(row.id, album_ids)
         if resource_id is None or previous_user != row.user_id:
             await self.repository.save(
                 LocalBindingEvent(
@@ -222,18 +329,23 @@ class LocalActorsService:
             )
         return row
 
-    async def save_merchant(self, data: MerchantInput, merchant_id: UUID | None = None) -> MerchantRead:
+    async def save_merchant(
+        self, data: MerchantInput | MerchantUpdate, merchant_id: UUID | None = None
+    ) -> MerchantDetailRead:
         if self.audit is None:
             raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="需要后台权限")
 
-        async def operation() -> MerchantRead:
-            return await self.merchant_read(await self._save(Merchant, data, merchant_id))
+        async def operation() -> MerchantDetailRead:
+            return await self.merchant_detail_read(await self._save(Merchant, data, merchant_id))
 
+        changed: dict[str, object] = {"name": data.name, "is_active": data.is_active}
+        if isinstance(data, MerchantInput) or "album_image_asset_ids" in data.model_fields_set:
+            changed["album_image_count"] = len(data.album_image_asset_ids or [])
         return await self.audit.execute(
             action=PermissionCode.MERCHANTS_UPDATE.value,
             target_type="merchant",
             target_id=merchant_id,
-            changed_fields={"name": data.name, "is_active": data.is_active},
+            changed_fields=changed,
             operation=operation,
         )
 

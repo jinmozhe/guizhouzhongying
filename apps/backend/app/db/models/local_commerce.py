@@ -56,6 +56,23 @@ class Merchant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     revision: Mapped[int] = mapped_column(Integer, default=1, comment="资料版本")
 
 
+class MerchantAlbumImage(Base):
+    __tablename__ = "merchant_album_images"
+    __table_args__ = (
+        UniqueConstraint("merchant_id", "position", name="uq_merchant_album_image_position"),
+        CheckConstraint("position >= 0", name="ck_merchant_album_image_position"),
+        Index("ix_merchant_album_images_asset", "asset_id"),
+        {"comment": "商家相册图片的独立有序资产引用"},
+    )
+    merchant_id: Mapped[UUID] = mapped_column(
+        ForeignKey("merchants.id", ondelete="RESTRICT"), primary_key=True, comment="所属商家"
+    )
+    asset_id: Mapped[UUID] = mapped_column(
+        ForeignKey("assets.id", ondelete="RESTRICT"), primary_key=True, comment="引用图片资产"
+    )
+    position: Mapped[int] = mapped_column(Integer, nullable=False, comment="相册内连续展示序号")
+
+
 class PropertyOperator(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "property_operators"
     __table_args__ = (

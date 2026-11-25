@@ -5842,6 +5842,162 @@ export type MembershipQualificationEventRead = {
 };
 
 /**
+ * MerchantAlbumImageRead
+ */
+export type MerchantAlbumImageRead = {
+    /**
+     * Asset Id
+     *
+     * 图片资产 ID
+     */
+    asset_id: string;
+    /**
+     * Url
+     *
+     * 受控公开访问路径
+     */
+    url: string;
+    /**
+     * Original Name
+     *
+     * 原始文件名
+     */
+    original_name: string;
+    /**
+     * File Size
+     *
+     * 文件大小，字节
+     */
+    file_size: number;
+    /**
+     * Width
+     *
+     * 核验后的展示宽度
+     */
+    width?: number | null;
+    /**
+     * Height
+     *
+     * 核验后的展示高度
+     */
+    height?: number | null;
+    /**
+     * Frame Count
+     *
+     * 核验后的帧数
+     */
+    frame_count?: number | null;
+};
+
+/**
+ * MerchantDetailRead
+ */
+export type MerchantDetailRead = {
+    /**
+     * Name
+     *
+     * 资源名称
+     */
+    name: string;
+    /**
+     * Phone E164
+     *
+     * 国际格式授权手机号，中国手机号填写 +86
+     */
+    phone_e164: string;
+    /**
+     * Is Active
+     *
+     * 资源当前是否启用
+     */
+    is_active?: boolean;
+    /**
+     * Logo Asset Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    logo_asset_id?: string | null;
+    /**
+     * Description
+     *
+     * 资源说明文本
+     */
+    description?: string;
+    /**
+     * Address
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    address?: string;
+    /**
+     * Latitude
+     *
+     * 公开门店纬度，GCJ-02
+     */
+    latitude?: string | null;
+    /**
+     * Longitude
+     *
+     * 公开门店经度，GCJ-02
+     */
+    longitude?: string | null;
+    /**
+     * Business Hours
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    business_hours?: string;
+    /**
+     * Public Phone
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    public_phone?: string;
+    /**
+     * Sort Order
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    sort_order?: number | null;
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * User Id
+     *
+     * 用户标识
+     */
+    user_id: string | null;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+    /**
+     * Logo Url
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    logo_url?: string | null;
+    /**
+     * Album Image Count
+     *
+     * 已绑定的商家相册图片数量
+     */
+    album_image_count?: number;
+    /**
+     * Album Images
+     *
+     * 有序商家相册图片明细
+     */
+    album_images?: Array<MerchantAlbumImageRead>;
+};
+
+/**
  * MerchantInput
  */
 export type MerchantInput = {
@@ -5911,6 +6067,12 @@ export type MerchantInput = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     sort_order?: number | null;
+    /**
+     * Album Image Asset Ids
+     *
+     * 有序商家相册图片资产 ID，最多 20 张
+     */
+    album_image_asset_ids?: Array<string>;
 };
 
 /**
@@ -6007,6 +6169,12 @@ export type MerchantRead = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     logo_url?: string | null;
+    /**
+     * Album Image Count
+     *
+     * 已绑定的商家相册图片数量
+     */
+    album_image_count?: number;
 };
 
 /**
@@ -6085,6 +6253,12 @@ export type MerchantUpdate = {
      * 资源并发控制版本
      */
     revision: number;
+    /**
+     * Album Image Asset Ids
+     *
+     * 完整有序商家相册图片资产 ID；省略时保留原相册，空数组解除全部关联
+     */
+    album_image_asset_ids?: Array<string> | null;
 };
 
 /**
@@ -9412,6 +9586,108 @@ export type PublicDetailImageRead = {
 };
 
 /**
+ * PublicMerchantAlbumImageRead
+ */
+export type PublicMerchantAlbumImageRead = {
+    /**
+     * Url
+     *
+     * 受控公开访问路径
+     */
+    url: string;
+    /**
+     * Width
+     *
+     * 服务端核验的展示宽度
+     */
+    width: number;
+    /**
+     * Height
+     *
+     * 服务端核验的展示高度
+     */
+    height: number;
+};
+
+/**
+ * PublicMerchantDetailRead
+ */
+export type PublicMerchantDetailRead = {
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * Name
+     *
+     * 资源名称
+     */
+    name: string;
+    /**
+     * Logo Url
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    logo_url?: string | null;
+    /**
+     * Description
+     *
+     * 资源说明文本
+     */
+    description: string;
+    /**
+     * Description Format
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    description_format?: 'restricted_html_v1';
+    /**
+     * Address
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    address: string;
+    /**
+     * Latitude
+     *
+     * 公开门店纬度，GCJ-02
+     */
+    latitude?: number | null;
+    /**
+     * Longitude
+     *
+     * 公开门店经度，GCJ-02
+     */
+    longitude?: number | null;
+    /**
+     * Business Hours
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    business_hours: string;
+    /**
+     * Public Phone
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    public_phone: string;
+    /**
+     * Is Active
+     *
+     * 资源当前是否启用
+     */
+    is_active: boolean;
+    /**
+     * Album Images
+     *
+     * 公开有序商家相册图片列表
+     */
+    album_images?: Array<PublicMerchantAlbumImageRead>;
+};
+
+/**
  * PublicMerchantRead
  */
 export type PublicMerchantRead = {
@@ -11906,9 +12182,9 @@ export type ResponseModelMemberPriceRuleRead = {
 };
 
 /**
- * ResponseModel[MerchantRead]
+ * ResponseModel[MerchantDetailRead]
  */
-export type ResponseModelMerchantRead = {
+export type ResponseModelMerchantDetailRead = {
     /**
      * Code
      *
@@ -11924,7 +12200,7 @@ export type ResponseModelMerchantRead = {
     /**
      * 响应业务数据
      */
-    data: MerchantRead;
+    data: MerchantDetailRead;
     /**
      * Request Id
      *
@@ -13672,9 +13948,9 @@ export type ResponseModelPropertyTargetRead = {
 };
 
 /**
- * ResponseModel[PublicMerchantRead]
+ * ResponseModel[PublicMerchantDetailRead]
  */
-export type ResponseModelPublicMerchantRead = {
+export type ResponseModelPublicMerchantDetailRead = {
     /**
      * Code
      *
@@ -13690,7 +13966,7 @@ export type ResponseModelPublicMerchantRead = {
     /**
      * 响应业务数据
      */
-    data: PublicMerchantRead;
+    data: PublicMerchantDetailRead;
     /**
      * Request Id
      *
@@ -16758,7 +17034,7 @@ export type PublicMerchantApiV1MerchantsMerchantIdGetResponses = {
     /**
      * 请求成功
      */
-    200: ResponseModelPublicMerchantRead;
+    200: ResponseModelPublicMerchantDetailRead;
 };
 
 export type PublicMerchantApiV1MerchantsMerchantIdGetResponse = PublicMerchantApiV1MerchantsMerchantIdGetResponses[keyof PublicMerchantApiV1MerchantsMerchantIdGetResponses];
@@ -16825,10 +17101,40 @@ export type CreateMerchantApiV1AdminMerchantsPostResponses = {
     /**
      * 请求成功
      */
-    201: ResponseModelMerchantRead;
+    201: ResponseModelMerchantDetailRead;
 };
 
 export type CreateMerchantApiV1AdminMerchantsPostResponse = CreateMerchantApiV1AdminMerchantsPostResponses[keyof CreateMerchantApiV1AdminMerchantsPostResponses];
+
+export type AdminMerchantApiV1AdminMerchantsMerchantIdGetData = {
+    body?: never;
+    path: {
+        /**
+         * Merchant Id
+         */
+        merchant_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/merchants/{merchant_id}';
+};
+
+export type AdminMerchantApiV1AdminMerchantsMerchantIdGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type AdminMerchantApiV1AdminMerchantsMerchantIdGetError = AdminMerchantApiV1AdminMerchantsMerchantIdGetErrors[keyof AdminMerchantApiV1AdminMerchantsMerchantIdGetErrors];
+
+export type AdminMerchantApiV1AdminMerchantsMerchantIdGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelMerchantDetailRead;
+};
+
+export type AdminMerchantApiV1AdminMerchantsMerchantIdGetResponse = AdminMerchantApiV1AdminMerchantsMerchantIdGetResponses[keyof AdminMerchantApiV1AdminMerchantsMerchantIdGetResponses];
 
 export type UpdateMerchantApiV1AdminMerchantsMerchantIdPutData = {
     body: MerchantUpdate;
@@ -16855,7 +17161,7 @@ export type UpdateMerchantApiV1AdminMerchantsMerchantIdPutResponses = {
     /**
      * 请求成功
      */
-    200: ResponseModelMerchantRead;
+    200: ResponseModelMerchantDetailRead;
 };
 
 export type UpdateMerchantApiV1AdminMerchantsMerchantIdPutResponse = UpdateMerchantApiV1AdminMerchantsMerchantIdPutResponses[keyof UpdateMerchantApiV1AdminMerchantsMerchantIdPutResponses];

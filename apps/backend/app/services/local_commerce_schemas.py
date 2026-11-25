@@ -38,7 +38,30 @@ class OperatorRead(OperatorInput):
     revision: int
 
 
-class MerchantInput(OperatorInput):
+MERCHANT_ALBUM_MAX_COUNT = 20
+MERCHANT_ALBUM_MAX_FILE_BYTES = 5 * 1024 * 1024
+MERCHANT_ALBUM_MAX_TOTAL_BYTES = 50 * 1024 * 1024
+
+
+class MerchantAlbumImageRead(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    asset_id: UUID = Field(description="图片资产 ID")
+    url: str = Field(description="受控公开访问路径")
+    original_name: str = Field(description="原始文件名")
+    file_size: int = Field(gt=0, description="文件大小，字节")
+    width: int | None = Field(default=None, gt=0, description="核验后的展示宽度")
+    height: int | None = Field(default=None, gt=0, description="核验后的展示高度")
+    frame_count: int | None = Field(default=None, gt=0, description="核验后的帧数")
+
+
+class PublicMerchantAlbumImageRead(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    url: str = Field(description="受控公开访问路径")
+    width: int = Field(gt=0, description="服务端核验的展示宽度")
+    height: int = Field(gt=0, description="服务端核验的展示高度")
+
+
+class MerchantBase(OperatorInput):
     logo_asset_id: UUID | None = None
     description: Annotated[str, AfterValidator(restricted_html)] = Field(default="", max_length=20000)
     address: str = Field(default="", max_length=300)
@@ -58,16 +81,54 @@ class MerchantInput(OperatorInput):
         return self
 
 
-class MerchantUpdate(MerchantInput):
+class MerchantInput(MerchantBase):
+    album_image_asset_ids: list[UUID] = Field(
+        default_factory=list,
+        max_length=MERCHANT_ALBUM_MAX_COUNT,
+        description="有序商家相册图片资产 ID，最多 20 张",
+    )
+
+    @field_validator("album_image_asset_ids")
+    @classmethod
+    def unique_album_images(cls, values: list[UUID]) -> list[UUID]:
+        if len(values) != len(set(values)):
+            raise ValueError("商家相册图片不能重复")
+        return values
+
+
+class MerchantUpdate(MerchantBase):
     revision: int = Field(gt=0)
+    album_image_asset_ids: list[UUID] | None = Field(
+        default=None,
+        max_length=MERCHANT_ALBUM_MAX_COUNT,
+        description="完整有序商家相册图片资产 ID；省略时保留原相册，空数组解除全部关联",
+    )
+
+    @field_validator("album_image_asset_ids")
+    @classmethod
+    def unique_album_images(cls, values: list[UUID] | None) -> list[UUID] | None:
+        if values is not None and len(values) != len(set(values)):
+            raise ValueError("商家相册图片不能重复")
+        return values
+
+    @model_validator(mode="after")
+    def reject_null_album_images(self) -> Self:
+        if "album_image_asset_ids" in self.model_fields_set and self.album_image_asset_ids is None:
+            raise ValueError("商家相册图片列表不能为 null，清空请传空数组")
+        return self
 
 
-class MerchantRead(MerchantInput):
+class MerchantRead(MerchantBase):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     user_id: UUID | None
     revision: int
     logo_url: str | None = None
+    album_image_count: int = Field(default=0, ge=0, description="已绑定的商家相册图片数量")
+
+
+class MerchantDetailRead(MerchantRead):
+    album_images: list[MerchantAlbumImageRead] = Field(default_factory=list, description="有序商家相册图片明细")
 
 
 class PublicMerchantRead(BaseModel):
@@ -83,6 +144,12 @@ class PublicMerchantRead(BaseModel):
     business_hours: str
     public_phone: str
     is_active: bool
+
+
+class PublicMerchantDetailRead(PublicMerchantRead):
+    album_images: list[PublicMerchantAlbumImageRead] = Field(
+        default_factory=list, description="公开有序商家相册图片列表"
+    )
 
 
 class LocalRolesRead(BaseModel):

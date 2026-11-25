@@ -1,9 +1,17 @@
 from uuid import UUID
 
-from sqlalchemy import Select, and_, func, or_, select, text, true
+from sqlalchemy import Select, and_, delete, func, or_, select, text, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Asset, LocalBindingEvent, Merchant, PropertyGrant, PropertyOperator, User
+from app.db.models import (
+    Asset,
+    LocalBindingEvent,
+    Merchant,
+    MerchantAlbumImage,
+    PropertyGrant,
+    PropertyOperator,
+    User,
+)
 
 _OPENING_TIME = r"(?:[01]?[0-9]|2[0-3]):[0-5][0-9]"
 _CLOSING_TIME = f"(?:{_OPENING_TIME}|24:00)"
@@ -119,6 +127,42 @@ class LocalActorsRepository:
         if lock:
             query = query.with_for_update()
         return (await self.session.scalars(query)).one_or_none()
+
+    async def assets(self, asset_ids: list[UUID], *, lock: bool = False) -> list[Asset]:
+        if not asset_ids:
+            return []
+        query = (
+            select(Asset).where(Asset.id.in_(asset_ids)).order_by(Asset.id).execution_options(populate_existing=True)
+        )
+        if lock:
+            query = query.with_for_update()
+        return list(await self.session.scalars(query))
+
+    async def merchant_album_images(self, merchant_id: UUID) -> list[Asset]:
+        query = (
+            select(Asset)
+            .join(MerchantAlbumImage, MerchantAlbumImage.asset_id == Asset.id)
+            .where(MerchantAlbumImage.merchant_id == merchant_id)
+            .order_by(MerchantAlbumImage.position.asc())
+        )
+        return list(await self.session.scalars(query))
+
+    async def merchant_album_counts(self, merchant_ids: list[UUID]) -> dict[UUID, int]:
+        if not merchant_ids:
+            return {}
+        rows = await self.session.execute(
+            select(MerchantAlbumImage.merchant_id, func.count())
+            .where(MerchantAlbumImage.merchant_id.in_(merchant_ids))
+            .group_by(MerchantAlbumImage.merchant_id)
+        )
+        return {merchant_id: int(count) for merchant_id, count in rows.tuples()}
+
+    async def replace_merchant_album_images(self, merchant_id: UUID, asset_ids: list[UUID]) -> None:
+        await self.session.execute(delete(MerchantAlbumImage).where(MerchantAlbumImage.merchant_id == merchant_id))
+        await self.session.flush()
+        for position, asset_id in enumerate(asset_ids):
+            self.session.add(MerchantAlbumImage(merchant_id=merchant_id, asset_id=asset_id, position=position))
+        await self.session.flush()
 
     async def page[T: Merchant | PropertyOperator](
         self, model: type[T], page: int, page_size: int, search: str | None = None, *, public: bool = False

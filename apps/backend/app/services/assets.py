@@ -305,6 +305,10 @@ class AssetService:
                     raise AppException(
                         status_code=409, code=ErrorCode.STATE_CONFLICT, message="商品或品牌图片正在被使用，无法删除"
                     )
+                if await commerce_access.asset_is_merchant_album_image(asset.id):
+                    raise AppException(
+                        status_code=409, code=ErrorCode.STATE_CONFLICT, message="商家相册图片正在被使用，无法删除"
+                    )
                 if await self._assets.is_referenced_by_avatar(asset.url):
                     raise AppException(
                         status_code=409, code=ErrorCode.STATE_CONFLICT, message="头像资产正在被使用，无法删除"

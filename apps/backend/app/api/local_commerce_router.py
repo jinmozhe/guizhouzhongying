@@ -22,6 +22,7 @@ from app.core.response import ResponseModel, success_response
 from app.domains.admin.permissions import PermissionCode
 from app.services.local_commerce_schemas import (
     LocalRolesRead,
+    MerchantDetailRead,
     MerchantInput,
     MerchantRead,
     MerchantUpdate,
@@ -32,6 +33,7 @@ from app.services.local_commerce_schemas import (
     PropertyGrantCreate,
     PropertyGrantRead,
     PropertyTargetRead,
+    PublicMerchantDetailRead,
     PublicMerchantRead,
     ReceivableRead,
     RedemptionConfirmInput,
@@ -86,8 +88,12 @@ async def roles(service: LocalActors, current: BasicUser) -> ResponseModel[Local
     return success_response(data=await service.roles(current.user.id), request_id=current_request_id())
 
 
-@router.get("/merchants/{merchant_id}", response_model=ResponseModel[PublicMerchantRead], summary="查看商家公开资料")
-async def public_merchant(merchant_id: UUID, service: LocalActors) -> ResponseModel[PublicMerchantRead]:
+@router.get(
+    "/merchants/{merchant_id}",
+    response_model=ResponseModel[PublicMerchantDetailRead],
+    summary="查看商家公开资料及相册",
+)
+async def public_merchant(merchant_id: UUID, service: LocalActors) -> ResponseModel[PublicMerchantDetailRead]:
     return success_response(data=await service.public_merchant(merchant_id), request_id=current_request_id())
 
 
@@ -103,26 +109,36 @@ async def merchants(
     return success_response(data=await service.merchants(page, page_size, search), request_id=current_request_id())
 
 
+@router.get(
+    "/admin/merchants/{merchant_id}",
+    response_model=ResponseModel[MerchantDetailRead],
+    summary="查看单个商家详情及完整相册",
+    dependencies=[Depends(require_permission(PermissionCode.MERCHANTS_READ))],
+)
+async def admin_merchant(merchant_id: UUID, service: AdminLocalActors) -> ResponseModel[MerchantDetailRead]:
+    return success_response(data=await service.admin_merchant(merchant_id), request_id=current_request_id())
+
+
 @router.post(
     "/admin/merchants",
-    response_model=ResponseModel[MerchantRead],
+    response_model=ResponseModel[MerchantDetailRead],
     status_code=201,
     summary="创建商家并关联可信手机号用户",
     dependencies=[Depends(require_admin_csrf), Depends(require_permission(PermissionCode.MERCHANTS_UPDATE))],
 )
-async def create_merchant(payload: MerchantInput, service: AdminLocalActors) -> ResponseModel[MerchantRead]:
+async def create_merchant(payload: MerchantInput, service: AdminLocalActors) -> ResponseModel[MerchantDetailRead]:
     return success_response(data=await service.save_merchant(payload), request_id=current_request_id())
 
 
 @router.put(
     "/admin/merchants/{merchant_id}",
-    response_model=ResponseModel[MerchantRead],
-    summary="修改商家资料与核销授权",
+    response_model=ResponseModel[MerchantDetailRead],
+    summary="修改商家资料、相册与核销授权",
     dependencies=[Depends(require_admin_csrf), Depends(require_permission(PermissionCode.MERCHANTS_UPDATE))],
 )
 async def update_merchant(
     merchant_id: UUID, payload: MerchantUpdate, service: AdminLocalActors
-) -> ResponseModel[MerchantRead]:
+) -> ResponseModel[MerchantDetailRead]:
     return success_response(data=await service.save_merchant(payload, merchant_id), request_id=current_request_id())
 
 
