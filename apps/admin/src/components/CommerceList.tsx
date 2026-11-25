@@ -11,6 +11,7 @@ import { errorMessage } from "@/lib/api/http";
 
 export type CommerceFilterField = {
   name: keyof CommerceFilters; label: string;
+  placeholder?: string;
   options?: { label: string; value: string }[];
 };
 
@@ -56,10 +57,15 @@ export function CommerceList<T extends object>({ resource, title, load, columns,
   };
   if (!allowed) return <Alert type="warning" title={`无权查看${title}`} />;
   return <>
-    <Form form={form} layout="inline" disabled={busy} className="commerce-filter-form" onFinish={(values) => change({ ...values, page: 1, page_size: 20 })}>
+    <Form form={form} layout="inline" disabled={busy} className="commerce-filter-form" onFinish={(values) => {
+      const normalized = Object.fromEntries(
+        Object.entries(values).map(([k, v]) => [k, typeof v === "string" ? v.trim() || undefined : v]),
+      ) as CommerceFilters;
+      change({ ...normalized, page: 1, page_size: 20 });
+    }}>
       {fields.map((field) => <Form.Item key={field.name} name={field.name} label={field.label}
         rules={field.name.endsWith("_id") ? [{ pattern: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, message: "请输入完整 UUID" }] : undefined}>
-        {field.options ? <Select allowClear style={{ width: 150 }} options={field.options} /> : <Input allowClear style={{ width: 220 }} />}
+        {field.options ? <Select allowClear style={{ width: 150 }} options={field.options} /> : <Input allowClear placeholder={field.placeholder} style={{ width: 220 }} />}
       </Form.Item>)}
       <Space><Button htmlType="submit" type="primary" icon={<SearchOutlined />}>查询</Button><Button icon={<ReloadOutlined />} onClick={() => { form.resetFields(); change({ page: 1, page_size: 20 }); }}>重置</Button></Space>
     </Form>

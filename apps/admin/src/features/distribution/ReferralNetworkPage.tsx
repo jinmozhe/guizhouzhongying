@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Button, Tag, Typography } from "antd";
+import { Button, Tag, Tooltip, Typography } from "antd";
 import { ApartmentOutlined } from "@ant-design/icons";
-import type { MemberProfileRead } from "@pinjie/api-client";
+import type { AdminMemberProfileRead } from "@pinjie/api-client";
 import { CommerceList } from "@/components/CommerceList";
-import { PageFrame } from "@/components/PageFrame";
+import { PageFrame, formatTime } from "@/components/PageFrame";
 import { commerceApi } from "@/lib/api/commerce";
+import { formatPhoneForDisplay } from "@/lib/phone";
 
 export default function ReferralNetworkPage() {
   const [currentInviterFilter, setCurrentInviterFilter] = useState<string | undefined>(undefined);
@@ -25,7 +26,7 @@ export default function ReferralNetworkPage() {
         </div>
       )}
 
-      <CommerceList<MemberProfileRead>
+      <CommerceList<AdminMemberProfileRead>
         key={currentInviterFilter ?? "all"}
         resource="members"
         title="推荐关系"
@@ -33,11 +34,25 @@ export default function ReferralNetworkPage() {
         load={commerceApi.members}
         fixedFilters={currentInviterFilter ? { inviter_id: currentInviterFilter } : {}}
         fields={[
+          { name: "phone", label: "手机号", placeholder: "输入手机号或尾号" },
           { name: "user_id", label: "会员用户号" },
           ...(!currentInviterFilter ? [{ name: "inviter_id" as const, label: "直接推荐人用户号" }] : []),
         ]}
         columns={[
           { title: "会员用户号", dataIndex: "user_id", ellipsis: true },
+          {
+            title: "手机号",
+            dataIndex: "phone_e164",
+            width: 150,
+            render: (_, row) => {
+              const phone = formatPhoneForDisplay(row.phone_e164);
+              if (!phone) return <Tag>未绑定</Tag>;
+              const content = <Typography.Text copyable>{phone}</Typography.Text>;
+              return row.phone_verified_at ? (
+                <Tooltip title={`验证时间：${formatTime(row.phone_verified_at)}`}>{content}</Tooltip>
+              ) : content;
+            },
+          },
           { title: "邀请码", dataIndex: "invitation_code" },
           {
             title: "当前等级",

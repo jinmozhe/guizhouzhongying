@@ -92,10 +92,17 @@ class UserRepository:
         elif lifecycle == "deleted":
             filters.append(User.deleted_at.is_not(None))
         if search:
-            pattern = f"%{search}%"
-            filters.append(
-                or_(User.username.ilike(pattern), User.display_name.ilike(pattern), User.email.ilike(pattern))
-            )
+            cleaned = search.strip()
+            if cleaned:
+                pattern = f"%{cleaned}%"
+                filters.append(
+                    or_(
+                        User.username.ilike(pattern),
+                        User.display_name.ilike(pattern),
+                        User.email.ilike(pattern),
+                        User.phone_e164.ilike(pattern),
+                    )
+                )
         total = int((await self.session.scalar(select(func.count()).select_from(User).where(*filters))) or 0)
         statement = (
             select(User).where(*filters).order_by(User.id.desc()).offset((page - 1) * page_size).limit(page_size)

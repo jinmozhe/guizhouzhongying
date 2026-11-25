@@ -241,6 +241,9 @@ class AdminUserRead(BaseModel):
     username: str
     display_name: str | None
     email: str | None
+    phone_e164: str | None = Field(default=None, description="已验证手机号，E.164 格式")
+    phone_bound: bool = Field(default=False, description="是否已绑定已验证手机号")
+    phone_verified_at: datetime | None = Field(default=None, description="手机号平台验证时间")
     avatar: str | None = Field(default=None, description="用户头像站内资源路径")
     is_active: bool
     created_at: datetime

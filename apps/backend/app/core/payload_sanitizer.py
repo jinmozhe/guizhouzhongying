@@ -49,6 +49,7 @@ _COMMERCE_PRIVATE_PREFIXES = (
     "/api/v1/admin/members",
     "/api/v1/admin/commissions",
     "/api/v1/admin/wallets",
+    "/api/v1/admin/points-adjustments",
 )
 
 

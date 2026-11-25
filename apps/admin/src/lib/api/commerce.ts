@@ -1,6 +1,6 @@
 import type {
   OrdersPageApiV1AdminOrdersGetData, CommerceExportRead, SelectedCommerceIds,
-  PageResultPaymentAttemptRead, PageResultReconciliationRecordRead, PageResultMemberProfileRead,
+  PageResultPaymentAttemptRead, PageResultReconciliationRecordRead, PageResultAdminMemberProfileRead,
   PageResultCommissionRead, PageResultAdminWalletRead, PageResultWalletLedgerRead,
   ReconciliationRecordCreate, ReconciliationRecordRead, ReconciliationResolve,
   ActiveStatusBatch, BatchCompleted, CategoryInput, CategoryRead, CategoryUpdate,
@@ -19,7 +19,8 @@ import type {
   MemberLevelCreate, MemberLevelRead, MemberLevelUpdate, PageResultMemberLevelRead,
   MemberLevelConditionCreate, MemberLevelConditionRead, MemberLevelConditionUpdate, PageResultMemberLevelConditionRead,
   MemberPriceRuleCreate, MemberPriceRuleRead, MemberPriceRuleUpdate, PageResultMemberPriceRuleRead,
-  PointsAccountRead, PageResultPointsAccountRead, PageResultPointsLedgerRead, PointsManualAdjustment,
+  PointsAccountRead, PageResultAdminPointsAccountRead, PageResultAdminPointsLedgerRead,
+  PointsManualAdjustment, PointsTargetRead,
   PageResultMemberLevelEventRead, PageResultMembershipQualificationEventRead,
   CommissionControlRead, CommissionControlUpdate,
   CommissionPolicyRead, CommissionPolicyCreate, CommissionPolicyUpdate, CommissionPolicyPublish, PageResultCommissionPolicyRead,
@@ -55,7 +56,7 @@ export const commerceApi = {
   reconcile: (input: ReconciliationRecordCreate) => apiRequest<ReconciliationRecordRead>("/api/v1/admin/reconciliation-records", { method: "POST", body: jsonBody(input) }),
   resolveReconciliation: (id: string, input: ReconciliationResolve) =>
     apiRequest<ReconciliationRecordRead>("/api/v1/admin/reconciliation-records/" + id + "/resolve", { method: "POST", body: jsonBody(input) }),
-  members: (filters: CommerceFilters) => apiRequest<PageResultMemberProfileRead>(`/api/v1/admin/members?${queryString(filters)}`),
+  members: (filters: CommerceFilters) => apiRequest<PageResultAdminMemberProfileRead>(`/api/v1/admin/members?${queryString(filters)}`),
   commissions: (filters: CommerceFilters) => apiRequest<PageResultCommissionRead>(`/api/v1/admin/commissions?${queryString(filters)}`),
   wallets: (filters: CommerceFilters) => apiRequest<PageResultAdminWalletRead>(`/api/v1/admin/wallets?${queryString(filters)}`),
   ledgers: (id: string, page: number) => apiRequest<PageResultWalletLedgerRead>(`/api/v1/admin/wallets/${id}/ledgers?page=${page}&page_size=20`),
@@ -133,8 +134,17 @@ export const commerceApi = {
   updateMemberLevelCondition: (id: string, input: MemberLevelConditionUpdate) => apiRequest<MemberLevelConditionRead>(`/api/v1/admin/member-level-conditions/${id}`, { method: "PUT", body: jsonBody(input) }),
   qualificationEvents: (userId: string, page: number = 1, pageSize: number = 20) => apiRequest<PageResultMembershipQualificationEventRead>(`/api/v1/admin/members/${userId}/qualification-events?page=${page}&page_size=${pageSize}`),
   levelEvents: (userId: string, page: number = 1, pageSize: number = 20) => apiRequest<PageResultMemberLevelEventRead>(`/api/v1/admin/members/${userId}/level-events?page=${page}&page_size=${pageSize}`),
-  pointsAccounts: (page: number, pageSize: number = 20) => apiRequest<PageResultPointsAccountRead>(`/api/v1/admin/points-accounts?page=${page}&page_size=${pageSize}`),
-  pointsLedgers: (accountId: string, page: number = 1, pageSize: number = 20) => apiRequest<PageResultPointsLedgerRead>(`/api/v1/admin/points-accounts/${accountId}/ledgers?page=${page}&page_size=${pageSize}`),
+  pointsAccounts: (page: number, pageSize: number = 20, phone?: string) =>
+    apiRequest<PageResultAdminPointsAccountRead>(
+      `/api/v1/admin/points-accounts?${queryString({ page, page_size: pageSize, phone })}`,
+    ),
+  pointsLedgers: (accountId: string, page: number = 1, pageSize: number = 20) =>
+    apiRequest<PageResultAdminPointsLedgerRead>(`/api/v1/admin/points-accounts/${accountId}/ledgers?page=${page}&page_size=${pageSize}`),
+  lookupPointsTarget: (phoneE164: string) =>
+    apiRequest<PointsTargetRead>("/api/v1/admin/points-adjustments/lookup-user", {
+      method: "POST",
+      body: jsonBody({ phone_e164: phoneE164 }),
+    }),
   adjustPoints: (input: PointsManualAdjustment) => apiRequest<PointsAccountRead>("/api/v1/admin/points-adjustments", { method: "POST", body: jsonBody(input) }),
   memberPriceRules: (page: number, pageSize: number = 20) => apiRequest<PageResultMemberPriceRuleRead>(`/api/v1/admin/member-price-rules?page=${page}&page_size=${pageSize}`),
   createMemberPriceRule: (input: MemberPriceRuleCreate) => apiRequest<MemberPriceRuleRead>("/api/v1/admin/member-price-rules", { method: "POST", body: jsonBody(input) }),

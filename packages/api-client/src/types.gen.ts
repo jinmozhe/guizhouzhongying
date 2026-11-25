@@ -401,6 +401,90 @@ export type AdminLoginIn = {
 };
 
 /**
+ * AdminMemberProfileRead
+ */
+export type AdminMemberProfileRead = {
+    /**
+     * User Id
+     *
+     * 用户标识
+     */
+    user_id: string;
+    /**
+     * Invitation Code
+     *
+     * 会员邀请码
+     */
+    invitation_code: string;
+    /**
+     * Level Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    level_id: string | null;
+    /**
+     * Level Changed At
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    level_changed_at: string;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+    /**
+     * Inviter Id
+     *
+     * 首次绑定的推荐用户标识
+     */
+    inviter_id: string | null;
+    /**
+     * Bound At
+     *
+     * 推荐关系首次绑定时间
+     */
+    bound_at: string | null;
+    /**
+     * Created At
+     *
+     * 创建时间
+     */
+    created_at: string;
+    /**
+     * Username
+     *
+     * 会员登录用户名
+     */
+    username?: string | null;
+    /**
+     * Display Name
+     *
+     * 会员展示名称
+     */
+    display_name?: string | null;
+    /**
+     * Phone E164
+     *
+     * 会员已验证手机号，E.164 格式
+     */
+    phone_e164?: string | null;
+    /**
+     * Phone Bound
+     *
+     * 会员是否已绑定已验证手机号
+     */
+    phone_bound?: boolean;
+    /**
+     * Phone Verified At
+     *
+     * 会员手机号平台验证时间
+     */
+    phone_verified_at?: string | null;
+};
+
+/**
  * AdminOrderSummary
  *
  * 管理端订单发现入口，不包含收货地址与订单明细。
@@ -514,6 +598,234 @@ export type AdminOrderSummary = {
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
     acceptance_status: string;
+};
+
+/**
+ * AdminPointsAccountRead
+ */
+export type AdminPointsAccountRead = {
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * User Id
+     *
+     * 用户标识
+     */
+    user_id: string;
+    /**
+     * Available Points
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    available_points: number;
+    /**
+     * Frozen Points
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    frozen_points: number;
+    /**
+     * Debt Points
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    debt_points: number;
+    /**
+     * Revision
+     *
+     * 资源并发控制版本
+     */
+    revision: number;
+    /**
+     * Created At
+     *
+     * 创建时间
+     */
+    created_at: string;
+    /**
+     * Updated At
+     *
+     * 最近更新时间
+     */
+    updated_at: string;
+    /**
+     * Username
+     *
+     * 用户登录用户名
+     */
+    username?: string | null;
+    /**
+     * Display Name
+     *
+     * 用户展示名称
+     */
+    display_name?: string | null;
+    /**
+     * Phone E164
+     *
+     * 用户已验证手机号，E.164 格式
+     */
+    phone_e164?: string | null;
+    /**
+     * Phone Bound
+     *
+     * 是否已绑定已验证手机号
+     */
+    phone_bound?: boolean;
+    /**
+     * Phone Verified At
+     *
+     * 手机号平台验证时间
+     */
+    phone_verified_at?: string | null;
+};
+
+/**
+ * AdminPointsLedgerRead
+ */
+export type AdminPointsLedgerRead = {
+    /**
+     * Id
+     *
+     * 资源唯一标识
+     */
+    id: string;
+    /**
+     * Account Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    account_id: string;
+    /**
+     * Entry Type
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    entry_type: string;
+    /**
+     * Available Delta
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    available_delta: number;
+    /**
+     * Frozen Delta
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    frozen_delta: number;
+    /**
+     * Debt Delta
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    debt_delta: number;
+    /**
+     * Source Type
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    source_type: string;
+    /**
+     * Source Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    source_id: string;
+    /**
+     * Reverses Ledger Id
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    reverses_ledger_id: string | null;
+    /**
+     * Idempotency Key
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    idempotency_key: string;
+    /**
+     * Note
+     *
+     * 操作说明或核对备注
+     */
+    note: string | null;
+    /**
+     * Created At
+     *
+     * 创建时间
+     */
+    created_at: string;
+    /**
+     * Updated At
+     *
+     * 最近更新时间
+     */
+    updated_at: string;
+    /**
+     * Operator Admin Id
+     *
+     * 后台人工操作管理员标识
+     */
+    operator_admin_id?: string | null;
+    /**
+     * Operator Admin Username
+     *
+     * 后台人工操作管理员账号
+     */
+    operator_admin_username?: string | null;
+    /**
+     * Operator Admin Display Name
+     *
+     * 后台人工操作管理员名称
+     */
+    operator_admin_display_name?: string | null;
+    /**
+     * Property Operator Id
+     *
+     * 物业授权记录标识
+     */
+    property_operator_id?: string | null;
+    /**
+     * Property Operator Name
+     *
+     * 物业名称
+     */
+    property_operator_name?: string | null;
+    /**
+     * Property Actor User Id
+     *
+     * 实际发放积分的物业管理员对应用户标识
+     */
+    property_actor_user_id?: string | null;
+    /**
+     * Property Actor Display Name
+     *
+     * 物业管理员用户展示名称
+     */
+    property_actor_display_name?: string | null;
+    /**
+     * Property Actor Phone E164
+     *
+     * 物业管理员用户手机号，E.164 格式
+     */
+    property_actor_phone_e164?: string | null;
+    /**
+     * Reversed Points
+     *
+     * 该笔授予流水累计已冲销积分
+     */
+    reversed_points?: number;
+    /**
+     * Reversible Points
+     *
+     * 该笔授予流水剩余可冲销积分
+     */
+    reversible_points?: number;
 };
 
 /**
@@ -802,6 +1114,24 @@ export type AdminUserRead = {
      * 电子邮箱地址
      */
     email: string | null;
+    /**
+     * Phone E164
+     *
+     * 已验证手机号，E.164 格式
+     */
+    phone_e164?: string | null;
+    /**
+     * Phone Bound
+     *
+     * 是否已绑定已验证手机号
+     */
+    phone_bound?: boolean;
+    /**
+     * Phone Verified At
+     *
+     * 手机号平台验证时间
+     */
+    phone_verified_at?: string | null;
     /**
      * Avatar
      *
@@ -5428,60 +5758,6 @@ export type MemberPriceRuleUpdate = {
 };
 
 /**
- * MemberProfileRead
- */
-export type MemberProfileRead = {
-    /**
-     * User Id
-     *
-     * 用户标识
-     */
-    user_id: string;
-    /**
-     * Invitation Code
-     *
-     * 会员邀请码
-     */
-    invitation_code: string;
-    /**
-     * Level Id
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    level_id: string | null;
-    /**
-     * Level Changed At
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    level_changed_at: string;
-    /**
-     * Revision
-     *
-     * 资源并发控制版本
-     */
-    revision: number;
-    /**
-     * Inviter Id
-     *
-     * 首次绑定的推荐用户标识
-     */
-    inviter_id: string | null;
-    /**
-     * Bound At
-     *
-     * 推荐关系首次绑定时间
-     */
-    bound_at: string | null;
-    /**
-     * Created At
-     *
-     * 创建时间
-     */
-    created_at: string;
-};
-
-/**
  * MembershipQualificationEventRead
  */
 export type MembershipQualificationEventRead = {
@@ -6332,6 +6608,42 @@ export type OrderShippingSettingUpdate = {
 };
 
 /**
+ * PageResult[AdminMemberProfileRead]
+ */
+export type PageResultAdminMemberProfileRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<AdminMemberProfileRead>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
  * PageResult[AdminOrderSummary]
  */
 export type PageResultAdminOrderSummary = {
@@ -6341,6 +6653,78 @@ export type PageResultAdminOrderSummary = {
      * 当前分页中的资源列表
      */
     items: Array<AdminOrderSummary>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
+ * PageResult[AdminPointsAccountRead]
+ */
+export type PageResultAdminPointsAccountRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<AdminPointsAccountRead>;
+    /**
+     * Page
+     *
+     * 当前页码，从 1 开始
+     */
+    page: number;
+    /**
+     * Page Size
+     *
+     * 每页资源数量
+     */
+    page_size: number;
+    /**
+     * Total
+     *
+     * 符合条件的资源总数
+     */
+    total: number;
+    /**
+     * Total Pages
+     *
+     * 符合条件的总页数
+     */
+    total_pages: number;
+};
+
+/**
+ * PageResult[AdminPointsLedgerRead]
+ */
+export type PageResultAdminPointsLedgerRead = {
+    /**
+     * Items
+     *
+     * 当前分页中的资源列表
+     */
+    items: Array<AdminPointsLedgerRead>;
     /**
      * Page
      *
@@ -7160,42 +7544,6 @@ export type PageResultMemberPriceRuleRead = {
 };
 
 /**
- * PageResult[MemberProfileRead]
- */
-export type PageResultMemberProfileRead = {
-    /**
-     * Items
-     *
-     * 当前分页中的资源列表
-     */
-    items: Array<MemberProfileRead>;
-    /**
-     * Page
-     *
-     * 当前页码，从 1 开始
-     */
-    page: number;
-    /**
-     * Page Size
-     *
-     * 每页资源数量
-     */
-    page_size: number;
-    /**
-     * Total
-     *
-     * 符合条件的资源总数
-     */
-    total: number;
-    /**
-     * Total Pages
-     *
-     * 符合条件的总页数
-     */
-    total_pages: number;
-};
-
-/**
  * PageResult[MembershipQualificationEventRead]
  */
 export type PageResultMembershipQualificationEventRead = {
@@ -7313,78 +7661,6 @@ export type PageResultPaymentAttemptRead = {
      * 当前分页中的资源列表
      */
     items: Array<PaymentAttemptRead>;
-    /**
-     * Page
-     *
-     * 当前页码，从 1 开始
-     */
-    page: number;
-    /**
-     * Page Size
-     *
-     * 每页资源数量
-     */
-    page_size: number;
-    /**
-     * Total
-     *
-     * 符合条件的资源总数
-     */
-    total: number;
-    /**
-     * Total Pages
-     *
-     * 符合条件的总页数
-     */
-    total_pages: number;
-};
-
-/**
- * PageResult[PointsAccountRead]
- */
-export type PageResultPointsAccountRead = {
-    /**
-     * Items
-     *
-     * 当前分页中的资源列表
-     */
-    items: Array<PointsAccountRead>;
-    /**
-     * Page
-     *
-     * 当前页码，从 1 开始
-     */
-    page: number;
-    /**
-     * Page Size
-     *
-     * 每页资源数量
-     */
-    page_size: number;
-    /**
-     * Total
-     *
-     * 符合条件的资源总数
-     */
-    total: number;
-    /**
-     * Total Pages
-     *
-     * 符合条件的总页数
-     */
-    total_pages: number;
-};
-
-/**
- * PageResult[PointsLedgerRead]
- */
-export type PageResultPointsLedgerRead = {
-    /**
-     * Items
-     *
-     * 当前分页中的资源列表
-     */
-    items: Array<PointsLedgerRead>;
     /**
      * Page
      *
@@ -8314,90 +8590,6 @@ export type PointsAccountRead = {
 };
 
 /**
- * PointsLedgerRead
- */
-export type PointsLedgerRead = {
-    /**
-     * Id
-     *
-     * 资源唯一标识
-     */
-    id: string;
-    /**
-     * Account Id
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    account_id: string;
-    /**
-     * Entry Type
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    entry_type: string;
-    /**
-     * Available Delta
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    available_delta: number;
-    /**
-     * Frozen Delta
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    frozen_delta: number;
-    /**
-     * Debt Delta
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    debt_delta: number;
-    /**
-     * Source Type
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    source_type: string;
-    /**
-     * Source Id
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    source_id: string;
-    /**
-     * Reverses Ledger Id
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    reverses_ledger_id: string | null;
-    /**
-     * Idempotency Key
-     *
-     * 当前业务字段，具体语义由所属请求或响应模型定义
-     */
-    idempotency_key: string;
-    /**
-     * Note
-     *
-     * 操作说明或核对备注
-     */
-    note: string | null;
-    /**
-     * Created At
-     *
-     * 创建时间
-     */
-    created_at: string;
-    /**
-     * Updated At
-     *
-     * 最近更新时间
-     */
-    updated_at: string;
-};
-
-/**
  * PointsManualAdjustment
  */
 export type PointsManualAdjustment = {
@@ -8437,6 +8629,72 @@ export type PointsManualAdjustment = {
      * 操作说明或核对备注
      */
     note?: string | null;
+};
+
+/**
+ * PointsPhoneLookupIn
+ */
+export type PointsPhoneLookupIn = {
+    /**
+     * Phone E164
+     *
+     * 用户手机号，支持直接填写 11 位中国大陆手机号或 E.164 格式
+     */
+    phone_e164: string;
+};
+
+/**
+ * PointsTargetRead
+ */
+export type PointsTargetRead = {
+    /**
+     * User Id
+     *
+     * 目标用户唯一标识
+     */
+    user_id: string;
+    /**
+     * Username
+     *
+     * 用户登录用户名
+     */
+    username: string;
+    /**
+     * Display Name
+     *
+     * 用户展示名称
+     */
+    display_name?: string | null;
+    /**
+     * Phone E164
+     *
+     * 已验证手机号，E.164 格式
+     */
+    phone_e164: string;
+    /**
+     * Phone Verified At
+     *
+     * 手机号平台验证时间
+     */
+    phone_verified_at: string;
+    /**
+     * Available Points
+     *
+     * 当前可用积分
+     */
+    available_points: number;
+    /**
+     * Frozen Points
+     *
+     * 当前冻结积分
+     */
+    frozen_points: number;
+    /**
+     * Debt Points
+     *
+     * 当前欠积分
+     */
+    debt_points: number;
 };
 
 /**
@@ -11846,6 +12104,34 @@ export type ResponseModelOrderShippingSettingRead = {
 };
 
 /**
+ * ResponseModel[PageResult[AdminMemberProfileRead]]
+ */
+export type ResponseModelPageResultAdminMemberProfileRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultAdminMemberProfileRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
  * ResponseModel[PageResult[AdminOrderSummary]]
  */
 export type ResponseModelPageResultAdminOrderSummary = {
@@ -11865,6 +12151,62 @@ export type ResponseModelPageResultAdminOrderSummary = {
      * 响应业务数据
      */
     data: PageResultAdminOrderSummary;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[PageResult[AdminPointsAccountRead]]
+ */
+export type ResponseModelPageResultAdminPointsAccountRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultAdminPointsAccountRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[PageResult[AdminPointsLedgerRead]]
+ */
+export type ResponseModelPageResultAdminPointsLedgerRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PageResultAdminPointsLedgerRead;
     /**
      * Request Id
      *
@@ -12490,34 +12832,6 @@ export type ResponseModelPageResultMemberPriceRuleRead = {
 };
 
 /**
- * ResponseModel[PageResult[MemberProfileRead]]
- */
-export type ResponseModelPageResultMemberProfileRead = {
-    /**
-     * Code
-     *
-     * 稳定程序代码
-     */
-    code: string;
-    /**
-     * Message
-     *
-     * 面向调用方的中文结果消息
-     */
-    message: string;
-    /**
-     * 响应业务数据
-     */
-    data: PageResultMemberProfileRead;
-    /**
-     * Request Id
-     *
-     * 用于定位本次请求的唯一标识
-     */
-    request_id: string;
-};
-
-/**
  * ResponseModel[PageResult[MembershipQualificationEventRead]]
  */
 export type ResponseModelPageResultMembershipQualificationEventRead = {
@@ -12621,62 +12935,6 @@ export type ResponseModelPageResultPaymentAttemptRead = {
      * 响应业务数据
      */
     data: PageResultPaymentAttemptRead;
-    /**
-     * Request Id
-     *
-     * 用于定位本次请求的唯一标识
-     */
-    request_id: string;
-};
-
-/**
- * ResponseModel[PageResult[PointsAccountRead]]
- */
-export type ResponseModelPageResultPointsAccountRead = {
-    /**
-     * Code
-     *
-     * 稳定程序代码
-     */
-    code: string;
-    /**
-     * Message
-     *
-     * 面向调用方的中文结果消息
-     */
-    message: string;
-    /**
-     * 响应业务数据
-     */
-    data: PageResultPointsAccountRead;
-    /**
-     * Request Id
-     *
-     * 用于定位本次请求的唯一标识
-     */
-    request_id: string;
-};
-
-/**
- * ResponseModel[PageResult[PointsLedgerRead]]
- */
-export type ResponseModelPageResultPointsLedgerRead = {
-    /**
-     * Code
-     *
-     * 稳定程序代码
-     */
-    code: string;
-    /**
-     * Message
-     *
-     * 面向调用方的中文结果消息
-     */
-    message: string;
-    /**
-     * 响应业务数据
-     */
-    data: PageResultPointsLedgerRead;
     /**
      * Request Id
      *
@@ -13237,6 +13495,34 @@ export type ResponseModelPointsAccountRead = {
      * 响应业务数据
      */
     data: PointsAccountRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[PointsTargetRead]
+ */
+export type ResponseModelPointsTargetRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: PointsTargetRead;
     /**
      * Request Id
      *
@@ -15864,6 +16150,24 @@ export type UserPrincipalOut = {
      */
     email: string | null;
     /**
+     * Phone E164
+     *
+     * 已验证手机号，E.164 格式
+     */
+    phone_e164?: string | null;
+    /**
+     * Phone Bound
+     *
+     * 是否已绑定已验证手机号
+     */
+    phone_bound?: boolean;
+    /**
+     * Phone Verified At
+     *
+     * 手机号平台验证时间
+     */
+    phone_verified_at?: string | null;
+    /**
      * Avatar
      *
      * 用户头像站内资源路径
@@ -17909,6 +18213,12 @@ export type OrdersPageApiV1AdminOrdersGetData = {
          */
         inviter_id?: string | null;
         /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
+        /**
          * Status
          *
          * 状态代码
@@ -18031,6 +18341,12 @@ export type RefundsPageApiV1AdminRefundsGetData = {
          * 直接推荐人标识
          */
         inviter_id?: string | null;
+        /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
         /**
          * Status
          *
@@ -18155,6 +18471,12 @@ export type WithdrawalsPageApiV1AdminWithdrawalsGetData = {
          */
         inviter_id?: string | null;
         /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
+        /**
          * Status
          *
          * 状态代码
@@ -18278,6 +18600,12 @@ export type PaymentsPageApiV1AdminPaymentsGetData = {
          */
         inviter_id?: string | null;
         /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
+        /**
          * Status
          *
          * 状态代码
@@ -18400,6 +18728,12 @@ export type ReconciliationRecordsPageApiV1AdminReconciliationRecordsGetData = {
          * 直接推荐人标识
          */
         inviter_id?: string | null;
+        /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
         /**
          * Status
          *
@@ -18549,6 +18883,12 @@ export type MembersPageApiV1AdminMembersGetData = {
          */
         inviter_id?: string | null;
         /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
+        /**
          * Status
          *
          * 状态代码
@@ -18601,7 +18941,7 @@ export type MembersPageApiV1AdminMembersGetResponses = {
     /**
      * 请求成功
      */
-    200: ResponseModelPageResultMemberProfileRead;
+    200: ResponseModelPageResultAdminMemberProfileRead;
 };
 
 export type MembersPageApiV1AdminMembersGetResponse = MembersPageApiV1AdminMembersGetResponses[keyof MembersPageApiV1AdminMembersGetResponses];
@@ -18671,6 +19011,12 @@ export type CommissionsPageApiV1AdminCommissionsGetData = {
          * 直接推荐人标识
          */
         inviter_id?: string | null;
+        /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
         /**
          * Status
          *
@@ -18794,6 +19140,12 @@ export type WalletsPageApiV1AdminWalletsGetData = {
          * 直接推荐人标识
          */
         inviter_id?: string | null;
+        /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
         /**
          * Status
          *
@@ -18957,6 +19309,12 @@ export type RefundExecutionsPageApiV1AdminRefundExecutionsGetData = {
          */
         inviter_id?: string | null;
         /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
+        /**
          * Status
          *
          * 状态代码
@@ -19054,6 +19412,12 @@ export type ListDurableTasksApiV1AdminDurableTasksGetData = {
          * 直接推荐人标识
          */
         inviter_id?: string | null;
+        /**
+         * Phone
+         *
+         * 会员手机号筛选，支持 11 位号码、尾号或 E.164 格式
+         */
+        phone?: string | null;
         /**
          * Status
          *
@@ -22145,6 +22509,12 @@ export type PointsAccountsApiV1AdminPointsAccountsGetData = {
          * 每页数量
          */
         page_size?: number;
+        /**
+         * Phone
+         *
+         * 按手机号或尾号筛选
+         */
+        phone?: string | null;
     };
     url: '/api/v1/admin/points-accounts';
 };
@@ -22162,7 +22532,7 @@ export type PointsAccountsApiV1AdminPointsAccountsGetResponses = {
     /**
      * 请求成功
      */
-    200: ResponseModelPageResultPointsAccountRead;
+    200: ResponseModelPageResultAdminPointsAccountRead;
 };
 
 export type PointsAccountsApiV1AdminPointsAccountsGetResponse = PointsAccountsApiV1AdminPointsAccountsGetResponses[keyof PointsAccountsApiV1AdminPointsAccountsGetResponses];
@@ -22205,10 +22575,35 @@ export type PointsLedgersApiV1AdminPointsAccountsAccountIdLedgersGetResponses = 
     /**
      * 请求成功
      */
-    200: ResponseModelPageResultPointsLedgerRead;
+    200: ResponseModelPageResultAdminPointsLedgerRead;
 };
 
 export type PointsLedgersApiV1AdminPointsAccountsAccountIdLedgersGetResponse = PointsLedgersApiV1AdminPointsAccountsAccountIdLedgersGetResponses[keyof PointsLedgersApiV1AdminPointsAccountsAccountIdLedgersGetResponses];
+
+export type LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostData = {
+    body: PointsPhoneLookupIn;
+    path?: never;
+    query?: never;
+    url: '/api/v1/admin/points-adjustments/lookup-user';
+};
+
+export type LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostError = LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostErrors[keyof LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostErrors];
+
+export type LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelPointsTargetRead;
+};
+
+export type LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostResponse = LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostResponses[keyof LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostResponses];
 
 export type AdjustPointsApiV1AdminPointsAdjustmentsPostData = {
     body: PointsManualAdjustment;
