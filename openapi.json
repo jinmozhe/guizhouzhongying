@@ -734,6 +734,63 @@
       }
     },
     "/api/v1/admin/property-operators/{operator_id}": {
+      "get": {
+        "tags": [
+          "到店商家与物业"
+        ],
+        "summary": "查看单个物业授权详情",
+        "operationId": "admin_operator_api_v1_admin_property_operators__operator_id__get",
+        "parameters": [
+          {
+            "name": "operator_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Operator Id"
+            }
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_OperatorRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "put": {
         "tags": [
           "到店商家与物业"
@@ -14963,6 +15020,22 @@
             }
           },
           {
+            "name": "business_role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "member_only",
+                "merchant",
+                "property"
+              ],
+              "type": "string",
+              "default": "all",
+              "title": "Business Role"
+            }
+          },
+          {
             "name": "guizhouzhongying_admin_access",
             "in": "cookie",
             "required": false,
@@ -19475,6 +19548,28 @@
             "title": "Is Active",
             "description": "资源当前是否启用"
           },
+          "merchant_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserBusinessRoleSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "关联的商家核销身份"
+          },
+          "property_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserBusinessRoleSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "关联的物业发分身份"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -21003,6 +21098,34 @@
           "revision"
         ],
         "title": "BrandUpdate"
+      },
+      "BusinessRoleSummaryRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "商家或物业授权唯一标识"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "商家或物业名称"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "当前业务授权是否启用"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_active"
+        ],
+        "title": "BusinessRoleSummaryRead"
       },
       "CandidateAppend": {
         "properties": {
@@ -25473,6 +25596,28 @@
             ],
             "title": "Property Operator Id",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BusinessRoleSummaryRead"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "当前关联的商家核销身份摘要"
+          },
+          "property_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BusinessRoleSummaryRead"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "当前关联的物业发分身份摘要"
           }
         },
         "type": "object",
@@ -40573,6 +40718,34 @@
           "is_active"
         ],
         "title": "UserBulkStatusUpdateIn"
+      },
+      "UserBusinessRoleSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "商家或物业授权唯一标识"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "商家或物业名称"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "description": "当前业务授权是否启用"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_active"
+        ],
+        "title": "UserBusinessRoleSummary"
       },
       "UserPrincipalOut": {
         "properties": {

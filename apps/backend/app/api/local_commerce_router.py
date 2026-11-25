@@ -164,6 +164,16 @@ async def operators(
     return success_response(data=await service.operators(page, page_size, search), request_id=current_request_id())
 
 
+@router.get(
+    "/admin/property-operators/{operator_id}",
+    response_model=ResponseModel[OperatorRead],
+    summary="查看单个物业授权详情",
+    dependencies=[Depends(require_permission(PermissionCode.PROPERTY_OPERATORS_READ))],
+)
+async def admin_operator(operator_id: UUID, service: AdminLocalActors) -> ResponseModel[OperatorRead]:
+    return success_response(data=await service.admin_operator(operator_id), request_id=current_request_id())
+
+
 @router.post(
     "/admin/property-operators",
     response_model=ResponseModel[OperatorRead],

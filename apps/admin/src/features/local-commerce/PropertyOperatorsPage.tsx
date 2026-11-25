@@ -4,21 +4,26 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Button, Form, Input, Switch } from "antd";
 import { useState } from "react";
 import { EditorModal } from "@/components/EditorModal";
-import { PageFrame } from "@/components/PageFrame";
+import { PageFrame, QueryState } from "@/components/PageFrame";
 import { ResourceTable } from "@/components/ResourceTable";
 import { canAccess, useCurrentAdmin } from "@/features/auth";
 import { errorMessage } from "@/lib/api/http";
 import { localCommerceApi } from "@/lib/api/local-commerce";
 import { AuthorizationPhoneField, displayAuthorizationPhone } from "./AuthorizationPhoneField";
 
-function Editor({ target, close, done }: { target: OperatorRead | null; close: () => void; done: () => Promise<void> }) {
+function Editor({ target, close, done }: { target: OperatorRead | null; close: () => void; done: (savedId?: string) => Promise<void> }) {
   const [form] = Form.useForm<OperatorInput>();
   const lookup = useMutation({ mutationFn: async () => { const { phone_e164 } = await form.validateFields(["phone_e164"]); return localCommerceApi.lookup(phone_e164); } });
   return <EditorModal title={target ? "编辑物业授权" : "新增物业授权"} onClose={close} onSave={async () => {
     const values = await form.validateFields();
-    if (target) await localCommerceApi.updateOperator(target.id, { ...values, revision: target.revision });
-    else await localCommerceApi.createOperator(values);
-    await done(); close();
+    if (target) {
+      await localCommerceApi.updateOperator(target.id, { ...values, revision: target.revision });
+      await done(target.id);
+    } else {
+      const created = await localCommerceApi.createOperator(values);
+      await done(created.id);
+    }
+    close();
   }}>
     <Form form={form} layout="vertical" initialValues={target ?? { name: "", phone_e164: "", is_active: true }} onValuesChange={() => lookup.reset()}>
       <Form.Item name="name" label="物业名称" rules={[{ required: true, whitespace: true, max: 100 }]}><Input maxLength={100} /></Form.Item>
@@ -34,13 +39,53 @@ function Editor({ target, close, done }: { target: OperatorRead | null; close: (
   </EditorModal>;
 }
 
+export function PropertyOperatorEditModal({
+  operatorId,
+  close,
+  done,
+}: {
+  operatorId: string;
+  close: () => void;
+  done: (savedId?: string) => Promise<void>;
+}) {
+  const detailQuery = useQuery({
+    queryKey: ["property-operator-detail", operatorId],
+    queryFn: () => localCommerceApi.operator(operatorId),
+  });
+
+  if (detailQuery.isLoading || detailQuery.isError || !detailQuery.data) {
+    return (
+      <EditorModal title="编辑物业授权" blocked onClose={close} onSave={async () => undefined}>
+        <QueryState
+          loading={detailQuery.isLoading}
+          error={detailQuery.error ? errorMessage(detailQuery.error) : undefined}
+          onRetry={() => void detailQuery.refetch()}
+        />
+      </EditorModal>
+    );
+  }
+  return (
+    <Editor
+      key={`${detailQuery.data.id}-${detailQuery.data.revision}`}
+      target={detailQuery.data}
+      close={close}
+      done={done}
+    />
+  );
+}
+
 export default function PropertyOperatorsPage() {
   const admin = useCurrentAdmin(); const client = useQueryClient();
   const allowed = canAccess(admin, "property-operators:read"); const write = canAccess(admin, "property-operators:update");
   const [page, setPage] = useState(1); const [search, setSearch] = useState(""); const [selected, setSelected] = useState<OperatorRead[]>([]);
   const [edit, setEdit] = useState<{ target: OperatorRead | null }>();
   const query = useQuery({ queryKey: ["property-operators", page, search], queryFn: () => localCommerceApi.operators(page, search), enabled: allowed });
-  const refresh = async () => { await client.invalidateQueries({ queryKey: ["property-operators"] }); };
+  const refresh = async (savedId?: string) => {
+    await client.invalidateQueries({ queryKey: ["property-operators"] });
+    if (savedId) {
+      await client.invalidateQueries({ queryKey: ["property-operator-detail", savedId] });
+    }
+  };
   const status = useMutation({ mutationFn: (active: boolean) => localCommerceApi.operatorStatus({ targets: selected.map(({ id, revision }) => ({ id, revision })), is_active: active }), onSuccess: async () => { setSelected([]); await refresh(); } });
   return <PageFrame title="物业授权" description="物业仅可向有效已注册用户发放积分，不设业务额度。发放积分不参与会员升级。">
     {!allowed ? <Alert type="warning" title="无权查看物业授权" /> : <>

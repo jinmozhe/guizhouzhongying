@@ -36,7 +36,7 @@ export function AccountPage() {
 
   return <AccountFrame title='我的' className='account-screen' bodyClassName='account-body'>
     {loggedIn
-      ? <SignedInSummary key={session.epoch} open={(target) => { void open(target) }} />
+      ? <SignedInSummary key={session.epoch} roles={roles.data} open={(target) => { void open(target) }} />
       : <AccountSummary open={(target) => { void open(target) }} />}
     {(error || session.error) && <View className='account-feedback' role='alert'>{error || session.error}</View>}
     <View className='account-orders'>

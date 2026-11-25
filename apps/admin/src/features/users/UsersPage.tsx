@@ -4,10 +4,12 @@ import {
   DeleteOutlined,
   EditOutlined,
   GiftOutlined,
+  HomeOutlined,
   KeyOutlined,
   LaptopOutlined,
   PlusOutlined,
   PoweroffOutlined,
+  ShopOutlined,
   StopOutlined,
   UndoOutlined,
 } from "@ant-design/icons";
@@ -21,12 +23,14 @@ import { PointsAdjustModal, type PointsAdjustTarget } from "@/components/PointsA
 import { StandardConfirmModal } from "@/components/StandardConfirmModal";
 import { StatusToggleTag } from "@/components/StatusToggleTag";
 import { canAccess, useCurrentAdmin } from "@/features/auth";
+import { MerchantEditModal, PropertyOperatorEditModal } from "@/features/local-commerce";
 import { adminApi } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/http";
 import { formatPhoneForDisplay } from "@/lib/phone";
 import { useLockedMutation } from "@/lib/useLockedMutation";
 
 type UserLifecycle = "all" | "active" | "inactive" | "deleted";
+type UserBusinessRole = "all" | "member_only" | "merchant" | "property";
 type CreateUserFormValues = AdminUserCreateIn & { confirm_password: string };
 
 function deletionReasonLabel(reason: string | null): string {
@@ -50,9 +54,12 @@ export function UsersPage() {
   const [search, setSearch] = useState("");
   const [searchDraft, setSearchDraft] = useState("");
   const [lifecycle, setLifecycle] = useState<UserLifecycle>("all");
+  const [businessRole, setBusinessRole] = useState<UserBusinessRole>("all");
   const [selected, setSelected] = useState<AdminUserRead | null>(null);
   const [sessionPage, setSessionPage] = useState(1);
   const [editing, setEditing] = useState<AdminUserRead | null>(null);
+  const [editingMerchantId, setEditingMerchantId] = useState<string | null>(null);
+  const [editingOperatorId, setEditingOperatorId] = useState<string | null>(null);
   const [pointsTarget, setPointsTarget] = useState<PointsAdjustTarget | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<AdminUserRead | null>(null);
   const [deleteTargets, setDeleteTargets] = useState<string[] | null>(null);
@@ -63,14 +70,17 @@ export function UsersPage() {
   const [passwordForm] = Form.useForm<{ new_password: string }>();
   const [deleteReasonForm] = Form.useForm<{ deletion_reason?: string }>();
   const users = useQuery({
-    queryKey: ["admin-users", page, search, lifecycle],
-    queryFn: () => adminApi.users({ page, search: search || undefined, lifecycle }),
+    queryKey: ["admin-users", page, search, lifecycle, businessRole],
+    queryFn: () => adminApi.users({ page, search: search || undefined, lifecycle, businessRole }),
   });
   const canCreate = canAccess(current, "users:create");
   const canUpdate = canAccess(current, "users:update");
   const canDelete = canAccess(current, "users:delete");
   const canRestore = canAccess(current, "users:restore");
   const canAdjustPoints = canAccess(current, "points:adjust");
+  const canManageMerchant = canAccess(current, "merchants:read") && canAccess(current, "merchants:update");
+  const canManageProperty =
+    canAccess(current, "property-operators:read") && canAccess(current, "property-operators:update");
   const sessions = useQuery({
     queryKey: ["admin-user-sessions", selected?.id, sessionPage],
     queryFn: () => adminApi.userSessions(selected!.id, sessionPage),
@@ -170,9 +180,15 @@ export function UsersPage() {
     setSelectedRowKeys([]);
     setSearch("");
     setSearchDraft("");
+    setBusinessRole("all");
   };
   const changeLifecycle = (value: UserLifecycle) => {
     setLifecycle(value);
+    setPage(1);
+    setSelectedRowKeys([]);
+  };
+  const changeBusinessRole = (value: UserBusinessRole) => {
+    setBusinessRole(value);
     setPage(1);
     setSelectedRowKeys([]);
   };
@@ -313,6 +329,18 @@ export function UsersPage() {
                 value={lifecycle}
                 onChange={changeLifecycle}
               />
+              <Select<UserBusinessRole>
+                aria-label="业务身份筛选"
+                style={{ width: 136 }}
+                options={[
+                  { label: "全部身份", value: "all" },
+                  { label: "仅普通会员", value: "member_only" },
+                  { label: "商家", value: "merchant" },
+                  { label: "物业", value: "property" },
+                ]}
+                value={businessRole}
+                onChange={changeBusinessRole}
+              />
               <Input.Search
                 className="table-toolbar-search"
                 allowClear
@@ -354,6 +382,55 @@ export function UsersPage() {
                 ) : content;
               },
             },
+            {
+              title: "业务身份",
+              key: "business_roles",
+              onHeaderCell: () => ({ style: { whiteSpace: "nowrap", verticalAlign: "middle" } }),
+              onCell: () => ({ style: { whiteSpace: "nowrap", verticalAlign: "middle" } }),
+              render: (_, row) => {
+                const merchant = row.merchant_role;
+                const property = row.property_role;
+                if (!merchant && !property) {
+                  return <Tag>普通会员</Tag>;
+                }
+                return (
+                  <Space size={4} wrap={false}>
+                    {merchant && (
+                      <Tooltip title={`商家：${merchant.name}${merchant.is_active ? "（启用）" : "（停用）"}`}>
+                        <Tag
+                          color={merchant.is_active ? "blue" : "default"}
+                          style={{
+                            maxWidth: 180,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            verticalAlign: "middle",
+                            marginInlineEnd: 0,
+                          }}
+                        >
+                          商家：{merchant.name}{merchant.is_active ? "" : "（停用）"}
+                        </Tag>
+                      </Tooltip>
+                    )}
+                    {property && (
+                      <Tooltip title={`物业：${property.name}${property.is_active ? "（启用）" : "（停用）"}`}>
+                        <Tag
+                          color={property.is_active ? "gold" : "default"}
+                          style={{
+                            maxWidth: 180,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            verticalAlign: "middle",
+                            marginInlineEnd: 0,
+                          }}
+                        >
+                          物业：{property.name}{property.is_active ? "" : "（停用）"}
+                        </Tag>
+                      </Tooltip>
+                    )}
+                  </Space>
+                );
+              },
+            },
             { title: "邮箱", dataIndex: "email", responsive: ["lg"], render: (value) => value || "-" },
             { title: "状态", dataIndex: "is_active", width: 110, render: (_value, row) => {
               if (lifecycle === "deleted") {
@@ -393,6 +470,32 @@ export function UsersPage() {
             ) : (
               <Space className="table-actions" size={[4, 0]} wrap={false}>
                 {canUpdate && <Button type="link" size="small" icon={<EditOutlined />} onClick={() => { setEditing(row); editForm.setFieldsValue({ display_name: row.display_name ?? undefined, email: row.email ?? undefined }); }}>编辑</Button>}
+                {(() => {
+                  const merchantRole = row.merchant_role;
+                  return merchantRole && canManageMerchant ? (
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<ShopOutlined />}
+                      onClick={() => setEditingMerchantId(merchantRole.id)}
+                    >
+                      管理商家授权
+                    </Button>
+                  ) : null;
+                })()}
+                {(() => {
+                  const propertyRole = row.property_role;
+                  return propertyRole && canManageProperty ? (
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<HomeOutlined />}
+                      onClick={() => setEditingOperatorId(propertyRole.id)}
+                    >
+                      管理物业授权
+                    </Button>
+                  ) : null;
+                })()}
                 {canAdjustPoints && (
                   <Tooltip title={row.is_active ? undefined : "停用用户无法调整积分"}>
                     <Button
@@ -547,6 +650,36 @@ export function UsersPage() {
         lockTarget
         onClose={() => setPointsTarget(null)}
       />
+
+      {editingMerchantId && (
+        <MerchantEditModal
+          merchantId={editingMerchantId}
+          close={() => setEditingMerchantId(null)}
+          done={async (savedId) => {
+            await invalidate();
+            await queryClient.invalidateQueries({ queryKey: ["local-merchants"] });
+            if (savedId) {
+              await queryClient.invalidateQueries({ queryKey: ["local-merchant-detail", savedId] });
+            }
+            message.success("商家授权已更新");
+          }}
+        />
+      )}
+
+      {editingOperatorId && (
+        <PropertyOperatorEditModal
+          operatorId={editingOperatorId}
+          close={() => setEditingOperatorId(null)}
+          done={async (savedId) => {
+            await invalidate();
+            await queryClient.invalidateQueries({ queryKey: ["property-operators"] });
+            if (savedId) {
+              await queryClient.invalidateQueries({ queryKey: ["property-operator-detail", savedId] });
+            }
+            message.success("物业授权已更新");
+          }}
+        />
+      )}
 
     </PageFrame>
   );

@@ -13,6 +13,7 @@ export const localCommerceApi = {
   updateMerchant: (id: string, data: MerchantUpdate) => apiRequest<MerchantDetailRead>(`/api/v1/admin/merchants/${id}`, { method: "PUT", body: jsonBody(data) }),
   merchantStatus: (data: ActiveStatusBatch) => apiRequest<BatchCompleted>("/api/v1/admin/merchants/status/batch", { method: "PATCH", body: jsonBody(data) }),
   operators: (page = 1, search = "") => apiRequest<PageResultOperatorRead>(`/api/v1/admin/property-operators?page=${page}&page_size=20&search=${encodeURIComponent(search)}`),
+  operator: (id: string) => apiRequest<OperatorRead>(`/api/v1/admin/property-operators/${id}`),
   createOperator: (data: OperatorInput) => apiRequest<OperatorRead>("/api/v1/admin/property-operators", { method: "POST", body: jsonBody(data) }),
   updateOperator: (id: string, data: OperatorUpdate) => apiRequest<OperatorRead>(`/api/v1/admin/property-operators/${id}`, { method: "PUT", body: jsonBody(data) }),
   operatorStatus: (data: ActiveStatusBatch) => apiRequest<BatchCompleted>("/api/v1/admin/property-operators/status/batch", { method: "PATCH", body: jsonBody(data) }),
