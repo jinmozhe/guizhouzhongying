@@ -4,6 +4,11 @@
 
 ## Unreleased
 
+### 图标与 LOGO 上传前 1:1 适配与展示统一
+
+- 管理端新增零依赖原生 Canvas 工具 `apps/admin/src/lib/logo-square-adapt.ts` 并升级 `BrandLogoPicker`：上传品牌 LOGO、商家 LOGO 与分类图标时自动检测原图宽高，已是 1:1（允许 2px 且比例 ≤ 1.02 误差）的图片直接上传，非正方形图片弹出方形与圆形双实时预览窗，支持“完整适配 1:1（透明底，推荐）”“完整适配 1:1（白底）”“居中裁剪为 1:1”和“保留原比例上传”，保留既有素材库选择与移除二次确认流程，并同步分类图标提示文案至 ≤ 400px WebP 规格。
+- 小程序将商品详情页商家卡片与商家详情页顶部商家 LOGO 的渲染模式统一设为 `mode='aspectFit'`，与首页品牌商家、商家列表及分类页保持一致，避免非正方形 LOGO 被裁切；重型自动化测试与浏览器/微信动态视觉验收未执行。
+
 ### 用户业务身份展示与快捷授权管理
 
 - 后端扩展 `AdminUserRead` 与 `LocalRolesRead`，新增结构化商家与物业业务身份摘要（`merchant_role`、`property_role`，含 `id`、`name`、`is_active`）；`GET /api/v1/admin/users` 新增 `business_role`（`all`、`member_only`、`merchant`、`property`）筛选并批量聚合查询避免 N+1；新增 `GET /api/v1/admin/property-operators/{operator_id}` 单条物业授权详情查询接口（`property-operators:read`）。同步导出根 `openapi.json` 并重新生成 `@pinjie/api-client`。

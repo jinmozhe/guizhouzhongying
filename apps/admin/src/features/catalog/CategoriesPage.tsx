@@ -76,8 +76,9 @@ function CategoryEditor({
           />
         </Form.Item>
         {/* 分类图标 */}
-        <Form.Item name="icon_asset_id" label="分类图标" extra="建议上传正方形图标，推荐尺寸 80×80px">
+        <Form.Item name="icon_asset_id" label="分类图标" extra="建议 1:1 正方形图标；非正方形上传时可自动适配，系统将压缩为 ≤ 400px 的 WebP">
           <BrandLogoPicker
+            entityLabel="分类图标"
             url={iconUrl}
             onChange={(assetId, url) => {
               form.setFieldValue("icon_asset_id", assetId);
