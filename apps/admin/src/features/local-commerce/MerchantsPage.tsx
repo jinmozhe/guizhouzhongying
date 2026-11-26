@@ -109,6 +109,7 @@ function EditorContent({
                   />
                   <Form.Item name="logo_asset_id" label="商家 LOGO">
                     <BrandLogoPicker
+                      entityLabel="商家 LOGO"
                       url={logo}
                       onChange={(assetId, url) => {
                         form.setFieldValue("logo_asset_id", assetId);

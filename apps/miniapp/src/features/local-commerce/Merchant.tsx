@@ -28,7 +28,7 @@ export function MerchantCard({ merchantId }: { merchantId: string }) {
   return <View className='surface'>
     <View className='merchant-card-summary'>
       <View className='trade-thumb' ariaRole='link' ariaLabel={`查看${merchant.name}详情`} onClick={openMerchant}>
-        {merchant.logo_url ? <ProductImage url={merchant.logo_url} /> : <View className='image-box' />}
+        {merchant.logo_url ? <ProductImage url={merchant.logo_url} mode='aspectFit' /> : <View className='image-box' />}
       </View>
       <View className='merchant-card-info'>
         <View className='merchant-card-name' ariaRole='link' onClick={openMerchant}>
@@ -78,7 +78,7 @@ export function MerchantPage() {
   const albumImages = row.album_images ?? []
   const albumUrls = albumImages.map((item) => item.url)
   return <View className='page'>
-    <View className='surface'><View className='trade-thumb'><ProductImage url={row.logo_url ?? undefined} /></View><View className='title'>{row.name}</View>
+    <View className='surface'><View className='trade-thumb'><ProductImage url={row.logo_url ?? undefined} mode='aspectFit' /></View><View className='title'>{row.name}</View>
       {!row.is_active && <View className='note'>商家已暂停服务，未核销订单可申请退款。</View>}
       <View>{row.address || '消费地址待补充'}</View><View className='muted'>{row.business_hours || '营业时间待补充'}</View>
       {row.public_phone && <View>联系电话：{row.public_phone}</View>}
