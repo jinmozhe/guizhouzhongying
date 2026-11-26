@@ -242,6 +242,15 @@ class UserBusinessRoleSummary(BaseModel):
     is_active: bool = Field(description="当前业务授权是否启用")
 
 
+class UserPointsSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    account_id: uuid.UUID = Field(description="用户积分账户唯一标识")
+    available_points: int = Field(description="当前可用积分")
+    frozen_points: int = Field(description="当前冻结积分")
+    debt_points: int = Field(description="当前欠积分")
+
+
 class AdminUserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
@@ -256,6 +265,9 @@ class AdminUserRead(BaseModel):
     is_active: bool
     merchant_role: UserBusinessRoleSummary | None = Field(default=None, description="关联的商家核销身份")
     property_role: UserBusinessRoleSummary | None = Field(default=None, description="关联的物业发分身份")
+    points_summary: UserPointsSummary | None = Field(
+        default=None, description="用户积分账户余额摘要；无 points:read 权限或尚未初始化积分账户时为空"
+    )
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = Field(description="账户进入回收站的时间")

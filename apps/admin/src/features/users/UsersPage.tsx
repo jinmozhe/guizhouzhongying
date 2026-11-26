@@ -3,7 +3,6 @@ import {
   CheckCircleOutlined,
   DeleteOutlined,
   EditOutlined,
-  GiftOutlined,
   HomeOutlined,
   KeyOutlined,
   LaptopOutlined,
@@ -19,7 +18,7 @@ import { Alert, Button, Checkbox, Drawer, Flex, Form, Input, Modal, Pagination, 
 import { useState } from "react";
 
 import { PageFrame, QueryState, formatTime } from "@/components/PageFrame";
-import { PointsAdjustModal, type PointsAdjustTarget } from "@/components/PointsAdjustModal";
+import { PointsLedgerDrawer, type PointsLedgerUser } from "@/components/PointsLedgerDrawer";
 import { StandardConfirmModal } from "@/components/StandardConfirmModal";
 import { StatusToggleTag } from "@/components/StatusToggleTag";
 import { canAccess, useCurrentAdmin } from "@/features/auth";
@@ -60,7 +59,7 @@ export function UsersPage() {
   const [editing, setEditing] = useState<AdminUserRead | null>(null);
   const [editingMerchantId, setEditingMerchantId] = useState<string | null>(null);
   const [editingOperatorId, setEditingOperatorId] = useState<string | null>(null);
-  const [pointsTarget, setPointsTarget] = useState<PointsAdjustTarget | null>(null);
+  const [pointsUser, setPointsUser] = useState<PointsLedgerUser | null>(null);
   const [passwordTarget, setPasswordTarget] = useState<AdminUserRead | null>(null);
   const [deleteTargets, setDeleteTargets] = useState<string[] | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
@@ -77,7 +76,9 @@ export function UsersPage() {
   const canUpdate = canAccess(current, "users:update");
   const canDelete = canAccess(current, "users:delete");
   const canRestore = canAccess(current, "users:restore");
+  const canReadPoints = canAccess(current, "points:read");
   const canAdjustPoints = canAccess(current, "points:adjust");
+  const showPointsColumn = canReadPoints || canAdjustPoints;
   const canManageMerchant = canAccess(current, "merchants:read") && canAccess(current, "merchants:update");
   const canManageProperty =
     canAccess(current, "property-operators:read") && canAccess(current, "property-operators:update");
@@ -395,22 +396,50 @@ export function UsersPage() {
                 }
                 return (
                   <Space size={4} wrap={false}>
-                    {merchant && (
-                      <Tooltip title={`商家：${merchant.name}${merchant.is_active ? "（启用）" : "（停用）"}`}>
+                    {merchant && (() => {
+                      const canClickMerchant = canManageMerchant && lifecycle !== "deleted";
+                      const tag = (
                         <Tag
                           color={merchant.is_active ? "blue" : "default"}
+                          icon={canClickMerchant ? <ShopOutlined /> : undefined}
                           style={{
                             maxWidth: 180,
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             verticalAlign: "middle",
                             marginInlineEnd: 0,
+                            cursor: canClickMerchant ? "pointer" : undefined,
                           }}
                         >
                           商家：{merchant.name}{merchant.is_active ? "" : "（停用）"}
                         </Tag>
-                      </Tooltip>
-                    )}
+                      );
+                      return (
+                        <Tooltip
+                          title={`商家：${merchant.name}${merchant.is_active ? "（启用）" : "（停用）"}${canClickMerchant ? "，点击管理商家授权" : ""}`}
+                        >
+                          {canClickMerchant ? (
+                            <button
+                              type="button"
+                              aria-label={`管理商家授权：${merchant.name}`}
+                              onClick={() => setEditingMerchantId(merchant.id)}
+                              style={{
+                                border: 0,
+                                background: "transparent",
+                                padding: 0,
+                                margin: 0,
+                                lineHeight: 1,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              {tag}
+                            </button>
+                          ) : tag}
+                        </Tooltip>
+                      );
+                    })()}
                     {property && (
                       <Tooltip title={`物业：${property.name}${property.is_active ? "（启用）" : "（停用）"}`}>
                         <Tag
@@ -431,6 +460,88 @@ export function UsersPage() {
                 );
               },
             },
+            ...(showPointsColumn
+              ? [
+                  {
+                    title: "积分",
+                    key: "points",
+                    onHeaderCell: () => ({ style: { whiteSpace: "nowrap" as const, verticalAlign: "middle" as const } }),
+                    onCell: () => ({ style: { whiteSpace: "nowrap" as const, verticalAlign: "middle" as const } }),
+                    render: (_: unknown, row: AdminUserRead) => {
+                      const openLedger = () =>
+                        setPointsUser({
+                          user_id: row.id,
+                          username: row.username,
+                          display_name: row.display_name ?? null,
+                          phone_e164: row.phone_e164 ?? null,
+                          phone_verified_at: row.phone_verified_at ?? null,
+                          is_active: row.is_active,
+                          deleted_at: row.deleted_at ?? null,
+                          ...(row.points_summary
+                            ? {
+                                available_points: row.points_summary.available_points,
+                                frozen_points: row.points_summary.frozen_points,
+                                debt_points: row.points_summary.debt_points,
+                              }
+                            : {}),
+                        });
+
+                      if (!canReadPoints) {
+                        return (
+                          <Tooltip title="缺少积分查看权限，点击执行积分调整">
+                            <Button
+                              type="link"
+                              size="small"
+                              style={{ paddingInline: 0, height: "auto" }}
+                              onClick={openLedger}
+                            >
+                              积分操作
+                            </Button>
+                          </Tooltip>
+                        );
+                      }
+
+                      const summary = row.points_summary;
+                      const available = summary?.available_points ?? 0;
+                      const frozen = summary?.frozen_points ?? 0;
+                      const debt = summary?.debt_points ?? 0;
+                      const tooltipTitle = summary
+                        ? `可用 ${available} / 冻结 ${frozen} / 欠积分 ${debt}（点击查看积分流水）`
+                        : "尚未初始化积分账户（当前余额 0），点击查看积分流水";
+
+                      return (
+                        <Tooltip title={tooltipTitle}>
+                          <Space size={6} wrap={false}>
+                            <Button
+                              type="link"
+                              size="small"
+                              style={{
+                                paddingInline: 0,
+                                height: "auto",
+                                fontWeight: 600,
+                                color: available > 0 ? "#389e0d" : undefined,
+                              }}
+                              onClick={openLedger}
+                            >
+                              {available}
+                            </Button>
+                            {frozen > 0 && (
+                              <Tag color="gold" style={{ marginInlineEnd: 0 }}>
+                                冻 {frozen}
+                              </Tag>
+                            )}
+                            {debt > 0 && (
+                              <Tag color="error" style={{ marginInlineEnd: 0 }}>
+                                欠 {debt}
+                              </Tag>
+                            )}
+                          </Space>
+                        </Tooltip>
+                      );
+                    },
+                  },
+                ]
+              : []),
             { title: "邮箱", dataIndex: "email", responsive: ["lg"], render: (value) => value || "-" },
             { title: "状态", dataIndex: "is_active", width: 110, render: (_value, row) => {
               if (lifecycle === "deleted") {
@@ -471,19 +582,6 @@ export function UsersPage() {
               <Space className="table-actions" size={[4, 0]} wrap={false}>
                 {canUpdate && <Button type="link" size="small" icon={<EditOutlined />} onClick={() => { setEditing(row); editForm.setFieldsValue({ display_name: row.display_name ?? undefined, email: row.email ?? undefined }); }}>编辑</Button>}
                 {(() => {
-                  const merchantRole = row.merchant_role;
-                  return merchantRole && canManageMerchant ? (
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<ShopOutlined />}
-                      onClick={() => setEditingMerchantId(merchantRole.id)}
-                    >
-                      管理商家授权
-                    </Button>
-                  ) : null;
-                })()}
-                {(() => {
                   const propertyRole = row.property_role;
                   return propertyRole && canManageProperty ? (
                     <Button
@@ -496,27 +594,6 @@ export function UsersPage() {
                     </Button>
                   ) : null;
                 })()}
-                {canAdjustPoints && (
-                  <Tooltip title={row.is_active ? undefined : "停用用户无法调整积分"}>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<GiftOutlined />}
-                      disabled={!row.is_active}
-                      onClick={() =>
-                        setPointsTarget({
-                          user_id: row.id,
-                          username: row.username,
-                          display_name: row.display_name ?? null,
-                          phone_e164: row.phone_e164 ?? null,
-                          phone_verified_at: row.phone_verified_at ?? null,
-                        })
-                      }
-                    >
-                      调整积分
-                    </Button>
-                  </Tooltip>
-                )}
                  {canUpdate && <Button type="link" size="small" icon={<PoweroffOutlined />} danger={row.is_active} loading={statusMutation.isPending && statusMutation.variables?.userId === row.id} disabled={statusMutation.isPending && statusMutation.variables?.userId === row.id} onClick={() => statusMutation.mutate({ userId: row.id, isActive: !row.is_active })}>{row.is_active ? "停用" : "启用"}</Button>}
                 {canAccess(current, "users:sessions:read") && <Button type="link" size="small" disabled={revokeSessionsMutation.isPending} icon={<LaptopOutlined />} onClick={() => { setSessionPage(1); setSelected(row); }}>会话</Button>}
                 {canAccess(current, "users:credentials:reset") && <Button type="link" size="small" icon={<KeyOutlined />} onClick={() => { setPasswordTarget(row); passwordForm.resetFields(); }}>重置密码</Button>}
@@ -644,11 +721,10 @@ export function UsersPage() {
         {!sessions.isError && sessions.data && sessions.data.total_pages > 1 && <Pagination disabled={revokeSessionsMutation.isPending} current={sessionPage} pageSize={sessions.data.page_size} total={sessions.data.total} showSizeChanger={false} onChange={setSessionPage} />}
       </Drawer>
 
-      <PointsAdjustModal
-        open={Boolean(pointsTarget)}
-        initialTarget={pointsTarget}
-        lockTarget
-        onClose={() => setPointsTarget(null)}
+      <PointsLedgerDrawer
+        open={Boolean(pointsUser)}
+        user={pointsUser}
+        onClose={() => setPointsUser(null)}
       />
 
       {editingMerchantId && (

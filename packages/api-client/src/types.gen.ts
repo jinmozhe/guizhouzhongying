@@ -1087,6 +1087,20 @@ export type AdminUserCreateIn = {
 };
 
 /**
+ * AdminUserPointsLedgersRead
+ */
+export type AdminUserPointsLedgersRead = {
+    /**
+     * 用户当前积分账户余额；历史用户尚未初始化积分账户时为空
+     */
+    account?: PointsAccountRead | null;
+    /**
+     * 用户不可变积分流水分页列表
+     */
+    ledgers: PageResultAdminPointsLedgerRead;
+};
+
+/**
  * AdminUserRead
  */
 export type AdminUserRead = {
@@ -1152,6 +1166,10 @@ export type AdminUserRead = {
      * 关联的物业发分身份
      */
     property_role?: UserBusinessRoleSummary | null;
+    /**
+     * 用户积分账户余额摘要；无 points:read 权限或尚未初始化积分账户时为空
+     */
+    points_summary?: UserPointsSummary | null;
     /**
      * Created At
      *
@@ -11223,6 +11241,34 @@ export type ResponseModelAdminSiteSettingRead = {
 };
 
 /**
+ * ResponseModel[AdminUserPointsLedgersRead]
+ */
+export type ResponseModelAdminUserPointsLedgersRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: AdminUserPointsLedgersRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
  * ResponseModel[AdminUserRead]
  */
 export type ResponseModelAdminUserRead = {
@@ -16524,6 +16570,36 @@ export type UserBusinessRoleSummary = {
      * 当前业务授权是否启用
      */
     is_active: boolean;
+};
+
+/**
+ * UserPointsSummary
+ */
+export type UserPointsSummary = {
+    /**
+     * Account Id
+     *
+     * 用户积分账户唯一标识
+     */
+    account_id: string;
+    /**
+     * Available Points
+     *
+     * 当前可用积分
+     */
+    available_points: number;
+    /**
+     * Frozen Points
+     *
+     * 当前冻结积分
+     */
+    frozen_points: number;
+    /**
+     * Debt Points
+     *
+     * 当前欠积分
+     */
+    debt_points: number;
 };
 
 /**
@@ -23044,6 +23120,49 @@ export type PointsLedgersApiV1AdminPointsAccountsAccountIdLedgersGetResponses = 
 };
 
 export type PointsLedgersApiV1AdminPointsAccountsAccountIdLedgersGetResponse = PointsLedgersApiV1AdminPointsAccountsAccountIdLedgersGetResponses[keyof PointsLedgersApiV1AdminPointsAccountsAccountIdLedgersGetResponses];
+
+export type UserPointsLedgersApiV1AdminUsersUserIdPointsLedgersGetData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * 页码，从一开始
+         */
+        page?: number;
+        /**
+         * Page Size
+         *
+         * 每页数量
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/admin/users/{user_id}/points-ledgers';
+};
+
+export type UserPointsLedgersApiV1AdminUsersUserIdPointsLedgersGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type UserPointsLedgersApiV1AdminUsersUserIdPointsLedgersGetError = UserPointsLedgersApiV1AdminUsersUserIdPointsLedgersGetErrors[keyof UserPointsLedgersApiV1AdminUsersUserIdPointsLedgersGetErrors];
+
+export type UserPointsLedgersApiV1AdminUsersUserIdPointsLedgersGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelAdminUserPointsLedgersRead;
+};
+
+export type UserPointsLedgersApiV1AdminUsersUserIdPointsLedgersGetResponse = UserPointsLedgersApiV1AdminUsersUserIdPointsLedgersGetResponses[keyof UserPointsLedgersApiV1AdminUsersUserIdPointsLedgersGetResponses];
 
 export type LookupPointsTargetApiV1AdminPointsAdjustmentsLookupUserPostData = {
     body: PointsPhoneLookupIn;

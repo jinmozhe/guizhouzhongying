@@ -357,6 +357,7 @@ def get_admin_management_service(
         metadata=request_metadata(request),
         actor_id=current.admin.id,
         actor_session_id=current.login_session.id,
+        actor_permissions=current.permissions,
         resources=resources,
         started_at=started_at,
     )

@@ -25,7 +25,18 @@ from app.core.redis import check_redis
 from app.core.request_metadata import RequestMetadata
 from app.core.resources import AppResources
 from app.core.security import PasswordManager
-from app.db.models import Admin, AdminSession, Asset, AuditEvent, Merchant, PropertyOperator, Role, User, UserSession
+from app.db.models import (
+    Admin,
+    AdminSession,
+    Asset,
+    AuditEvent,
+    Merchant,
+    PointsAccount,
+    PropertyOperator,
+    Role,
+    User,
+    UserSession,
+)
 from app.db.repositories import (
     AdminRepository,
     RequestLogRepository,
@@ -34,7 +45,7 @@ from app.db.repositories import (
     UserRepository,
 )
 from app.db.repositories.local_commerce import LocalActorsRepository
-from app.domains.admin.permissions import PERMISSION_CODES, ROLE_ASSIGNABLE_PERMISSION_CODES
+from app.domains.admin.permissions import PERMISSION_CODES, ROLE_ASSIGNABLE_PERMISSION_CODES, PermissionCode
 from app.domains.admin.presenters import admin_read, role_read
 from app.domains.admin.schemas import (
     AdminBulkStatusUpdateIn,
@@ -72,6 +83,7 @@ from app.domains.admin.schemas import (
     UserBulkStatusUpdateIn,
     UserBusinessRoleSummary,
     UserPage,
+    UserPointsSummary,
     UserRestoreBatchIn,
 )
 from app.domains.users.schemas import UserUpdateIn
@@ -99,6 +111,7 @@ class AdminManagementService:
         metadata: RequestMetadata,
         actor_id: uuid.UUID,
         actor_session_id: uuid.UUID | None = None,
+        actor_permissions: frozenset[str] | set[str] = frozenset(),
         resources: AppResources | None = None,
         started_at: datetime | None = None,
     ) -> None:
@@ -107,6 +120,7 @@ class AdminManagementService:
         self.password_manager = password_manager
         self.resources = resources
         self.started_at = started_at
+        self.actor_permissions: frozenset[str] = frozenset(actor_permissions)
         self.cache_keys: CacheKeys = cache_keys(settings)
         self.users = UserRepository(session)
         self.local_actors = LocalActorsRepository(session)
@@ -128,12 +142,22 @@ class AdminManagementService:
         )
         self.actor_id = actor_id
 
+    def _can_read_points(self) -> bool:
+        return PermissionCode.POINTS_READ.value in self.actor_permissions
+
+    async def _points_accounts_by_users(self, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, PointsAccount]:
+        if not user_ids or not self._can_read_points():
+            return {}
+        rows = await self.session.scalars(select(PointsAccount).where(PointsAccount.user_id.in_(user_ids)))
+        return {account.user_id: account for account in rows}
+
     def _user_read(
         self,
         user: User,
         *,
         merchant: Merchant | None = None,
         operator: PropertyOperator | None = None,
+        points_account: PointsAccount | None = None,
     ) -> AdminUserRead:
         return AdminUserRead(
             id=user.id,
@@ -153,6 +177,16 @@ class AdminManagementService:
             property_role=(
                 UserBusinessRoleSummary(id=operator.id, name=operator.name, is_active=operator.is_active)
                 if operator is not None
+                else None
+            ),
+            points_summary=(
+                UserPointsSummary(
+                    account_id=points_account.id,
+                    available_points=points_account.available_points,
+                    frozen_points=points_account.frozen_points,
+                    debt_points=points_account.debt_points,
+                )
+                if points_account is not None
                 else None
             ),
             created_at=user.created_at,
@@ -183,12 +217,14 @@ class AdminManagementService:
         user_ids = [item.id for item in items]
         merchants_by_user = await self.local_actors.merchants_by_users(user_ids)
         operators_by_user = await self.local_actors.operators_by_users(user_ids)
+        points_by_user = await self._points_accounts_by_users(user_ids)
         return UserPage.create(
             items=[
                 self._user_read(
                     item,
                     merchant=merchants_by_user.get(item.id),
                     operator=operators_by_user.get(item.id),
+                    points_account=points_by_user.get(item.id),
                 )
                 for item in items
             ],
@@ -246,7 +282,8 @@ class AdminManagementService:
             },
             operation=operation,
         )
-        return self._user_read(user)
+        points_account = (await self._points_accounts_by_users([user.id])).get(user.id)
+        return self._user_read(user, points_account=points_account)
 
     async def update_user(self, user_id: uuid.UUID, payload: UserUpdateIn) -> User:
         async def operation() -> User:
@@ -369,7 +406,8 @@ class AdminManagementService:
             await self.sessions.revoke_web_for_user(user.id, reason="account_restored_by_admin")
             merchant = await self.local_actors.by_user(Merchant, user.id)
             operator = await self.local_actors.by_user(PropertyOperator, user.id)
-            return self._user_read(user, merchant=merchant, operator=operator)
+            points_account = (await self._points_accounts_by_users([user.id])).get(user.id)
+            return self._user_read(user, merchant=merchant, operator=operator, points_account=points_account)
 
         return await self.audit.execute(
             action="users:restore",
