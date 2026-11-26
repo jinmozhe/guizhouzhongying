@@ -13210,6 +13210,92 @@
         }
       }
     },
+    "/api/v1/admin/users/{user_id}/points-ledgers": {
+      "get": {
+        "tags": [
+          "会员价格与运费"
+        ],
+        "summary": "按用户查看积分余额与流水",
+        "operationId": "user_points_ledgers_api_v1_admin_users__user_id__points_ledgers_get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "页码，从一开始",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "页码，从一开始"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "每页数量",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "每页数量"
+          },
+          {
+            "name": "guizhouzhongying_admin_access",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Guizhouzhongying Admin Access"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_AdminUserPointsLedgersRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求参数校验失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/points-adjustments/lookup-user": {
       "post": {
         "tags": [
@@ -19463,6 +19549,31 @@
         ],
         "title": "AdminUserCreateIn"
       },
+      "AdminUserPointsLedgersRead": {
+        "properties": {
+          "account": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PointsAccountRead"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "用户当前积分账户余额；历史用户尚未初始化积分账户时为空"
+          },
+          "ledgers": {
+            "$ref": "#/components/schemas/PageResult_AdminPointsLedgerRead_",
+            "description": "用户不可变积分流水分页列表"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ledgers"
+        ],
+        "title": "AdminUserPointsLedgersRead"
+      },
       "AdminUserRead": {
         "properties": {
           "id": {
@@ -19569,6 +19680,17 @@
               }
             ],
             "description": "关联的物业发分身份"
+          },
+          "points_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserPointsSummary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "用户积分账户余额摘要；无 points:read 权限或尚未初始化积分账户时为空"
           },
           "created_at": {
             "type": "string",
@@ -34113,6 +34235,38 @@
         ],
         "title": "ResponseModel[AdminSiteSettingRead]"
       },
+      "ResponseModel_AdminUserPointsLedgersRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AdminUserPointsLedgersRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[AdminUserPointsLedgersRead]"
+      },
       "ResponseModel_AdminUserRead_": {
         "properties": {
           "code": {
@@ -40746,6 +40900,40 @@
           "is_active"
         ],
         "title": "UserBusinessRoleSummary"
+      },
+      "UserPointsSummary": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id",
+            "description": "用户积分账户唯一标识"
+          },
+          "available_points": {
+            "type": "integer",
+            "title": "Available Points",
+            "description": "当前可用积分"
+          },
+          "frozen_points": {
+            "type": "integer",
+            "title": "Frozen Points",
+            "description": "当前冻结积分"
+          },
+          "debt_points": {
+            "type": "integer",
+            "title": "Debt Points",
+            "description": "当前欠积分"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "account_id",
+          "available_points",
+          "frozen_points",
+          "debt_points"
+        ],
+        "title": "UserPointsSummary"
       },
       "UserPrincipalOut": {
         "properties": {

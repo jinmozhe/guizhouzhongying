@@ -20,7 +20,7 @@ import type {
   MemberLevelConditionCreate, MemberLevelConditionRead, MemberLevelConditionUpdate, PageResultMemberLevelConditionRead,
   MemberPriceRuleCreate, MemberPriceRuleRead, MemberPriceRuleUpdate, PageResultMemberPriceRuleRead,
   PointsAccountRead, PageResultAdminPointsAccountRead, PageResultAdminPointsLedgerRead,
-  PointsManualAdjustment, PointsTargetRead,
+  AdminUserPointsLedgersRead, PointsManualAdjustment, PointsTargetRead,
   PageResultMemberLevelEventRead, PageResultMembershipQualificationEventRead,
   CommissionControlRead, CommissionControlUpdate,
   CommissionPolicyRead, CommissionPolicyCreate, CommissionPolicyUpdate, CommissionPolicyPublish, PageResultCommissionPolicyRead,
@@ -140,6 +140,8 @@ export const commerceApi = {
     ),
   pointsLedgers: (accountId: string, page: number = 1, pageSize: number = 20) =>
     apiRequest<PageResultAdminPointsLedgerRead>(`/api/v1/admin/points-accounts/${accountId}/ledgers?page=${page}&page_size=${pageSize}`),
+  userPointsLedgers: (userId: string, page: number = 1, pageSize: number = 20) =>
+    apiRequest<AdminUserPointsLedgersRead>(`/api/v1/admin/users/${userId}/points-ledgers?page=${page}&page_size=${pageSize}`),
   lookupPointsTarget: (phoneE164: string) =>
     apiRequest<PointsTargetRead>("/api/v1/admin/points-adjustments/lookup-user", {
       method: "POST",

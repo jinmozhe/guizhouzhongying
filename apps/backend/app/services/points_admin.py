@@ -68,6 +68,15 @@ class AdminPointsLedgerRead(PointsLedgerRead):
     reversible_points: int = Field(default=0, description="该笔授予流水剩余可冲销积分")
 
 
+class AdminUserPointsLedgersRead(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    account: PointsAccountRead | None = Field(
+        default=None, description="用户当前积分账户余额；历史用户尚未初始化积分账户时为空"
+    )
+    ledgers: PageResult[AdminPointsLedgerRead] = Field(description="用户不可变积分流水分页列表")
+
+
 class AdminPointsService:
     """管理端积分只读聚合视图与受控调整入口。"""
 
@@ -118,6 +127,27 @@ class AdminPointsService:
     async def ledgers(self, account_id: UUID, page: int, page_size: int) -> PageResult[AdminPointsLedgerRead]:
         if await self._session.get(PointsAccount, account_id) is None:
             raise AppException(status_code=404, code=ErrorCode.NOT_FOUND, message="积分账户不存在")
+        return await self._ledgers_for_account(account_id, page, page_size)
+
+    async def user_ledgers(self, user_id: UUID, page: int, page_size: int) -> AdminUserPointsLedgersRead:
+        if await self._session.get(User, user_id) is None:
+            raise AppException(status_code=404, code=ErrorCode.USER_NOT_FOUND, message="用户不存在")
+        account = (
+            await self._session.scalars(select(PointsAccount).where(PointsAccount.user_id == user_id))
+        ).one_or_none()
+        if account is None:
+            return AdminUserPointsLedgersRead(
+                account=None,
+                ledgers=PageResult[AdminPointsLedgerRead].create(items=[], total=0, page=page, page_size=page_size),
+            )
+        return AdminUserPointsLedgersRead(
+            account=PointsAccountRead.model_validate(account),
+            ledgers=await self._ledgers_for_account(account.id, page, page_size),
+        )
+
+    async def _ledgers_for_account(
+        self, account_id: UUID, page: int, page_size: int
+    ) -> PageResult[AdminPointsLedgerRead]:
         predicate = PointsLedger.account_id == account_id
         total = int(await self._session.scalar(select(func.count()).select_from(PointsLedger).where(predicate)) or 0)
         rows = list(
@@ -246,6 +276,7 @@ __all__ = [
     "AdminPointsAccountRead",
     "AdminPointsLedgerRead",
     "AdminPointsService",
+    "AdminUserPointsLedgersRead",
     "PointsPhoneLookupIn",
     "PointsTargetRead",
 ]

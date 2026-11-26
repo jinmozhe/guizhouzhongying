@@ -37,6 +37,7 @@ from app.services.engagement_schemas import (
 from app.services.points_admin import (
     AdminPointsAccountRead,
     AdminPointsLedgerRead,
+    AdminUserPointsLedgersRead,
     PointsPhoneLookupIn,
     PointsTargetRead,
 )
@@ -175,6 +176,18 @@ async def points_ledgers(
     account_id: UUID, service: AdminPoints, page: Page = 1, page_size: PageSize = 20
 ) -> ResponseModel[PageResult[AdminPointsLedgerRead]]:
     return success_response(data=await service.ledgers(account_id, page, page_size), request_id=current_request_id())
+
+
+@router.get(
+    "/admin/users/{user_id}/points-ledgers",
+    response_model=ResponseModel[AdminUserPointsLedgersRead],
+    dependencies=[Depends(require_permission(PermissionCode.POINTS_READ))],
+    summary="按用户查看积分余额与流水",
+)
+async def user_points_ledgers(
+    user_id: UUID, service: AdminPoints, page: Page = 1, page_size: PageSize = 20
+) -> ResponseModel[AdminUserPointsLedgersRead]:
+    return success_response(data=await service.user_ledgers(user_id, page, page_size), request_id=current_request_id())
 
 
 @router.post(
