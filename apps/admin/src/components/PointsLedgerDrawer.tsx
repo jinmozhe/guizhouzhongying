@@ -32,6 +32,7 @@ export type PointsLedgerUser = {
 type PointsLedgerDrawerProps = {
   open: boolean;
   user: PointsLedgerUser | null;
+  zIndex?: number;
   onClose: () => void;
   onAdjusted?: (updatedAccount: PointsAccountRead) => void;
 };
@@ -68,7 +69,7 @@ function ledgerSourceLabel(row: AdminPointsLedgerRead): string {
  * 跨页面复用的用户积分余额概览与不可变流水抽屉。
  * 供用户管理与积分管理共用，内置调整积分与单笔授予流水快捷冲销入口。
  */
-export function PointsLedgerDrawer({ open, user, onClose, onAdjusted }: PointsLedgerDrawerProps) {
+export function PointsLedgerDrawer({ open, user, zIndex = 1010, onClose, onAdjusted }: PointsLedgerDrawerProps) {
   const admin = useCurrentAdmin();
   const queryClient = useQueryClient();
   const [ledgerPage, setLedgerPage] = useState(1);
@@ -295,6 +296,7 @@ export function PointsLedgerDrawer({ open, user, onClose, onAdjusted }: PointsLe
         open={open}
         onClose={onClose}
         size={960}
+        zIndex={zIndex}
         extra={
           canAdjust && user ? (
             <Tooltip title={adjustDisabledReason}>
@@ -412,6 +414,7 @@ export function PointsLedgerDrawer({ open, user, onClose, onAdjusted }: PointsLe
         initialTarget={adjustTarget}
         lockTarget
         reversalContext={adjustModalState.reversal}
+        zIndex={zIndex + 10}
         onClose={() => setAdjustModalState({ open: false, reversal: null })}
         onSuccess={(updatedAccount) => {
           if (user) {

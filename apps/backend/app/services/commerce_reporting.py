@@ -82,6 +82,15 @@ class WalletLedgerRead(BaseModel):
     created_at: datetime = Field(description="入账时间")
 
 
+class AdminUserWalletLedgersRead(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    commission_wallet: AdminWalletRead | None = Field(default=None, description="用户佣金钱包账户，未建账时为空")
+    consumption_wallet: AdminWalletRead | None = Field(default=None, description="用户消费钱包账户，未建账时为空")
+    active_wallet_type: Literal["commission", "consumption"] = Field(description="当前查询的钱包轨道")
+    ledgers: PageResult[WalletLedgerRead] = Field(description="当前轨道不可变钱包流水分页列表")
+
+
 class CommerceFilters(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -281,6 +290,35 @@ class CommerceReportingService:
     async def ledgers(self, wallet_id: UUID, page: int, page_size: int) -> PageResult[WalletLedgerRead]:
         if await self.session.get(WalletAccount, wallet_id) is None:
             raise AppException(status_code=404, code=ErrorCode.NOT_FOUND, message="钱包不存在")
+        return await self._ledgers_for_wallet(wallet_id, page, page_size)
+
+    async def user_wallet_ledgers(
+        self,
+        user_id: UUID,
+        wallet_type: Literal["commission", "consumption"],
+        page: int,
+        page_size: int,
+    ) -> AdminUserWalletLedgersRead:
+        if await self.session.get(User, user_id) is None:
+            raise AppException(status_code=404, code=ErrorCode.USER_NOT_FOUND, message="用户不存在")
+        wallets = list(await self.session.scalars(select(WalletAccount).where(WalletAccount.user_id == user_id)))
+        by_type = {wallet.wallet_type: wallet for wallet in wallets}
+        commission = by_type.get("commission")
+        consumption = by_type.get("consumption")
+        target = by_type.get(wallet_type)
+        ledgers = (
+            await self._ledgers_for_wallet(target.id, page, page_size)
+            if target is not None
+            else PageResult[WalletLedgerRead].create(items=[], total=0, page=page, page_size=page_size)
+        )
+        return AdminUserWalletLedgersRead(
+            commission_wallet=AdminWalletRead.model_validate(commission) if commission is not None else None,
+            consumption_wallet=AdminWalletRead.model_validate(consumption) if consumption is not None else None,
+            active_wallet_type=wallet_type,
+            ledgers=ledgers,
+        )
+
+    async def _ledgers_for_wallet(self, wallet_id: UUID, page: int, page_size: int) -> PageResult[WalletLedgerRead]:
         predicate = WalletLedger.wallet_id == wallet_id
         total = int(await self.session.scalar(select(func.count()).select_from(WalletLedger).where(predicate)) or 0)
         rows = await self.session.scalars(

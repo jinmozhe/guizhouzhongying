@@ -63,13 +63,13 @@ function exportBatches(rows: SettlementRead[]) {
 export default function SettlementsPage() {
   const admin = useCurrentAdmin(); const client = useQueryClient();
   const allowed = canAccess(admin, "merchant-settlements:read"); const write = canAccess(admin, "merchant-settlements:update");
-  const [page, setPage] = useState(1); const [batchPage, setBatchPage] = useState(1); const [merchant, setMerchant] = useState("");
+  const [page, setPage] = useState(1); const [batchPage, setBatchPage] = useState(1); const [phone, setPhone] = useState("");
   const [selected, setSelected] = useState<ReceivableRead[]>([]); const [payment, setPayment] = useState<SettlementRead>();
   const [selectedBatches, setSelectedBatches] = useState<SettlementRead[]>([]);
   const [history, setHistory] = useState<string>(); const [reversal, setReversal] = useState<SettlementRead>();
   const request = useRef<{ request_id: string; merchant_id: string; receivable_ids: string[] } | undefined>(undefined);
-  const query = useQuery({ queryKey: ["merchant-receivables", page, merchant], queryFn: () => localCommerceApi.receivables(page, merchant), enabled: allowed });
-  const batches = useQuery({ queryKey: ["merchant-settlements", batchPage, merchant], queryFn: () => localCommerceApi.settlements(batchPage, merchant), enabled: allowed });
+  const query = useQuery({ queryKey: ["merchant-receivables", page, phone], queryFn: () => localCommerceApi.receivables(page, phone), enabled: allowed });
+  const batches = useQuery({ queryKey: ["merchant-settlements", batchPage, phone], queryFn: () => localCommerceApi.settlements(batchPage, phone), enabled: allowed });
   const refresh = async () => { await Promise.all([client.invalidateQueries({ queryKey: ["merchant-receivables"] }), client.invalidateQueries({ queryKey: ["merchant-settlements"] })]); };
   const create = useMutation({ mutationFn: async () => {
     if (!request.current) {
@@ -81,7 +81,7 @@ export default function SettlementsPage() {
   }, onSuccess: async () => { request.current = undefined; setSelected([]); await refresh(); } });
   return <PageFrame title="商家应收与结算" description="核销产生含积分全额应收。平台承担积分补贴及佣金，线下打款后登记结清。">
     {!allowed ? <Alert type="warning" title="无权查看商家财务" /> : <>
-      <Input.Search placeholder="按商家 ID 筛选，可从商家列表取得" allowClear onSearch={(value) => { if (!request.current) { setMerchant(value.trim()); setPage(1); setBatchPage(1); setSelected([]); setSelectedBatches([]); } }} />
+      <Input.Search placeholder="输入商家核销手机号筛选" allowClear onSearch={(value) => { if (!request.current) { setPhone(value.trim()); setPage(1); setBatchPage(1); setSelected([]); setSelectedBatches([]); } }} />
       {create.error && <Alert type="error" title={errorMessage(create.error)} description="结果未知时用原请求重试，系统不会重复组批。" />}
       <ResourceTable title="商家应收列表" rows={query.data?.items ?? []} loading={query.isLoading} fetching={query.isFetching} error={query.error} retry={query.refetch} page={page} total={query.data?.total} onPage={(value) => { if (!request.current) { setPage(value); setSelected([]); } }}
         selection={write ? { keys: selected.map((row) => row.id), onChange: (_, rows) => { if (!request.current) setSelected(rows); }, disabled: create.isPending || !!request.current } : undefined}

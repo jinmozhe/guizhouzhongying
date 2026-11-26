@@ -38,6 +38,7 @@ type PointsAdjustModalProps = {
   initialTarget?: PointsAdjustTarget | null;
   lockTarget?: boolean;
   reversalContext?: PointsReversalContext | null;
+  zIndex?: number;
   onClose: () => void;
   onSuccess?: (updatedAccount: PointsAccountRead) => void;
 };
@@ -64,6 +65,7 @@ export function PointsAdjustModal({
   initialTarget = null,
   lockTarget = false,
   reversalContext = null,
+  zIndex = 1020,
   onClose,
   onSuccess,
 }: PointsAdjustModalProps) {
@@ -239,6 +241,7 @@ export function PointsAdjustModal({
     <Modal
       title={reversalContext ? "冲销授予积分" : "人工授予或冲销积分"}
       open={open}
+      zIndex={zIndex}
       mask={{ closable: false }}
       closable={!adjustMutation.isPending}
       keyboard={!adjustMutation.isPending}

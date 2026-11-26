@@ -4,6 +4,17 @@
 
 ## Unreleased
 
+### 商家管理列表优化与核销手机号搜索
+
+- 后端升级 `LocalActorsRepository` 搜索逻辑，商家与物业列表搜索直接支持 11 位中国大陆核销手机号、E.164 号码及部分号段匹配；`GET /api/v1/admin/merchant-receivables` 与 `GET /api/v1/admin/merchant-settlements` 新增可选 `phone` 查询参数按商家核销手机号筛选（保留原 `merchant_id` 兼容）。同步导出根 `openapi.json` 并重新生成 `@pinjie/api-client`。
+- 管理端“商家管理”页（`/local-commerce/merchants`）移除“商家 ID”列，在“地址”列前新增“营业时间”与“联系电话”列，将“状态”列移至“地址”列后，“身份关联”列精简为 `已关联` 与 `等待绑定` 标签，并更新搜索框提示；“商家应收与结算”页（`/local-commerce/settlements`）搜索框切换为按商家核销手机号筛选。重型自动化测试与浏览器动态视觉验收未执行。
+
+### 用户管理综合升级与多维下钻闭环
+
+- 后端扩展 `AdminUserRead` 按权批量回填 `member_level`（`members:read`）与 `wallet_summary`（`wallets:read`），`GET /api/v1/admin/users` 新增 `member_level_id` 筛选；新增 `GET /api/v1/admin/users/{user_id}/wallet-ledgers`（`wallets:read`）支持佣金/消费双轨钱包余额与不可变流水查询（兼容未建账与回收站只读审计）；新增 `GET /api/v1/admin/users/{user_id}/overview`（`users:read`）按各模块权限分段返回用户基础档案、微信绑定布尔态、最近活跃时间、会员与三级团队规模、三项资产速览及消费统计与最近 5 笔订单；管理端新建与编辑用户接口支持站内头像资产校验并更新 `users.avatar`。同步导出根 `openapi.json` 并重新生成 `@pinjie/api-client`。
+- 管理端新增跨页面公共组件 `WalletLedgerDrawer`（双轨钱包切换与中文不可变流水，复用于用户管理与钱包管理页）与 `MemberHistoryDrawer`（等级变更与资格贡献双 Tab 抽屉），并新增用户管理专属 `UserDetailDrawer`（支持站内切换直属推荐人详情、直达积分/钱包/会员历史抽屉及快捷跳转订单与推荐关系页）；统一多层抽屉与弹窗层级（详情 `990`、二级互斥流水抽屉 `1010`、积分调整弹窗 `1020`），避免下钻被遮挡。
+- 管理端“用户管理”页（`/membership/users`）移除“邮箱”列，首列融合 32px 头像、微信自动生成长用户名列表缩写为最后 12 位（悬停看全称，详情页完整展示并支持复制）及点击打开用户综合详情，业务身份列的商家与物业标签对称支持点击管理授权，新增“会员等级”列（含筛选）与“佣金余额”列；贴合小程序静默注册与无密码架构，从管理端界面移除“新建用户”与“重置密码”入口（保留后端既有接口），编辑用户资料弹窗移除邮箱并接入头像上传、二次确认移除及顶部只读用户名/手机号展示，操作列低频项（查看会话、移入回收站）收进防换行“更多”下拉菜单；同步扩展 `CommerceList`、订单履约页、推荐关系页支持 URL 查询参数自动过滤及积分管理页复用用户名展示规则。重型自动化测试与浏览器动态视觉验收未执行。
+
 ### 用户管理积分列与积分流水抽屉交互优化
 
 - 后端扩展 `AdminUserRead` 新增可选 `points_summary`（`account_id`、`available_points`、`frozen_points`、`debt_points`），仅在管理员具备 `points:read` 权限时于用户列表通过单条批量查询回填，避免 N+1 且不向无权角色暴露积分余额；新增 `GET /api/v1/admin/users/{user_id}/points-ledgers`（`points:read`）返回实时账户余额与不可变积分流水分页（含管理员/物业操作员归属与剩余可冲销额度），历史未初始化积分账户的用户与回收站用户均可稳定查询不报 404。同步导出根 `openapi.json` 并重新生成 `@pinjie/api-client`。

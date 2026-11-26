@@ -1,6 +1,6 @@
 """管理运营查询与选中导出，所有路由显式声明精确资源权限。"""
 
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -23,6 +23,7 @@ from app.domains.lifecycle import PaymentAttemptRead, ReconciliationRecordRead, 
 from app.domains.orders.schemas import AdminOrderSummary
 from app.services.commerce_reporting import (
     AdminMemberProfileRead,
+    AdminUserWalletLedgersRead,
     AdminWalletRead,
     CommerceExportRead,
     CommerceFilters,
@@ -293,6 +294,25 @@ async def wallet_ledgers(
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ResponseModel[PageResult[WalletLedgerRead]]:
     return success_response(data=await service.ledgers(wallet_id, page, page_size), request_id=current_request_id())
+
+
+@router.get(
+    "/admin/users/{user_id}/wallet-ledgers",
+    response_model=ResponseModel[AdminUserWalletLedgersRead],
+    summary="按用户查询双轨钱包余额与不可变流水",
+    dependencies=[Depends(require_permission(PermissionCode.WALLETS_READ))],
+)
+async def user_wallet_ledgers(
+    service: Reporting,
+    user_id: UUID,
+    wallet_type: Annotated[Literal["commission", "consumption"], Query(description="钱包轨道")] = "commission",
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> ResponseModel[AdminUserWalletLedgersRead]:
+    return success_response(
+        data=await service.user_wallet_ledgers(user_id, wallet_type, page, page_size),
+        request_id=current_request_id(),
+    )
 
 
 @router.get(

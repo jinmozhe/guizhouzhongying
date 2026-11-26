@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { history } from "@umijs/max";
 import { Button, Tag, Tooltip, Typography } from "antd";
 import { ApartmentOutlined } from "@ant-design/icons";
 import type { AdminMemberProfileRead } from "@pinjie/api-client";
@@ -7,8 +8,17 @@ import { PageFrame, formatTime } from "@/components/PageFrame";
 import { commerceApi } from "@/lib/api/commerce";
 import { formatPhoneForDisplay } from "@/lib/phone";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function readInviterFromSearch(search: string): string | undefined {
+  const raw = new URLSearchParams(search).get("inviter_id")?.trim() ?? "";
+  return UUID_PATTERN.test(raw) ? raw : undefined;
+}
+
 export default function ReferralNetworkPage() {
-  const [currentInviterFilter, setCurrentInviterFilter] = useState<string | undefined>(undefined);
+  const [currentInviterFilter, setCurrentInviterFilter] = useState<string | undefined>(() =>
+    readInviterFromSearch(history.location.search),
+  );
 
   return (
     <PageFrame

@@ -329,10 +329,14 @@ async def own_settlements(
     dependencies=[Depends(require_permission(PermissionCode.MERCHANT_SETTLEMENTS_READ))],
 )
 async def receivables(
-    service: AdminMerchantFinance, page: Page = 1, page_size: PageSize = 20, merchant_id: UUID | None = None
+    service: AdminMerchantFinance,
+    page: Page = 1,
+    page_size: PageSize = 20,
+    merchant_id: UUID | None = None,
+    phone: Annotated[str | None, Query(max_length=32, description="按商家核销手机号筛选，支持 11 位或 E.164")] = None,
 ) -> ResponseModel[PageResult[ReceivableRead]]:
     return success_response(
-        data=await service.receivables(page, page_size, merchant_id), request_id=current_request_id()
+        data=await service.receivables(page, page_size, merchant_id, phone=phone), request_id=current_request_id()
     )
 
 
@@ -343,10 +347,14 @@ async def receivables(
     dependencies=[Depends(require_permission(PermissionCode.MERCHANT_SETTLEMENTS_READ))],
 )
 async def settlements(
-    service: AdminMerchantFinance, page: Page = 1, page_size: PageSize = 20, merchant_id: UUID | None = None
+    service: AdminMerchantFinance,
+    page: Page = 1,
+    page_size: PageSize = 20,
+    merchant_id: UUID | None = None,
+    phone: Annotated[str | None, Query(max_length=32, description="按商家核销手机号筛选，支持 11 位或 E.164")] = None,
 ) -> ResponseModel[PageResult[SettlementRead]]:
     return success_response(
-        data=await service.settlements(page, page_size, merchant_id), request_id=current_request_id()
+        data=await service.settlements(page, page_size, merchant_id, phone=phone), request_id=current_request_id()
     )
 
 

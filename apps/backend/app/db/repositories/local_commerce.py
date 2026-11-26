@@ -1,7 +1,8 @@
 from uuid import UUID
 
-from sqlalchemy import Select, and_, delete, func, or_, select, text, true
+from sqlalchemy import ColumnElement, Select, and_, delete, func, or_, select, text, true
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import InstrumentedAttribute
 
 from app.db.models import (
     Asset,
@@ -176,6 +177,25 @@ class LocalActorsRepository:
             self.session.add(MerchantAlbumImage(merchant_id=merchant_id, asset_id=asset_id, position=position))
         await self.session.flush()
 
+    @staticmethod
+    def _phone_search_condition(column: InstrumentedAttribute[str], raw_phone: str) -> ColumnElement[bool]:
+        cleaned = raw_phone.strip()
+        if len(cleaned) == 11 and cleaned.startswith("1") and cleaned.isascii() and cleaned.isdigit():
+            return column == f"+86{cleaned}"
+        if cleaned.startswith("+"):
+            return column == cleaned
+        return column.contains(cleaned, autoescape=True)
+
+    async def merchant_ids_by_phone(self, phone: str) -> list[UUID]:
+        cleaned = phone.strip()
+        if not cleaned:
+            return []
+        return list(
+            await self.session.scalars(
+                select(Merchant.id).where(self._phone_search_condition(Merchant.phone_e164, cleaned))
+            )
+        )
+
     async def page[T: Merchant | PropertyOperator](
         self, model: type[T], page: int, page_size: int, search: str | None = None, *, public: bool = False
     ) -> tuple[list[T], int]:
@@ -183,7 +203,12 @@ class LocalActorsRepository:
         if public:
             query = query.where(model.is_active.is_(True))
         if search:
-            query = query.where(model.name.contains(search, autoescape=True) | (model.phone_e164 == search))
+            cleaned = search.strip()
+            if cleaned:
+                query = query.where(
+                    model.name.contains(cleaned, autoescape=True)
+                    | self._phone_search_condition(model.phone_e164, cleaned)
+                )
         total = int(await self.session.scalar(select(func.count()).select_from(query.subquery())) or 0)
         return list(
             await self.session.scalars(query.order_by(model.id.desc()).offset((page - 1) * page_size).limit(page_size))

@@ -11,6 +11,7 @@ import type {
   AdminRead,
   AdminSuperuserUpdateIn,
   AdminUserCreateIn,
+  AdminUserOverviewRead,
   AdminUserRead,
   AdminUpdateIn,
   AssetBulkDeleteIn,
@@ -102,18 +103,23 @@ export const adminApi = {
     search,
     lifecycle,
     businessRole = "all",
+    memberLevelId,
   }: {
     page: number;
     search?: string;
     lifecycle: "all" | "active" | "inactive" | "deleted";
     businessRole?: "all" | "member_only" | "merchant" | "property";
+    memberLevelId?: string;
   }) => {
     const query = new URLSearchParams({ page: String(page), page_size: "20" });
     if (search) query.set("search", search);
     query.set("lifecycle", lifecycle);
     if (businessRole !== "all") query.set("business_role", businessRole);
+    if (memberLevelId && memberLevelId !== "all") query.set("member_level_id", memberLevelId);
     return apiRequest<PageResultAdminUserRead>(`/api/v1/admin/users?${query}`);
   },
+  userOverview: (id: string) =>
+    apiRequest<AdminUserOverviewRead>(`/api/v1/admin/users/${id}/overview`),
   createUser: (input: AdminUserCreateIn) =>
     apiRequest<AdminUserRead>("/api/v1/admin/users", { method: "POST", body: jsonBody(input) }),
   updateUser: (id: string, input: UserUpdateIn) =>

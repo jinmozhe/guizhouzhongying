@@ -1,8 +1,9 @@
 import type { FulfillmentRead, OrderRead } from "@pinjie/api-client";
 import { EyeOutlined, SendOutlined } from "@ant-design/icons";
+import { history } from "@umijs/max";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Button, Descriptions, Drawer, Form, Input, Tag, App } from "antd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { EditorModal } from "@/components/EditorModal";
 import { CommerceList } from "@/components/CommerceList";
@@ -78,10 +79,21 @@ function OrderDetail({ id, close }: { id: string; close: () => void }) {
   </Drawer>;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function readUserIdFromSearch(search: string): string | undefined {
+  const raw = new URLSearchParams(search).get("user_id")?.trim() ?? "";
+  return UUID_PATTERN.test(raw) ? raw : undefined;
+}
+
 export function OrdersPage() {
   const [detail, setDetail] = useState<string>();
+  const initialFilters = useMemo(() => {
+    const userId = readUserIdFromSearch(history.location.search);
+    return userId ? { user_id: userId } : undefined;
+  }, []);
   return <PageFrame title="订单履约" description="查看订单快照、履约状态并执行受权限保护的发货或虚拟交付。">
-    <CommerceList resource="orders" title="订单" load={commerceApi.orders} fields={[
+    <CommerceList resource="orders" title="订单" load={commerceApi.orders} initialFilters={initialFilters} fields={[
       { name: "record_id", label: "订单号" }, { name: "user_id", label: "用户" },
       { name: "status", label: "状态", options: [{ label: "待付款", value: "pending_payment" }, { label: "已付款", value: "paid" }, { label: "已取消", value: "cancelled" }] },
       { name: "product_type", label: "类型", options: [{ label: "实物", value: "physical" }, { label: "虚拟", value: "virtual" }] },

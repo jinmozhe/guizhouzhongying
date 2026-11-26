@@ -3,6 +3,7 @@ import json
 import time
 import uuid
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from importlib.metadata import version
 from platform import python_version
 from typing import Literal
@@ -10,7 +11,7 @@ from typing import Literal
 from loguru import logger
 from pydantic import ValidationError
 from redis.exceptions import RedisError
-from sqlalchemy import func, select
+from sqlalchemy import case, exists, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -30,12 +31,18 @@ from app.db.models import (
     AdminSession,
     Asset,
     AuditEvent,
+    MemberLevel,
+    MemberProfile,
     Merchant,
+    Order,
     PointsAccount,
     PropertyOperator,
+    RedemptionVoucher,
     Role,
     User,
+    UserExternalIdentity,
     UserSession,
+    WalletAccount,
 )
 from app.db.repositories import (
     AdminRepository,
@@ -55,6 +62,7 @@ from app.domains.admin.schemas import (
     AdminSuperuserUpdateIn,
     AdminUpdateIn,
     AdminUserCreateIn,
+    AdminUserOverviewRead,
     AdminUserRead,
     AuditEventPage,
     AuditEventRead,
@@ -79,12 +87,19 @@ from app.domains.admin.schemas import (
     StorageConfigurationRead,
     SystemOverviewRead,
     SystemTelemetryRead,
+    UserBriefRef,
     UserBulkDeleteIn,
     UserBulkStatusUpdateIn,
     UserBusinessRoleSummary,
+    UserMemberLevelSummary,
+    UserMembershipOverview,
+    UserOrdersOverview,
     UserPage,
     UserPointsSummary,
+    UserRecentOrderRead,
     UserRestoreBatchIn,
+    UserWalletSummary,
+    UserWalletTrackSummary,
 )
 from app.domains.users.schemas import UserUpdateIn
 from app.services.admin_audit import AdminAuditCoordinator
@@ -145,11 +160,70 @@ class AdminManagementService:
     def _can_read_points(self) -> bool:
         return PermissionCode.POINTS_READ.value in self.actor_permissions
 
+    def _can_read_members(self) -> bool:
+        return PermissionCode.MEMBERS_READ.value in self.actor_permissions
+
+    def _can_filter_member_level(self) -> bool:
+        return (
+            PermissionCode.MEMBERS_READ.value in self.actor_permissions
+            or PermissionCode.MEMBER_LEVELS_READ.value in self.actor_permissions
+        )
+
+    def _can_read_wallets(self) -> bool:
+        return PermissionCode.WALLETS_READ.value in self.actor_permissions
+
+    def _can_read_orders(self) -> bool:
+        return PermissionCode.ORDERS_READ.value in self.actor_permissions
+
     async def _points_accounts_by_users(self, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, PointsAccount]:
         if not user_ids or not self._can_read_points():
             return {}
         rows = await self.session.scalars(select(PointsAccount).where(PointsAccount.user_id.in_(user_ids)))
         return {account.user_id: account for account in rows}
+
+    async def _member_levels_by_users(self, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, UserMemberLevelSummary]:
+        if not user_ids or not self._can_read_members():
+            return {}
+        rows = (
+            await self.session.execute(
+                select(MemberProfile, MemberLevel)
+                .outerjoin(MemberLevel, MemberLevel.id == MemberProfile.level_id)
+                .where(MemberProfile.user_id.in_(user_ids))
+            )
+        ).all()
+        by_user: dict[uuid.UUID, UserMemberLevelSummary] = {
+            uid: UserMemberLevelSummary(has_profile=False) for uid in user_ids
+        }
+        for profile, level in rows:
+            by_user[profile.user_id] = UserMemberLevelSummary(
+                has_profile=True,
+                level_id=profile.level_id,
+                level_code=level.code if level is not None else None,
+                level_name=level.name if level is not None else None,
+                level_is_active=level.is_active if level is not None else None,
+            )
+        return by_user
+
+    async def _wallets_by_users(self, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, UserWalletSummary]:
+        if not user_ids or not self._can_read_wallets():
+            return {}
+        rows = await self.session.scalars(select(WalletAccount).where(WalletAccount.user_id.in_(user_ids)))
+        tracks: dict[uuid.UUID, dict[str, UserWalletTrackSummary]] = {uid: {} for uid in user_ids}
+        for wallet in rows:
+            bucket = tracks.setdefault(wallet.user_id, {})
+            bucket[wallet.wallet_type] = UserWalletTrackSummary(
+                wallet_id=wallet.id,
+                available_amount=wallet.available_amount,
+                frozen_amount=wallet.frozen_amount,
+                debt_amount=wallet.debt_amount,
+            )
+        return {
+            uid: UserWalletSummary(
+                commission=bucket.get("commission"),
+                consumption=bucket.get("consumption"),
+            )
+            for uid, bucket in tracks.items()
+        }
 
     def _user_read(
         self,
@@ -157,7 +231,9 @@ class AdminManagementService:
         *,
         merchant: Merchant | None = None,
         operator: PropertyOperator | None = None,
+        member_level: UserMemberLevelSummary | None = None,
         points_account: PointsAccount | None = None,
+        wallet_summary: UserWalletSummary | None = None,
     ) -> AdminUserRead:
         return AdminUserRead(
             id=user.id,
@@ -179,6 +255,7 @@ class AdminManagementService:
                 if operator is not None
                 else None
             ),
+            member_level=member_level,
             points_summary=(
                 UserPointsSummary(
                     account_id=points_account.id,
@@ -189,6 +266,7 @@ class AdminManagementService:
                 if points_account is not None
                 else None
             ),
+            wallet_summary=wallet_summary,
             created_at=user.created_at,
             updated_at=user.updated_at,
             deleted_at=user.deleted_at,
@@ -206,31 +284,185 @@ class AdminManagementService:
         search: str | None,
         lifecycle: Literal["all", "active", "inactive", "deleted"],
         business_role: Literal["all", "member_only", "merchant", "property"] = "all",
+        member_level_id: str | None = None,
     ) -> UserPage:
+        parsed_level_filter: Literal["none"] | uuid.UUID | None = None
+        if member_level_id is not None and member_level_id.strip():
+            if not self._can_filter_member_level():
+                raise AppException(status_code=403, code=ErrorCode.PERMISSION_DENIED, message="缺少会员等级筛选权限")
+            cleaned_level = member_level_id.strip()
+            if cleaned_level == "none":
+                parsed_level_filter = "none"
+            else:
+                try:
+                    parsed_level_filter = uuid.UUID(cleaned_level)
+                except ValueError as exc:
+                    raise AppException(
+                        status_code=422, code=ErrorCode.VALIDATION_ERROR, message="无效的会员等级筛选参数"
+                    ) from exc
+
         items, total = await self.users.list_users(
             page=page,
             page_size=page_size,
             search=search,
             lifecycle=lifecycle,
             business_role=business_role,
+            member_level_filter=parsed_level_filter,
         )
         user_ids = [item.id for item in items]
         merchants_by_user = await self.local_actors.merchants_by_users(user_ids)
         operators_by_user = await self.local_actors.operators_by_users(user_ids)
+        member_levels_by_user = await self._member_levels_by_users(user_ids)
         points_by_user = await self._points_accounts_by_users(user_ids)
+        wallets_by_user = await self._wallets_by_users(user_ids)
         return UserPage.create(
             items=[
                 self._user_read(
                     item,
                     merchant=merchants_by_user.get(item.id),
                     operator=operators_by_user.get(item.id),
+                    member_level=member_levels_by_user.get(item.id),
                     points_account=points_by_user.get(item.id),
+                    wallet_summary=wallets_by_user.get(item.id),
                 )
                 for item in items
             ],
             page=page,
             page_size=page_size,
             total=total,
+        )
+
+    async def get_user_overview(self, user_id: uuid.UUID) -> AdminUserOverviewRead:
+        user = await self.users.get(user_id)
+        if user is None:
+            raise AppException(status_code=404, code=ErrorCode.USER_NOT_FOUND, message="用户不存在")
+
+        merchant = await self.local_actors.by_user(Merchant, user.id)
+        operator = await self.local_actors.by_user(PropertyOperator, user.id)
+        member_level = (await self._member_levels_by_users([user.id])).get(user.id)
+        points_account = (await self._points_accounts_by_users([user.id])).get(user.id)
+        wallet_summary = (await self._wallets_by_users([user.id])).get(user.id)
+
+        has_wechat = bool(
+            await self.session.scalar(
+                select(
+                    exists(
+                        select(1).where(
+                            UserExternalIdentity.user_id == user.id,
+                            UserExternalIdentity.provider == "wechat",
+                        )
+                    )
+                )
+            )
+        )
+        last_active_at = await self.session.scalar(
+            select(func.max(UserSession.last_seen_at)).where(UserSession.user_id == user.id)
+        )
+
+        membership_overview: UserMembershipOverview | None = None
+        if self._can_read_members():
+            profile = (
+                await self.session.scalars(select(MemberProfile).where(MemberProfile.user_id == user.id))
+            ).one_or_none()
+            inviter_ref: UserBriefRef | None = None
+            if profile is not None and profile.inviter_id is not None:
+                inviter_user = await self.users.get(profile.inviter_id)
+                if inviter_user is not None:
+                    inviter_ref = UserBriefRef(
+                        user_id=inviter_user.id,
+                        username=inviter_user.username,
+                        display_name=inviter_user.display_name,
+                        phone_e164=inviter_user.phone_e164,
+                    )
+            l1_ids = list(
+                await self.session.scalars(select(MemberProfile.user_id).where(MemberProfile.inviter_id == user.id))
+            )
+            l2_ids: list[uuid.UUID] = []
+            if l1_ids:
+                l2_ids = list(
+                    await self.session.scalars(
+                        select(MemberProfile.user_id).where(MemberProfile.inviter_id.in_(l1_ids))
+                    )
+                )
+            l3_count = 0
+            if l2_ids:
+                l3_count = int(
+                    await self.session.scalar(
+                        select(func.count()).select_from(MemberProfile).where(MemberProfile.inviter_id.in_(l2_ids))
+                    )
+                    or 0
+                )
+            membership_overview = UserMembershipOverview(
+                has_profile=profile is not None,
+                invitation_code=profile.invitation_code if profile is not None else None,
+                bound_at=profile.bound_at if profile is not None else None,
+                level_changed_at=profile.level_changed_at if profile is not None else None,
+                inviter=inviter_ref,
+                level1_count=len(l1_ids),
+                level2_count=len(l2_ids),
+                level3_count=l3_count,
+            )
+
+        orders_overview: UserOrdersOverview | None = None
+        if self._can_read_orders():
+            agg_row = (
+                await self.session.execute(
+                    select(
+                        func.count(Order.id),
+                        func.coalesce(func.sum(case((Order.status == "paid", 1), else_=0)), 0),
+                        func.coalesce(
+                            func.sum(case((Order.status == "paid", Order.order_gross_amount), else_=Decimal("0.00"))),
+                            Decimal("0.00"),
+                        ),
+                    ).where(Order.user_id == user.id)
+                )
+            ).one()
+            pending_redemption_count = int(
+                await self.session.scalar(
+                    select(func.count(RedemptionVoucher.id))
+                    .join(Order, Order.id == RedemptionVoucher.order_id)
+                    .where(Order.user_id == user.id, RedemptionVoucher.status == "available")
+                )
+                or 0
+            )
+            recent_order_rows = list(
+                await self.session.scalars(
+                    select(Order).where(Order.user_id == user.id).order_by(Order.id.desc()).limit(5)
+                )
+            )
+            orders_overview = UserOrdersOverview(
+                total_count=int(agg_row[0] or 0),
+                paid_count=int(agg_row[1] or 0),
+                gross_paid_amount=Decimal(agg_row[2] or Decimal("0.00")),
+                pending_redemption_count=pending_redemption_count,
+                recent_orders=[
+                    UserRecentOrderRead(
+                        id=order.id,
+                        status=order.status,
+                        fulfillment_mode=order.fulfillment_mode,
+                        order_gross_amount=order.order_gross_amount,
+                        points_deduction=order.points_deduction,
+                        total_amount=order.total_amount,
+                        created_at=order.created_at,
+                        paid_at=order.paid_at,
+                    )
+                    for order in recent_order_rows
+                ],
+            )
+
+        return AdminUserOverviewRead(
+            user=self._user_read(
+                user,
+                merchant=merchant,
+                operator=operator,
+                member_level=member_level,
+                points_account=points_account,
+                wallet_summary=wallet_summary,
+            ),
+            has_wechat_identity=has_wechat,
+            last_active_at=last_active_at,
+            membership=membership_overview,
+            orders=orders_overview,
         )
 
     async def get_user(self, user_id: uuid.UUID) -> User:
@@ -248,11 +480,13 @@ class AdminManagementService:
                 raise AppException(status_code=409, code=ErrorCode.STATE_CONFLICT, message="用户名已被使用")
             if payload.email and await self.users.get_by_email(payload.email) is not None:
                 raise AppException(status_code=409, code=ErrorCode.STATE_CONFLICT, message="邮箱已被使用")
+            avatar = await resolve_admin_avatar(session=self.session, settings=self.settings, avatar=payload.avatar)
             user = User(
                 id=user_id,
                 username=payload.username,
                 email=payload.email,
                 display_name=payload.display_name,
+                avatar=avatar,
                 password_hash=password_hash,
                 is_active=payload.is_active,
                 credential_version=1,
@@ -279,11 +513,19 @@ class AdminManagementService:
                 "is_active": payload.is_active,
                 "has_display_name": bool(payload.display_name),
                 "has_email": payload.email is not None,
+                "has_avatar": payload.avatar is not None,
             },
             operation=operation,
         )
+        member_level = (await self._member_levels_by_users([user.id])).get(user.id)
         points_account = (await self._points_accounts_by_users([user.id])).get(user.id)
-        return self._user_read(user, points_account=points_account)
+        wallet_summary = (await self._wallets_by_users([user.id])).get(user.id)
+        return self._user_read(
+            user,
+            member_level=member_level,
+            points_account=points_account,
+            wallet_summary=wallet_summary,
+        )
 
     async def update_user(self, user_id: uuid.UUID, payload: UserUpdateIn) -> User:
         async def operation() -> User:
@@ -298,6 +540,10 @@ class AdminManagementService:
                 user.display_name = payload.display_name.strip() if payload.display_name else None
             if "email" in payload.model_fields_set:
                 user.email = payload.email
+            if "avatar" in payload.model_fields_set:
+                user.avatar = await resolve_admin_avatar(
+                    session=self.session, settings=self.settings, avatar=payload.avatar
+                )
             return user
 
         return await self.audit.execute(
@@ -406,8 +652,17 @@ class AdminManagementService:
             await self.sessions.revoke_web_for_user(user.id, reason="account_restored_by_admin")
             merchant = await self.local_actors.by_user(Merchant, user.id)
             operator = await self.local_actors.by_user(PropertyOperator, user.id)
+            member_level = (await self._member_levels_by_users([user.id])).get(user.id)
             points_account = (await self._points_accounts_by_users([user.id])).get(user.id)
-            return self._user_read(user, merchant=merchant, operator=operator, points_account=points_account)
+            wallet_summary = (await self._wallets_by_users([user.id])).get(user.id)
+            return self._user_read(
+                user,
+                merchant=merchant,
+                operator=operator,
+                member_level=member_level,
+                points_account=points_account,
+                wallet_summary=wallet_summary,
+            )
 
         return await self.audit.execute(
             action="users:restore",
