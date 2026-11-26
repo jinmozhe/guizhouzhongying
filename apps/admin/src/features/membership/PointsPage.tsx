@@ -15,9 +15,10 @@ import { canAccess, useCurrentAdmin } from "@/lib/auth-context";
 import { commerceApi } from "@/lib/api/commerce";
 import { errorMessage } from "@/lib/api/http";
 import { formatPhoneForDisplay } from "@/lib/phone";
+import { formatUserPrimaryName, formatUsernameForList, isWechatGeneratedUsername } from "@/lib/user-display";
 
 function accountDisplayName(row: Pick<AdminPointsAccountRead, "display_name" | "username" | "user_id">): string {
-  return row.display_name || row.username || row.user_id;
+  return formatUserPrimaryName(row);
 }
 
 export default function PointsPage() {
@@ -75,12 +76,24 @@ export default function PointsPage() {
     {
       title: "用户",
       dataIndex: "username",
-      render: (_, row) => (
-        <div className="table-primary-cell">
-          <Typography.Text strong>{accountDisplayName(row)}</Typography.Text>
-          {row.username && <Typography.Text type="secondary">{row.username}</Typography.Text>}
-        </div>
-      ),
+      render: (_, row) => {
+        const subUsername = formatUsernameForList(row.username);
+        const subNode = row.username ? (
+          isWechatGeneratedUsername(row.username) ? (
+            <Tooltip title={`完整用户名：${row.username}`}>
+              <Typography.Text type="secondary">{subUsername}</Typography.Text>
+            </Tooltip>
+          ) : (
+            <Typography.Text type="secondary">{subUsername}</Typography.Text>
+          )
+        ) : null;
+        return (
+          <div className="table-primary-cell">
+            <Typography.Text strong>{accountDisplayName(row)}</Typography.Text>
+            {subNode}
+          </div>
+        );
+      },
     },
     {
       title: "手机号",

@@ -65,40 +65,23 @@ describe("stage C admin workspace", () => {
 
   it("loads users and supports editing and session inspection", async () => {
     const user = userEvent.setup();
-    renderPage(<UsersPage />);
-    expect(await screen.findByText("Browser User")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /编辑/ }));
-    const displayName = screen.getByLabelText("显示名称");
-    await user.clear(displayName);
-    await user.type(displayName, "Updated User");
-    await user.click(screen.getByRole("button", { name: /保\s*存/ }));
-    await waitFor(() => {
-      const dialog = screen.queryByRole("dialog", { name: "编辑用户资料" });
-      if (dialog) expect(dialog).not.toBeVisible();
-      else expect(dialog).toBeNull();
-    });
-    await user.click(await screen.findByRole("button", { name: /会\s*话/ }));
-    expect(await screen.findByText("暂无数据", { selector: "div" })).toBeVisible();
-  });
-
-  it("creates a user with an administrator supplied initial password", async () => {
-    const user = userEvent.setup();
-    let createPayload: unknown;
+    let updatePayload: unknown;
     server.use(
-      http.post("http://localhost:3000/api/v1/admin/users", async ({ request }) => {
-        createPayload = await request.json();
+      http.patch("http://localhost:3000/api/v1/admin/users/:id", async ({ request }) => {
+        updatePayload = await request.json();
         return HttpResponse.json({
           code: "OK",
-          message: "用户创建成功",
+          message: "操作成功",
           data: {
-            id: "01900000-0000-7000-8000-000000000011",
-            username: "managed-user",
-            display_name: "Managed User",
-            email: "managed@example.com",
+            id: "01900000-0000-7000-8000-000000000002",
+            username: "browser-user",
+            display_name: "Updated User",
+            avatar: null,
+            email: null,
             phone_e164: null,
             phone_bound: false,
             phone_verified_at: null,
-            is_active: false,
+            is_active: true,
             created_at: now,
             updated_at: now,
             deleted_at: null,
@@ -112,27 +95,30 @@ describe("stage C admin workspace", () => {
       }),
     );
     renderPage(<UsersPage />);
-
     expect(await screen.findByText("Browser User")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /新建用户/ }));
-    await user.type(screen.getByLabelText("用户名"), "managed-user");
-    await user.type(screen.getByLabelText("显示名称"), "Managed User");
-    await user.type(screen.getByLabelText("邮箱"), "managed@example.com");
-    await user.type(screen.getByLabelText("初始密码"), "initial-password");
-    await user.type(screen.getByLabelText("确认初始密码"), "initial-password");
-    await user.click(screen.getByRole("checkbox", { name: "允许登录" }));
-    await user.click(screen.getByRole("button", { name: /创\s*建/ }));
-
-    await waitFor(() => expect(createPayload).toEqual({
-      username: "managed-user",
-      display_name: "Managed User",
-      email: "managed@example.com",
-      initial_password: "initial-password",
-      is_active: false,
-    }));
+    expect(screen.queryByRole("button", { name: /新建用户/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /编辑/ }));
+    const editDialog = await screen.findByRole("dialog", { name: "编辑用户资料" });
+    expect(within(editDialog).getByText("browser-user")).toBeInTheDocument();
+    expect(within(editDialog).getByText("未绑定")).toBeInTheDocument();
+    expect(within(editDialog).queryByLabelText("邮箱")).not.toBeInTheDocument();
+    const displayName = within(editDialog).getByLabelText("显示名称");
+    await user.clear(displayName);
+    await user.type(displayName, "Updated User");
+    await user.click(within(editDialog).getByRole("button", { name: /保\s*存/ }));
+    await waitFor(() => {
+      expect(updatePayload).toEqual({ display_name: "Updated User", avatar: null });
+      const dialog = screen.queryByRole("dialog", { name: "编辑用户资料" });
+      if (dialog) expect(dialog).not.toBeVisible();
+      else expect(dialog).toBeNull();
+    });
+    await user.click(screen.getByRole("button", { name: "更多操作：browser-user" }));
+    expect(screen.queryByText("重置密码")).not.toBeInTheDocument();
+    await user.click(await screen.findByText("查看会话"));
+    expect(await screen.findByText("暂无数据", { selector: "div" })).toBeVisible();
   });
 
-  it("executes user status, credential, and session operations without password confirmation", async () => {
+  it("executes user status and session operations without password confirmation", async () => {
     const user = userEvent.setup();
     let statusPayload: unknown;
     server.use(http.patch("http://localhost:3000/api/v1/admin/users/:id/status", async ({ request }) => {
@@ -145,12 +131,9 @@ describe("stage C admin workspace", () => {
     await user.click(screen.getByRole("button", { name: "停用用户：browser-user" }));
     await waitFor(() => expect(statusPayload).toEqual({ is_active: false }));
 
-    await user.click(screen.getByRole("button", { name: /重置密码/ }));
-    expect(screen.getByLabelText("新密码")).toHaveAttribute("maxlength", "64");
-    await user.type(screen.getByLabelText("新密码"), "replacement-password");
-    await user.click(screen.getByRole("button", { name: /确\s*定/ }));
-
-    await user.click(await screen.findByRole("button", { name: /会话/ }));
+    await user.click(screen.getByRole("button", { name: "更多操作：browser-user" }));
+    expect(screen.queryByText("重置密码")).not.toBeInTheDocument();
+    await user.click(await screen.findByText("查看会话"));
     expect(await screen.findByText("暂无数据", { selector: "div" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: /撤销全部/ }));
     expect(screen.queryByLabelText("当前密码")).not.toBeInTheDocument();
@@ -206,8 +189,13 @@ describe("stage C admin workspace", () => {
     );
     renderPage(<UsersPage />);
     await screen.findByText("Browser User");
-    if (mode === "bulk") await user.click(screen.getByRole("checkbox", { name: /Select row/ }));
-    await user.click(screen.getByRole("button", { name: mode === "bulk" ? /批量删除/ : /删\s*除/ }));
+    if (mode === "bulk") {
+      await user.click(screen.getByRole("checkbox", { name: /Select row/ }));
+      await user.click(screen.getByRole("button", { name: /批量删除/ }));
+    } else {
+      await user.click(screen.getByRole("button", { name: "更多操作：browser-user" }));
+      await user.click(await screen.findByText("移入回收站"));
+    }
     const dialog = await screen.findByRole("dialog");
     const reason = within(dialog).getByLabelText("删除原因");
     await user.type(reason, "重复账户");

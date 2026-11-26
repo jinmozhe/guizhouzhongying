@@ -1079,11 +1079,47 @@ export type AdminUserCreateIn = {
      */
     email?: string | null;
     /**
+     * Avatar
+     *
+     * 用户头像 URL 或站内资源路径
+     */
+    avatar?: string | null;
+    /**
      * Is Active
      *
      * 是否允许用户登录
      */
     is_active?: boolean;
+};
+
+/**
+ * AdminUserOverviewRead
+ */
+export type AdminUserOverviewRead = {
+    /**
+     * 用户基础信息、业务身份与按权资产摘要
+     */
+    user: AdminUserRead;
+    /**
+     * Has Wechat Identity
+     *
+     * 是否已绑定微信外部身份，不泄露 OpenID 明文
+     */
+    has_wechat_identity: boolean;
+    /**
+     * Last Active At
+     *
+     * 最近会话活跃时间
+     */
+    last_active_at?: string | null;
+    /**
+     * 会员档案与三级团队概况；无 members:read 权限时为空
+     */
+    membership?: UserMembershipOverview | null;
+    /**
+     * 订单消费统计与最近五笔订单；无 orders:read 权限时为空
+     */
+    orders?: UserOrdersOverview | null;
 };
 
 /**
@@ -1167,9 +1203,17 @@ export type AdminUserRead = {
      */
     property_role?: UserBusinessRoleSummary | null;
     /**
+     * 用户会员等级摘要；无 members:read 权限时为空
+     */
+    member_level?: UserMemberLevelSummary | null;
+    /**
      * 用户积分账户余额摘要；无 points:read 权限或尚未初始化积分账户时为空
      */
     points_summary?: UserPointsSummary | null;
+    /**
+     * 用户双轨钱包余额摘要；无 wallets:read 权限时为空
+     */
+    wallet_summary?: UserWalletSummary | null;
     /**
      * Created At
      *
@@ -1212,6 +1256,30 @@ export type AdminUserRead = {
      * 当前是否允许恢复
      */
     can_restore: boolean;
+};
+
+/**
+ * AdminUserWalletLedgersRead
+ */
+export type AdminUserWalletLedgersRead = {
+    /**
+     * 用户佣金钱包账户，未建账时为空
+     */
+    commission_wallet?: AdminWalletRead | null;
+    /**
+     * 用户消费钱包账户，未建账时为空
+     */
+    consumption_wallet?: AdminWalletRead | null;
+    /**
+     * Active Wallet Type
+     *
+     * 当前查询的钱包轨道
+     */
+    active_wallet_type: 'commission' | 'consumption';
+    /**
+     * 当前轨道不可变钱包流水分页列表
+     */
+    ledgers: PageResultWalletLedgerRead;
 };
 
 /**
@@ -11241,6 +11309,34 @@ export type ResponseModelAdminSiteSettingRead = {
 };
 
 /**
+ * ResponseModel[AdminUserOverviewRead]
+ */
+export type ResponseModelAdminUserOverviewRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: AdminUserOverviewRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
  * ResponseModel[AdminUserPointsLedgersRead]
  */
 export type ResponseModelAdminUserPointsLedgersRead = {
@@ -11288,6 +11384,34 @@ export type ResponseModelAdminUserRead = {
      * 响应业务数据
      */
     data: AdminUserRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[AdminUserWalletLedgersRead]
+ */
+export type ResponseModelAdminUserWalletLedgersRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: AdminUserWalletLedgersRead;
     /**
      * Request Id
      *
@@ -16513,6 +16637,36 @@ export type UploadScene = 'avatar' | 'article' | 'product' | 'document' | 'attac
 export type UploaderType = 'admin' | 'user' | 'system';
 
 /**
+ * UserBriefRef
+ */
+export type UserBriefRef = {
+    /**
+     * User Id
+     *
+     * 关联用户唯一标识
+     */
+    user_id: string;
+    /**
+     * Username
+     *
+     * 关联用户登录名
+     */
+    username: string;
+    /**
+     * Display Name
+     *
+     * 关联用户展示名称
+     */
+    display_name?: string | null;
+    /**
+     * Phone E164
+     *
+     * 关联用户已验证手机号
+     */
+    phone_e164?: string | null;
+};
+
+/**
  * UserBulkDeleteIn
  */
 export type UserBulkDeleteIn = {
@@ -16570,6 +16724,130 @@ export type UserBusinessRoleSummary = {
      * 当前业务授权是否启用
      */
     is_active: boolean;
+};
+
+/**
+ * UserMemberLevelSummary
+ */
+export type UserMemberLevelSummary = {
+    /**
+     * Has Profile
+     *
+     * 是否已建立会员档案
+     */
+    has_profile: boolean;
+    /**
+     * Level Id
+     *
+     * 当前会员等级唯一标识，为空表示普通无等级
+     */
+    level_id?: string | null;
+    /**
+     * Level Code
+     *
+     * 当前会员等级编码
+     */
+    level_code?: string | null;
+    /**
+     * Level Name
+     *
+     * 当前会员等级名称
+     */
+    level_name?: string | null;
+    /**
+     * Level Is Active
+     *
+     * 当前会员等级是否启用
+     */
+    level_is_active?: boolean | null;
+};
+
+/**
+ * UserMembershipOverview
+ */
+export type UserMembershipOverview = {
+    /**
+     * Has Profile
+     *
+     * 是否已建立会员档案
+     */
+    has_profile: boolean;
+    /**
+     * Invitation Code
+     *
+     * 本人唯一邀请码
+     */
+    invitation_code?: string | null;
+    /**
+     * Bound At
+     *
+     * 首次推荐关系绑定时间
+     */
+    bound_at?: string | null;
+    /**
+     * Level Changed At
+     *
+     * 最近一次等级变更时间
+     */
+    level_changed_at?: string | null;
+    /**
+     * 直属推荐人摘要
+     */
+    inviter?: UserBriefRef | null;
+    /**
+     * Level1 Count
+     *
+     * 一级直推人数
+     */
+    level1_count?: number;
+    /**
+     * Level2 Count
+     *
+     * 二级间推人数
+     */
+    level2_count?: number;
+    /**
+     * Level3 Count
+     *
+     * 三级下级人数
+     */
+    level3_count?: number;
+};
+
+/**
+ * UserOrdersOverview
+ */
+export type UserOrdersOverview = {
+    /**
+     * Total Count
+     *
+     * 累计订单总数
+     */
+    total_count?: number;
+    /**
+     * Paid Count
+     *
+     * 已付款订单数
+     */
+    paid_count?: number;
+    /**
+     * Gross Paid Amount
+     *
+     * 已付款订单累计成交总额
+     */
+    gross_paid_amount?: string;
+    /**
+     * Pending Redemption Count
+     *
+     * 待到店核销订单数
+     */
+    pending_redemption_count?: number;
+    /**
+     * Recent Orders
+     *
+     * 最近五笔订单摘要
+     */
+    recent_orders?: Array<UserRecentOrderRead>;
 };
 
 /**
@@ -16675,6 +16953,60 @@ export type UserPrincipalOut = {
 };
 
 /**
+ * UserRecentOrderRead
+ */
+export type UserRecentOrderRead = {
+    /**
+     * Id
+     *
+     * 订单唯一标识
+     */
+    id: string;
+    /**
+     * Status
+     *
+     * 订单主状态
+     */
+    status: string;
+    /**
+     * Fulfillment Mode
+     *
+     * 履约模式：local 或 legacy
+     */
+    fulfillment_mode: string;
+    /**
+     * Order Gross Amount
+     *
+     * 积分抵扣前完整成交总额
+     */
+    order_gross_amount: string;
+    /**
+     * Points Deduction
+     *
+     * 订单抵扣积分
+     */
+    points_deduction: number;
+    /**
+     * Total Amount
+     *
+     * 现金应付金额
+     */
+    total_amount: string;
+    /**
+     * Created At
+     *
+     * 下单时间
+     */
+    created_at: string;
+    /**
+     * Paid At
+     *
+     * 可信支付确认时间
+     */
+    paid_at?: string | null;
+};
+
+/**
  * UserRestoreBatchIn
  */
 export type UserRestoreBatchIn = {
@@ -16702,6 +17034,56 @@ export type UserUpdateIn = {
      * 电子邮箱地址
      */
     email?: string | null;
+    /**
+     * Avatar
+     *
+     * 用户头像 URL 或站内资源路径
+     */
+    avatar?: string | null;
+};
+
+/**
+ * UserWalletSummary
+ */
+export type UserWalletSummary = {
+    /**
+     * 佣金钱包余额摘要
+     */
+    commission?: UserWalletTrackSummary | null;
+    /**
+     * 消费钱包余额摘要
+     */
+    consumption?: UserWalletTrackSummary | null;
+};
+
+/**
+ * UserWalletTrackSummary
+ */
+export type UserWalletTrackSummary = {
+    /**
+     * Wallet Id
+     *
+     * 钱包账户唯一标识
+     */
+    wallet_id: string;
+    /**
+     * Available Amount
+     *
+     * 可用余额
+     */
+    available_amount: string;
+    /**
+     * Frozen Amount
+     *
+     * 冻结余额
+     */
+    frozen_amount: string;
+    /**
+     * Debt Amount
+     *
+     * 未清偿欠款
+     */
+    debt_amount: string;
 };
 
 /**
@@ -17905,6 +18287,12 @@ export type ReceivablesApiV1AdminMerchantReceivablesGetData = {
          * Merchant Id
          */
         merchant_id?: string | null;
+        /**
+         * Phone
+         *
+         * 按商家核销手机号筛选，支持 11 位或 E.164
+         */
+        phone?: string | null;
     };
     url: '/api/v1/admin/merchant-receivables';
 };
@@ -17947,6 +18335,12 @@ export type SettlementsApiV1AdminMerchantSettlementsGetData = {
          * Merchant Id
          */
         merchant_id?: string | null;
+        /**
+         * Phone
+         *
+         * 按商家核销手机号筛选，支持 11 位或 E.164
+         */
+        phone?: string | null;
     };
     url: '/api/v1/admin/merchant-settlements';
 };
@@ -19808,6 +20202,51 @@ export type WalletLedgersApiV1AdminWalletsWalletIdLedgersGetResponses = {
 };
 
 export type WalletLedgersApiV1AdminWalletsWalletIdLedgersGetResponse = WalletLedgersApiV1AdminWalletsWalletIdLedgersGetResponses[keyof WalletLedgersApiV1AdminWalletsWalletIdLedgersGetResponses];
+
+export type UserWalletLedgersApiV1AdminUsersUserIdWalletLedgersGetData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: {
+        /**
+         * Wallet Type
+         *
+         * 钱包轨道
+         */
+        wallet_type?: 'commission' | 'consumption';
+        /**
+         * Page
+         */
+        page?: number;
+        /**
+         * Page Size
+         */
+        page_size?: number;
+    };
+    url: '/api/v1/admin/users/{user_id}/wallet-ledgers';
+};
+
+export type UserWalletLedgersApiV1AdminUsersUserIdWalletLedgersGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type UserWalletLedgersApiV1AdminUsersUserIdWalletLedgersGetError = UserWalletLedgersApiV1AdminUsersUserIdWalletLedgersGetErrors[keyof UserWalletLedgersApiV1AdminUsersUserIdWalletLedgersGetErrors];
+
+export type UserWalletLedgersApiV1AdminUsersUserIdWalletLedgersGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelAdminUserWalletLedgersRead;
+};
+
+export type UserWalletLedgersApiV1AdminUsersUserIdWalletLedgersGetResponse = UserWalletLedgersApiV1AdminUsersUserIdWalletLedgersGetResponses[keyof UserWalletLedgersApiV1AdminUsersUserIdWalletLedgersGetResponses];
 
 export type RefundExecutionsPageApiV1AdminRefundExecutionsGetData = {
     body?: never;
@@ -24055,6 +24494,12 @@ export type ListUsersApiV1AdminUsersGetData = {
          * Business Role
          */
         business_role?: 'all' | 'member_only' | 'merchant' | 'property';
+        /**
+         * Member Level Id
+         *
+         * 会员等级筛选：none 表示无等级，或具体等级 UUID
+         */
+        member_level_id?: string | null;
     };
     url: '/api/v1/admin/users';
 };
@@ -24101,6 +24546,36 @@ export type CreateUserApiV1AdminUsersPostResponses = {
 };
 
 export type CreateUserApiV1AdminUsersPostResponse = CreateUserApiV1AdminUsersPostResponses[keyof CreateUserApiV1AdminUsersPostResponses];
+
+export type GetUserOverviewApiV1AdminUsersUserIdOverviewGetData = {
+    body?: never;
+    path: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/admin/users/{user_id}/overview';
+};
+
+export type GetUserOverviewApiV1AdminUsersUserIdOverviewGetErrors = {
+    /**
+     * 请求参数校验失败
+     */
+    422: HttpValidationError;
+};
+
+export type GetUserOverviewApiV1AdminUsersUserIdOverviewGetError = GetUserOverviewApiV1AdminUsersUserIdOverviewGetErrors[keyof GetUserOverviewApiV1AdminUsersUserIdOverviewGetErrors];
+
+export type GetUserOverviewApiV1AdminUsersUserIdOverviewGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelAdminUserOverviewRead;
+};
+
+export type GetUserOverviewApiV1AdminUsersUserIdOverviewGetResponse = GetUserOverviewApiV1AdminUsersUserIdOverviewGetResponses[keyof GetUserOverviewApiV1AdminUsersUserIdOverviewGetResponses];
 
 export type SetUserStatusBulkApiV1AdminUsersStatusBatchPatchData = {
     body: UserBulkStatusUpdateIn;

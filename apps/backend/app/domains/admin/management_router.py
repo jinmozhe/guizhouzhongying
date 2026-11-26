@@ -27,6 +27,7 @@ from .schemas import (
     AdminSuperuserUpdateIn,
     AdminUpdateIn,
     AdminUserCreateIn,
+    AdminUserOverviewRead,
     AdminUserRead,
     AuditEventPage,
     BatchActionResult,
@@ -80,6 +81,9 @@ async def list_users(
     search: Annotated[str | None, Query(max_length=100)] = None,
     lifecycle: Annotated[Literal["all", "active", "inactive", "deleted"], Query()] = "all",
     business_role: Annotated[Literal["all", "member_only", "merchant", "property"], Query()] = "all",
+    member_level_id: Annotated[
+        str | None, Query(max_length=40, description="会员等级筛选：none 表示无等级，或具体等级 UUID")
+    ] = None,
 ) -> ResponseModel[UserPage]:
     result = await service.list_users(
         page=page,
@@ -87,8 +91,22 @@ async def list_users(
         search=search,
         lifecycle=lifecycle,
         business_role=business_role,
+        member_level_id=member_level_id,
     )
     return success_response(data=result, request_id=current_request_id())
+
+
+@router.get(
+    "/users/{user_id}/overview",
+    response_model=ResponseModel[AdminUserOverviewRead],
+    dependencies=[Depends(require_permission(PermissionCode.USERS_READ))],
+    summary="获取用户综合详情概览",
+)
+async def get_user_overview(
+    user_id: uuid.UUID,
+    service: AdminManagementServiceDependency,
+) -> ResponseModel[AdminUserOverviewRead]:
+    return success_response(data=await service.get_user_overview(user_id), request_id=current_request_id())
 
 
 @router.post(

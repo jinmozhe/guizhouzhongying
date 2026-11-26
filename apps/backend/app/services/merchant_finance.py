@@ -30,22 +30,48 @@ class MerchantFinanceService:
         self.session, self.audit, self.actor_id = session, audit, actor_id
         self.repository = MerchantFinanceRepository(session)
 
+    async def _resolve_phone_merchant_ids(self, phone: str | None) -> list[UUID] | None:
+        if phone is None:
+            return None
+        cleaned = phone.strip()
+        if not cleaned:
+            return None
+        return await LocalActorsRepository(self.session).merchant_ids_by_phone(cleaned)
+
     async def receivables(
-        self, page: int, page_size: int, merchant_id: UUID | None, user_id: UUID | None = None
+        self,
+        page: int,
+        page_size: int,
+        merchant_id: UUID | None,
+        user_id: UUID | None = None,
+        *,
+        phone: str | None = None,
     ) -> PageResult[ReceivableRead]:
         if user_id:
             merchant_id = (await LocalActorsService(self.session).require_role(Merchant, user_id)).id
-        rows, total = await self.repository.page(MerchantReceivable, page, page_size, merchant_id)
+        merchant_ids = await self._resolve_phone_merchant_ids(phone)
+        rows, total = await self.repository.page(
+            MerchantReceivable, page, page_size, merchant_id, merchant_ids=merchant_ids
+        )
         return PageResult[ReceivableRead].create(
             items=[ReceivableRead.model_validate(row) for row in rows], total=total, page=page, page_size=page_size
         )
 
     async def settlements(
-        self, page: int, page_size: int, merchant_id: UUID | None, user_id: UUID | None = None
+        self,
+        page: int,
+        page_size: int,
+        merchant_id: UUID | None,
+        user_id: UUID | None = None,
+        *,
+        phone: str | None = None,
     ) -> PageResult[SettlementRead]:
         if user_id:
             merchant_id = (await LocalActorsService(self.session).require_role(Merchant, user_id)).id
-        rows, total = await self.repository.page(MerchantSettlement, page, page_size, merchant_id)
+        merchant_ids = await self._resolve_phone_merchant_ids(phone)
+        rows, total = await self.repository.page(
+            MerchantSettlement, page, page_size, merchant_id, merchant_ids=merchant_ids
+        )
         return PageResult[SettlementRead].create(
             items=[SettlementRead.model_validate(row) for row in rows], total=total, page=page, page_size=page_size
         )

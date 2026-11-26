@@ -2,7 +2,7 @@ import { DownloadOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/ic
 import type { ProColumns } from "@ant-design/pro-components";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Form, Input, Select, Space, App } from "antd";
-import { useRef, useState, type Key, type ReactNode } from "react";
+import { useEffect, useRef, useState, type Key, type ReactNode } from "react";
 
 import { ResourceTable } from "./ResourceTable";
 import { canAccess, useCurrentAdmin } from "@/lib/auth-context";
@@ -15,10 +15,11 @@ export type CommerceFilterField = {
   options?: { label: string; value: string }[];
 };
 
-export function CommerceList<T extends object>({ resource, title, load, columns, fields, rowKey = "id", toolbar = [], fixedFilters = {} }: {
+export function CommerceList<T extends object>({ resource, title, load, columns, fields, rowKey = "id", toolbar = [], fixedFilters = {}, initialFilters }: {
   resource: CommerceResource; title: string; load: (filters: CommerceFilters) => Promise<{ items: T[]; total: number }>;
   columns: ProColumns<T>[]; fields: CommerceFilterField[]; rowKey?: string; toolbar?: ReactNode[];
   fixedFilters?: CommerceFilters;
+  initialFilters?: CommerceFilters;
 }) {
   const { message } = App.useApp();
   const admin = useCurrentAdmin();
@@ -30,11 +31,19 @@ export function CommerceList<T extends object>({ resource, title, load, columns,
   const allowed = canAccess(admin, `${permission}:read`);
   const canExport = canAccess(admin, `${permission}:export`);
   const [form] = Form.useForm<CommerceFilters>();
-  const [filters, setFilters] = useState<CommerceFilters>({ page: 1, page_size: 20 });
+  const [filters, setFilters] = useState<CommerceFilters>(() => ({ ...initialFilters, page: 1, page_size: 20 }));
   const [keys, setKeys] = useState<Key[]>([]);
   const [busy, setBusy] = useState(false);
   const [exportError, setExportError] = useState<string>();
   const lock = useRef(false);
+  const initialFiltersKey = JSON.stringify(initialFilters ?? {});
+
+  useEffect(() => {
+    if (!initialFilters || Object.keys(initialFilters).length === 0) return;
+    form.setFieldsValue(initialFilters);
+    setFilters({ ...initialFilters, page: 1, page_size: 20 });
+    setKeys([]);
+  }, [initialFiltersKey, form]);
   const requestFilters = { ...filters, ...fixedFilters };
   const query = useQuery({ queryKey: [`commerce-${resource}`, requestFilters], queryFn: () => load(requestFilters), enabled: allowed });
   const change = (next: CommerceFilters) => { setKeys([]); setExportError(undefined); setFilters(next); };

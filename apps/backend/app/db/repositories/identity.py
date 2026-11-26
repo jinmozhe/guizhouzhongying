@@ -14,6 +14,7 @@ from app.db.models import (
     AdminRefreshToken,
     AdminSession,
     AuditEvent,
+    MemberProfile,
     Merchant,
     Permission,
     PropertyOperator,
@@ -84,6 +85,7 @@ class UserRepository:
         search: str | None = None,
         lifecycle: Literal["all", "active", "inactive", "deleted"] = "all",
         business_role: Literal["all", "member_only", "merchant", "property"] = "all",
+        member_level_filter: Literal["none"] | uuid.UUID | None = None,
     ) -> tuple[list[User], int]:
         filters: list[ColumnElement[bool]] = []
         if lifecycle == "all":
@@ -102,6 +104,14 @@ class UserRepository:
             filters.append(has_property)
         elif business_role == "member_only":
             filters.extend((~has_merchant, ~has_property))
+        if member_level_filter == "none":
+            filters.append(
+                ~exists(select(1).where(MemberProfile.user_id == User.id, MemberProfile.level_id.is_not(None)))
+            )
+        elif isinstance(member_level_filter, uuid.UUID):
+            filters.append(
+                exists(select(1).where(MemberProfile.user_id == User.id, MemberProfile.level_id == member_level_filter))
+            )
         if search:
             cleaned = search.strip()
             if cleaned:

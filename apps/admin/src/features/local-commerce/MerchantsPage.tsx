@@ -229,6 +229,7 @@ export default function MerchantsPage() {
   const write = canAccess(admin, "merchants:update");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [searchDraft, setSearchDraft] = useState("");
   const [selected, setSelected] = useState<MerchantRead[]>([]);
   const [edit, setEdit] = useState<{ target: MerchantRead | null }>();
   const query = useQuery({
@@ -289,14 +290,31 @@ export default function MerchantsPage() {
             toolbar={[
               <Input.Search
                 key="search"
-                placeholder="商家名称或完整授权手机号"
+                className="table-toolbar-search"
+                placeholder="商家名称或核销手机号"
                 allowClear
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.target.value)}
                 onSearch={(value) => {
-                  setSearch(value.trim());
+                  const next = value.trim();
+                  setSearchDraft(next);
+                  setSearch(next);
                   setPage(1);
                   setSelected([]);
                 }}
               />,
+              <Button
+                key="reset"
+                className="table-toolbar-reset"
+                onClick={() => {
+                  setSearchDraft("");
+                  setSearch("");
+                  setPage(1);
+                  setSelected([]);
+                }}
+              >
+                重置
+              </Button>,
               write && (
                 <Button key="new" type="primary" icon={<PlusOutlined />} onClick={() => setEdit({ target: null })}>
                   新增商家
@@ -330,12 +348,30 @@ export default function MerchantsPage() {
                   row.logo_url ? <Image width={36} height={36} src={row.logo_url} alt={row.name} /> : "未设置",
               },
               { title: "商家", dataIndex: "name", ellipsis: true },
-              { title: "商家 ID", dataIndex: "id", copyable: true, ellipsis: true },
               { title: "核销手机号", render: (_, row) => displayAuthorizationPhone(row.phone_e164) },
               { title: "相册", render: (_, row) => `${row.album_image_count ?? 0} 张` },
               {
                 title: "身份关联",
-                render: (_, row) => (row.user_id ? "已关联注册用户" : "等待用户绑定手机号"),
+                render: (_, row) => (
+                  <Tag color={row.user_id ? "success" : "warning"}>{row.user_id ? "已关联" : "等待绑定"}</Tag>
+                ),
+              },
+              {
+                title: "营业时间",
+                dataIndex: "business_hours",
+                ellipsis: true,
+                render: (_, row) => row.business_hours || "-",
+              },
+              {
+                title: "联系电话",
+                dataIndex: "public_phone",
+                render: (_, row) => row.public_phone || "-",
+              },
+              {
+                title: "地址",
+                dataIndex: "address",
+                ellipsis: true,
+                render: (_, row) => row.address || "-",
               },
               {
                 title: "状态",
@@ -343,7 +379,6 @@ export default function MerchantsPage() {
                   <Tag color={row.is_active ? "success" : "default"}>{row.is_active ? "启用" : "停用"}</Tag>
                 ),
               },
-              { title: "地址", dataIndex: "address", ellipsis: true },
               {
                 title: "操作",
                 width: "1%",

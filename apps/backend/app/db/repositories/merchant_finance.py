@@ -11,11 +11,21 @@ class MerchantFinanceRepository:
         self.session = session
 
     async def page[T: MerchantReceivable | MerchantSettlement](
-        self, model: type[T], page: int, page_size: int, merchant_id: UUID | None
+        self,
+        model: type[T],
+        page: int,
+        page_size: int,
+        merchant_id: UUID | None,
+        *,
+        merchant_ids: list[UUID] | None = None,
     ) -> tuple[list[T], int]:
         query = select(model)
-        if merchant_id:
+        if merchant_id is not None:
             query = query.where(model.merchant_id == merchant_id)
+        if merchant_ids is not None:
+            if not merchant_ids:
+                return [], 0
+            query = query.where(model.merchant_id.in_(merchant_ids))
         total = int(await self.session.scalar(select(func.count()).select_from(query.subquery())) or 0)
         return list(
             await self.session.scalars(query.order_by(model.id.desc()).offset((page - 1) * page_size).limit(page_size))

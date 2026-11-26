@@ -1,6 +1,7 @@
 import re
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Literal
 
@@ -123,6 +124,7 @@ class AdminUserCreateIn(BaseModel):
     )
     display_name: str | None = Field(default=None, max_length=100, description="用户显示名称")
     email: str | None = Field(default=None, max_length=320, description="用户邮箱，保存时规范化为小写")
+    avatar: str | None = Field(default=None, max_length=500, description="用户头像 URL 或站内资源路径")
     is_active: bool = Field(default=True, description="是否允许用户登录")
 
     @field_validator("username")
@@ -251,6 +253,32 @@ class UserPointsSummary(BaseModel):
     debt_points: int = Field(description="当前欠积分")
 
 
+class UserMemberLevelSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    has_profile: bool = Field(description="是否已建立会员档案")
+    level_id: uuid.UUID | None = Field(default=None, description="当前会员等级唯一标识，为空表示普通无等级")
+    level_code: str | None = Field(default=None, description="当前会员等级编码")
+    level_name: str | None = Field(default=None, description="当前会员等级名称")
+    level_is_active: bool | None = Field(default=None, description="当前会员等级是否启用")
+
+
+class UserWalletTrackSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    wallet_id: uuid.UUID = Field(description="钱包账户唯一标识")
+    available_amount: Decimal = Field(description="可用余额")
+    frozen_amount: Decimal = Field(description="冻结余额")
+    debt_amount: Decimal = Field(description="未清偿欠款")
+
+
+class UserWalletSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    commission: UserWalletTrackSummary | None = Field(default=None, description="佣金钱包余额摘要")
+    consumption: UserWalletTrackSummary | None = Field(default=None, description="消费钱包余额摘要")
+
+
 class AdminUserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
 
@@ -265,8 +293,14 @@ class AdminUserRead(BaseModel):
     is_active: bool
     merchant_role: UserBusinessRoleSummary | None = Field(default=None, description="关联的商家核销身份")
     property_role: UserBusinessRoleSummary | None = Field(default=None, description="关联的物业发分身份")
+    member_level: UserMemberLevelSummary | None = Field(
+        default=None, description="用户会员等级摘要；无 members:read 权限时为空"
+    )
     points_summary: UserPointsSummary | None = Field(
         default=None, description="用户积分账户余额摘要；无 points:read 权限或尚未初始化积分账户时为空"
+    )
+    wallet_summary: UserWalletSummary | None = Field(
+        default=None, description="用户双轨钱包余额摘要；无 wallets:read 权限时为空"
     )
     created_at: datetime
     updated_at: datetime
@@ -275,6 +309,65 @@ class AdminUserRead(BaseModel):
     deleted_by_type: str | None = Field(description="执行软删除的主体类型")
     deletion_reason: str | None = Field(description="账户删除原因代码")
     can_restore: bool = Field(description="当前是否允许恢复")
+
+
+class UserBriefRef(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user_id: uuid.UUID = Field(description="关联用户唯一标识")
+    username: str = Field(description="关联用户登录名")
+    display_name: str | None = Field(default=None, description="关联用户展示名称")
+    phone_e164: str | None = Field(default=None, description="关联用户已验证手机号")
+
+
+class UserMembershipOverview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    has_profile: bool = Field(description="是否已建立会员档案")
+    invitation_code: str | None = Field(default=None, description="本人唯一邀请码")
+    bound_at: datetime | None = Field(default=None, description="首次推荐关系绑定时间")
+    level_changed_at: datetime | None = Field(default=None, description="最近一次等级变更时间")
+    inviter: UserBriefRef | None = Field(default=None, description="直属推荐人摘要")
+    level1_count: int = Field(default=0, description="一级直推人数")
+    level2_count: int = Field(default=0, description="二级间推人数")
+    level3_count: int = Field(default=0, description="三级下级人数")
+
+
+class UserRecentOrderRead(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: uuid.UUID = Field(description="订单唯一标识")
+    status: str = Field(description="订单主状态")
+    fulfillment_mode: str = Field(description="履约模式：local 或 legacy")
+    order_gross_amount: Decimal = Field(description="积分抵扣前完整成交总额")
+    points_deduction: int = Field(description="订单抵扣积分")
+    total_amount: Decimal = Field(description="现金应付金额")
+    created_at: datetime = Field(description="下单时间")
+    paid_at: datetime | None = Field(default=None, description="可信支付确认时间")
+
+
+class UserOrdersOverview(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    total_count: int = Field(default=0, description="累计订单总数")
+    paid_count: int = Field(default=0, description="已付款订单数")
+    gross_paid_amount: Decimal = Field(default=Decimal("0.00"), description="已付款订单累计成交总额")
+    pending_redemption_count: int = Field(default=0, description="待到店核销订单数")
+    recent_orders: list[UserRecentOrderRead] = Field(default_factory=list, description="最近五笔订单摘要")
+
+
+class AdminUserOverviewRead(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user: AdminUserRead = Field(description="用户基础信息、业务身份与按权资产摘要")
+    has_wechat_identity: bool = Field(description="是否已绑定微信外部身份，不泄露 OpenID 明文")
+    last_active_at: datetime | None = Field(default=None, description="最近会话活跃时间")
+    membership: UserMembershipOverview | None = Field(
+        default=None, description="会员档案与三级团队概况；无 members:read 权限时为空"
+    )
+    orders: UserOrdersOverview | None = Field(
+        default=None, description="订单消费统计与最近五笔订单；无 orders:read 权限时为空"
+    )
 
 
 class RoleBulkDeleteIn(BaseModel):

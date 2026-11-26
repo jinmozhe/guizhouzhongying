@@ -1,7 +1,7 @@
 import type {
   OrdersPageApiV1AdminOrdersGetData, CommerceExportRead, SelectedCommerceIds,
   PageResultPaymentAttemptRead, PageResultReconciliationRecordRead, PageResultAdminMemberProfileRead,
-  PageResultCommissionRead, PageResultAdminWalletRead, PageResultWalletLedgerRead,
+  PageResultCommissionRead, PageResultAdminWalletRead, PageResultWalletLedgerRead, AdminUserWalletLedgersRead,
   ReconciliationRecordCreate, ReconciliationRecordRead, ReconciliationResolve,
   ActiveStatusBatch, BatchCompleted, CategoryInput, CategoryRead, CategoryUpdate,
   FreightQuote, FreightQuoteInput, InventoryAdjustment, InventoryMovementRead, InventoryRead,
@@ -60,6 +60,15 @@ export const commerceApi = {
   commissions: (filters: CommerceFilters) => apiRequest<PageResultCommissionRead>(`/api/v1/admin/commissions?${queryString(filters)}`),
   wallets: (filters: CommerceFilters) => apiRequest<PageResultAdminWalletRead>(`/api/v1/admin/wallets?${queryString(filters)}`),
   ledgers: (id: string, page: number) => apiRequest<PageResultWalletLedgerRead>(`/api/v1/admin/wallets/${id}/ledgers?page=${page}&page_size=20`),
+  userWalletLedgers: (
+    userId: string,
+    walletType: "commission" | "consumption" = "commission",
+    page: number = 1,
+    pageSize: number = 20,
+  ) =>
+    apiRequest<AdminUserWalletLedgersRead>(
+      `/api/v1/admin/users/${userId}/wallet-ledgers?${queryString({ wallet_type: walletType, page, page_size: pageSize })}`,
+    ),
   categories: () => apiRequest<CategoryRead[]>("/api/v1/admin/product-categories"),
   createCategory: (input: CategoryInput) => apiRequest<CategoryRead>("/api/v1/admin/product-categories", { method: "POST", body: jsonBody(input) }),
   updateCategory: (id: string, input: CategoryUpdate) => apiRequest<CategoryRead>(`/api/v1/admin/product-categories/${id}`, { method: "PUT", body: jsonBody(input) }),

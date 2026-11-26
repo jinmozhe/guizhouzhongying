@@ -12,6 +12,7 @@ class UserUpdateIn(BaseModel):
 
     display_name: str | None = Field(default=None, max_length=100)
     email: str | None = Field(default=None, max_length=320)
+    avatar: str | None = Field(default=None, max_length=500, description="用户头像 URL 或站内资源路径")
 
     @field_validator("email")
     @classmethod
