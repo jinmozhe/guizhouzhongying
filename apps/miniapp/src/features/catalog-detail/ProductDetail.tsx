@@ -1,4 +1,4 @@
-import { colors, richTextStyle } from '@/styles/colors'
+import { colors, modalColors, richTextStyle } from '@/styles/colors'
 import { useCallback, useEffect, useState } from 'react'
 import Taro, { useDidHide, useDidShow, usePullDownRefresh } from '@tarojs/taro'
 import { Button as NativeButton, Input, ScrollView, Swiper, SwiperItem, Text, View } from '@tarojs/components'
@@ -7,7 +7,7 @@ import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { Popup } from '@nutui/nutui-react-taro/dist/es/packages/popup/popup'
 import '@nutui/nutui-react-taro/dist/es/packages/popup/style'
-import type { PublicProductDetailRead, ResponseModelPublicProductDetailRead, ResponseModelPageResultProductReviewRead } from '@pinjie/api-client'
+import type { PublicProductDetailRead, PublicSkuRead, ResponseModelPublicProductDetailRead, ResponseModelPageResultProductReviewRead } from '@pinjie/api-client'
 import { getPublic, ApiError } from '@/lib/api'
 import { queryClient } from '@/lib/query'
 import { priceLabel } from '@/lib/money'
@@ -23,6 +23,32 @@ import { MerchantCard } from '@/features/local-commerce'
 import { canSelect, matchingSkus, resolvedSku, specGroups } from './domain/sku'
 import type { Selection } from './domain/sku'
 import './detail.scss'
+
+type PurchasePayload = {
+  targetIntent: 'cart' | 'buy' | 'select'
+  targetSku: PublicSkuRead | undefined
+  targetSelection: Selection
+  targetQuantityText: string
+  fromSheet: boolean
+}
+
+function isValidQuantity(text: string): boolean {
+  return /^\d+$/.test(text) && Number(text) >= 1 && Number(text) <= 99
+}
+
+function showActionErrorModal(error: unknown, fallback = '操作未完成，请稍后重试') {
+  const message = error instanceof Error && error.message.trim() ? error.message.trim() : fallback
+  const content = error instanceof ApiError && error.requestId
+    ? `${message}\n追踪编号：${error.requestId}`
+    : message
+  void Taro.showModal({
+    ...modalColors,
+    title: '操作未完成',
+    content,
+    showCancel: false,
+    confirmText: '我知道了',
+  }).catch(() => undefined)
+}
 
 function Reviews({ productId, visible }: { productId: string; visible: boolean }) {
   const [page, setPage] = useState(1)
@@ -50,20 +76,24 @@ function Reviews({ productId, visible }: { productId: string; visible: boolean }
 }
 
 function DetailContent({ product, visible }: { product: PublicProductDetailRead; visible: boolean }) {
+  const activeSkus = product.skus.filter((sku) => sku.is_active)
+  // 仅有一个可售 SKU 时（含默认规格或单一规格属性），支持免弹层直通加购与立即购买
+  const singleSku = activeSkus.length === 1 ? activeSkus[0] : undefined
+  const initialSelection: Selection = singleSku ? { ...singleSku.specifications } : {}
   const [open, setOpen] = useState(false)
-  const [selection, setSelection] = useState<Selection>({})
+  const [selection, setSelection] = useState<Selection>(initialSelection)
   const [quantity, setQuantity] = useState('1')
-  const [confirmed, setConfirmed] = useState<{ selection: Selection; quantity: string }>({ selection: {}, quantity: '1' })
+  const [confirmed, setConfirmed] = useState<{ selection: Selection; quantity: string }>({ selection: initialSelection, quantity: '1' })
   const groups = specGroups(product.skus)
-  const selectedSku = resolvedSku(product.skus, selection)
+  const selectedSku = resolvedSku(product.skus, selection) ?? singleSku
   const displaySelection = open ? selection : confirmed.selection
-  const displaySku = resolvedSku(product.skus, displaySelection)
+  const displaySku = resolvedSku(product.skus, displaySelection) ?? singleSku
   const displaySkus = displaySku ? [displaySku] : matchingSkus(product.skus, displaySelection)
   const price = displaySku ? `¥${displaySku.price}` : priceLabel(displaySkus.map((sku) => sku.price))
   const priceClassName = price.startsWith('¥') ? 'price' : 'price price-unavailable'
   const points = maxDeductiblePoints(product.fulfillment_mode, displaySkus)
-  const validQuantity = /^\d+$/.test(quantity) && Number(quantity) >= 1 && Number(quantity) <= 99
-  const canSell = product.skus.some((sku) => sku.is_active)
+  const validQuantity = isValidQuantity(quantity)
+  const canSell = activeSkus.length > 0
   const hasDescription = product.description_format === 'restricted_html_v1'
     && Boolean(product.description.replace(/<[^>]*>|&nbsp;/g, '').trim())
   const [intent, setIntent] = useState<'cart' | 'buy' | 'select'>('select')
@@ -83,49 +113,79 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
   }, [product])
   useDidShow(restorePurchase)
   useEffect(restorePurchase, [restorePurchase])
-  const action = useMutation({ mutationFn: async () => {
-    if (!selectedSku || !validQuantity) throw new Error('请完整选择规格和数量')
-    if (intent === 'select') { setConfirmed({ selection: { ...selection }, quantity }); setOpen(false); return }
-    const epoch = sessionScope()
-    if (!phoneReady()) {
-      setConfirmed({ selection: { ...selection }, quantity }); setOpen(false)
-      await beginAuthentication(`/subpackages/catalog/detail/index?id=${product.id}`, true,
-        { productId: product.id, skuId: selectedSku.id, quantity: Number(quantity), action: intent })
+  const action = useMutation({
+    mutationFn: async ({ targetIntent, targetSku, targetSelection, targetQuantityText }: PurchasePayload) => {
+      if (!targetSku || !isValidQuantity(targetQuantityText)) throw new Error('请完整选择规格和数量')
+      if (targetIntent === 'select') {
+        setConfirmed({ selection: { ...targetSelection }, quantity: targetQuantityText })
+        setOpen(false)
+        return
+      }
+      const epoch = sessionScope()
+      if (!phoneReady()) {
+        setConfirmed({ selection: { ...targetSelection }, quantity: targetQuantityText })
+        setOpen(false)
+        await beginAuthentication(`/subpackages/catalog/detail/index?id=${product.id}`, true,
+          { productId: product.id, skuId: targetSku.id, quantity: Number(targetQuantityText), action: targetIntent })
+        return
+      }
+      if (targetIntent === 'cart') {
+        if (unknownCart) throw new Error('请先前往购物车核对上一次添加结果，再决定是否重试')
+        let cartRefreshed: boolean
+        try {
+          const result = await addToCart({ sku_id: targetSku.id, quantity: Number(targetQuantityText) })
+          cartRefreshed = result.cartRefreshed
+        }
+        catch (error) {
+          if (!(error instanceof ApiError) || error.kind === 'network' || error.kind === 'protocol' || error.status >= 500) setUnknownCart(true)
+          throw error
+        }
+        if (epoch !== sessionScope()) return
+        setOpen(false)
+        const successNotice = '已加入购物车'
+        setActionNotice(cartRefreshed ? '' : `${successNotice}，数量暂未刷新，请打开购物车查看。`)
+        try {
+          await Taro.showToast({
+            title: cartRefreshed ? successNotice : '已加购，数量待刷新',
+            icon: cartRefreshed ? 'success' : 'none',
+            duration: 1500,
+            mask: false,
+          })
+        } catch {
+          if (cartRefreshed && epoch === sessionScope()) setActionNotice(successNotice)
+        }
+      } else if (targetIntent === 'buy') {
+        await startCheckout(
+          [{ sku_id: targetSku.id, quantity: Number(targetQuantityText) }],
+          product.product_type,
+          product.images[0] ? { previews: { [targetSku.id]: product.images[0] } } : undefined,
+        )
+      }
+    },
+    onError: (error, variables) => {
+      if (!variables.fromSheet) {
+        showActionErrorModal(error, '操作未完成，请稍后重试')
+      }
+    },
+  })
+  function begin(next: 'cart' | 'buy') {
+    setIntent(next)
+    setActionNotice('')
+    action.reset()
+    // 单规格商品直通：免弹层，按默认规格与已选数量（默认 1 件）直接加购或结算
+    if (singleSku) {
+      const targetQuantityText = isValidQuantity(confirmed.quantity) ? confirmed.quantity : '1'
+      action.mutate({
+        targetIntent: next,
+        targetSku: singleSku,
+        targetSelection: { ...singleSku.specifications },
+        targetQuantityText,
+        fromSheet: false,
+      })
       return
     }
-    if (intent === 'cart') {
-      if (unknownCart) throw new Error('请先查询购物车，确认上一次添加结果')
-      let cartRefreshed: boolean
-      try {
-        const result = await addToCart({ sku_id: selectedSku.id, quantity: Number(quantity) })
-        cartRefreshed = result.cartRefreshed
-      }
-      catch (error) {
-        if (!(error instanceof ApiError) || error.kind === 'network' || error.kind === 'protocol' || error.status >= 500) setUnknownCart(true)
-        throw error
-      }
-      if (epoch !== sessionScope()) return
-      setOpen(false)
-      const successNotice = '已加入购物车'
-      setActionNotice(cartRefreshed ? '' : `${successNotice}，数量暂未刷新，请打开购物车查看。`)
-      try {
-        await Taro.showToast({
-          title: cartRefreshed ? successNotice : '已加购，数量待刷新',
-          icon: cartRefreshed ? 'success' : 'none',
-          duration: 1500,
-          mask: false,
-        })
-      } catch {
-        if (cartRefreshed && epoch === sessionScope()) setActionNotice(successNotice)
-      }
-    } else if (intent === 'buy') await startCheckout(
-      [{ sku_id: selectedSku.id, quantity: Number(quantity) }],
-      product.product_type,
-      product.images[0] ? { previews: { [selectedSku.id]: product.images[0] } } : undefined,
-    )
-    else { setConfirmed({ selection: { ...selection }, quantity }); setOpen(false) }
-  } })
-  function begin(next: 'cart' | 'buy') { setIntent(next); setActionNotice(''); action.reset(); openSheet() }
+    openSheet()
+  }
   function openCart() {
     void Taro.switchTab({ url: '/pages/cart/index' })
       .catch(() => Taro.showToast({ title: '购物车打开失败，请重试', icon: 'none' }))
@@ -147,9 +207,17 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
       ? `请选择${missingGroups.join('、')}`
       : '请选择规格'
   const sheetSubmitDisabled = !selectedSku || !validQuantity || action.isPending || intent === 'cart' && unknownCart
-  const sheetSubmitText = !selectedSku ? '请选择完整规格' : intent === 'cart' ? '确认加入购物车' : intent === 'buy' ? '确认规格并结算' : '确认规格'
+  const sheetSubmitText = !selectedSku
+    ? '请选择完整规格'
+    : intent === 'cart'
+      ? '确认加入购物车'
+      : intent === 'buy'
+        ? (groups.length ? '确认规格并结算' : '立即结算')
+        : (groups.length ? '确认规格' : '确认数量')
   const minusDisabled = !validQuantity || Number(quantity) <= 1
   const plusDisabled = !validQuantity || Number(quantity) >= 99
+  const directCartLoading = action.isPending && action.variables?.fromSheet === false && action.variables?.targetIntent === 'cart'
+  const directBuyLoading = action.isPending && action.variables?.fromSheet === false && action.variables?.targetIntent === 'buy'
   return <View className='detail-page'>
     {product.images.length ? <Swiper className='detail-hero' indicatorDots indicatorActiveColor={colors.primary} indicatorColor={colors.secondary}>
       {product.images.map((url) => <SwiperItem key={url}><ProductImage url={url} mode='aspectFit' style={{ height: '100%' }} onClick={() => { void previewImages(product.images, url) }} /></SwiperItem>)}
@@ -203,10 +271,10 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
           <Text>购物车</Text>
         </View>
       </Button>
-      <Button className='detail-purchase-action' fill='outline' disabled={!canSell || action.isPending} onClick={() => begin('cart')}>加入购物车</Button>
-      <Button className='detail-purchase-action' type='primary' disabled={!canSell || action.isPending} onClick={() => begin('buy')}>立即购买</Button>
+      <Button className='detail-purchase-action' fill='outline' disabled={!canSell || action.isPending} loading={directCartLoading} onClick={() => begin('cart')}>加入购物车</Button>
+      <Button className='detail-purchase-action' type='primary' disabled={!canSell || action.isPending} loading={directBuyLoading} onClick={() => begin('buy')}>立即购买</Button>
     </View>
-    <Popup className='sku-popup' visible={open} position='bottom' round closeable onClose={() => setOpen(false)} style={{ height: '80vh' }}>
+    <Popup className='sku-popup' visible={open} position='bottom' round closeable onClose={() => setOpen(false)} style={{ maxHeight: '80vh' }}>
       <View className='sku-sheet'>
         <View className='sku-header'>
           {product.images[0]
@@ -219,7 +287,6 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
           </View>
         </View>
         <ScrollView scrollY className='sku-scroll'>
-          {!groups.length && <View className='note'>默认规格</View>}
           {groups.map((group) => {
             const unselected = !selection[group.name]
             return <View className='sku-group' key={group.name}>
@@ -243,34 +310,36 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
             </View>
           })}
           {!!groups.length && <View className='sku-tip'>点击已选规格可取消，再选择其他组合。</View>}
-          <View className='sku-group'>
-            <View className='sku-group-head'><Text className='sku-group-title'>数量</Text></View>
-            <View className='quantity-control'>
-              <NativeButton
-                className={`qty-btn ${minusDisabled ? 'qty-btn--disabled' : ''}`}
-                ariaLabel='减少数量'
-                disabled={minusDisabled}
-                onClick={() => setQuantity(String(Number(quantity) - 1))}
-              >
-                <Icon name='Minus' size={28} />
-              </NativeButton>
-              <Input
-                className='qty-input'
-                placeholderClass='input-placeholder'
-                type='number'
-                value={quantity}
-                maxlength={3}
-                onInput={(event) => setQuantity(event.detail.value)}
-                ariaLabel='规格预览数量'
-              />
-              <NativeButton
-                className={`qty-btn ${plusDisabled ? 'qty-btn--disabled' : ''}`}
-                ariaLabel='增加数量'
-                disabled={plusDisabled}
-                onClick={() => setQuantity(String(Number(quantity) + 1))}
-              >
-                <Icon name='Plus' size={28} />
-              </NativeButton>
+          <View className='sku-group sku-qty-group'>
+            <View className='sku-qty-row'>
+              <Text className='sku-group-title'>购买数量</Text>
+              <View className='quantity-control'>
+                <NativeButton
+                  className={`qty-btn ${minusDisabled ? 'qty-btn--disabled' : ''}`}
+                  ariaLabel='减少数量'
+                  disabled={minusDisabled}
+                  onClick={() => setQuantity(String(Number(quantity) - 1))}
+                >
+                  <Icon name='Minus' size={28} />
+                </NativeButton>
+                <Input
+                  className='qty-input'
+                  placeholderClass='input-placeholder'
+                  type='number'
+                  value={quantity}
+                  maxlength={3}
+                  onInput={(event) => setQuantity(event.detail.value)}
+                  ariaLabel='规格预览数量'
+                />
+                <NativeButton
+                  className={`qty-btn ${plusDisabled ? 'qty-btn--disabled' : ''}`}
+                  ariaLabel='增加数量'
+                  disabled={plusDisabled}
+                  onClick={() => setQuantity(String(Number(quantity) + 1))}
+                >
+                  <Icon name='Plus' size={28} />
+                </NativeButton>
+              </View>
             </View>
             {!validQuantity && <View className='note'>请输入 1 至 99 的整数预览数量</View>}
             <View className='sku-tip'>可购买数量和库存由服务端确认。</View>
@@ -283,7 +352,13 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
             className={`sku-submit-btn ${sheetSubmitDisabled ? 'sku-submit-btn--disabled' : ''}`}
             loading={action.isPending}
             disabled={sheetSubmitDisabled}
-            onClick={() => action.mutate()}
+            onClick={() => action.mutate({
+              targetIntent: intent,
+              targetSku: selectedSku,
+              targetSelection: selection,
+              targetQuantityText: quantity,
+              fromSheet: true,
+            })}
           >
             {sheetSubmitText}
           </NativeButton>

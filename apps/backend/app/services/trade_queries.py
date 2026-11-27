@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from typing import cast
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.error_codes import ErrorCode
@@ -17,6 +17,7 @@ from app.domains.orders.schemas import OrderItemRead
 from app.domains.users import UserAccessService
 from app.services.trade_query_schemas import (
     ConsumerItemReviewRead,
+    ConsumerOrderSummaryRead,
     ConsumerRefundLookupRead,
     ConsumerRefundRead,
     ConsumerTradeOrderRead,
@@ -68,6 +69,27 @@ class ConsumerTradeQueryService:
         self.session = session
         self.access = UserAccessService(session)
 
+    async def order_summary(self, user_id: UUID) -> ConsumerOrderSummaryRead:
+        await self.access.require_active_user(user_id)
+        # 与 orders() 保持完全一致的状态筛选口径，返回本人全量待处理订单角标计数
+        row = (
+            await self.session.execute(
+                select(
+                    func.coalesce(func.sum(case((Order.status == "pending_payment", 1), else_=0)), 0),
+                    func.coalesce(
+                        func.sum(
+                            case((and_(Order.status == "paid", Fulfillment.status == "awaiting_delivery"), 1), else_=0)
+                        ),
+                        0,
+                    ),
+                )
+                .select_from(Order)
+                .outerjoin(Fulfillment, Fulfillment.order_id == Order.id)
+                .where(Order.user_id == user_id)
+            )
+        ).one()
+        return ConsumerOrderSummaryRead(pending_payment=int(row[0] or 0), awaiting_delivery=int(row[1] or 0))
+
     async def orders(
         self, user_id: UUID, page: int, page_size: int, status: TradeFilter | None
     ) -> PageResult[ConsumerTradeOrderRead]:
@@ -79,6 +101,8 @@ class ConsumerTradeQueryService:
         )
         if status in {"pending_payment", "paid", "cancelled"}:
             stmt = stmt.where(Order.status == status)
+        elif status == "refund_completed":
+            stmt = stmt.where(Order.status == "paid", Fulfillment.status == "cancelled")
         elif status is not None:
             stmt = stmt.where(Order.status == "paid", Fulfillment.status == status)
         total = int(await self.session.scalar(select(func.count()).select_from(stmt.subquery())) or 0)
@@ -155,6 +179,8 @@ class ConsumerTradeQueryService:
                     items=[OrderItemRead.model_validate(item) for item in items.get(order.id, [])],
                     display_status=state,
                     paid_at=order.paid_at,
+                    cancelled_at=order.cancelled_at,
+                    cancel_reason=order.cancel_reason,
                     fulfillment=FulfillmentRead.model_validate(fulfillment) if fulfillment is not None else None,
                     can_confirm_receipt=order.product_type == "physical" and state == "shipped",
                     can_refund=(

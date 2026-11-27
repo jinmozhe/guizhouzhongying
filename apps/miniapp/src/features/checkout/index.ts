@@ -1,2 +1,9 @@
-export { startCheckout, loadDraft, removeDraft, saveDraft } from './draft'
-export type { Draft } from './draft'
+export {
+  startCheckout,
+  loadCheckoutSession,
+  saveCheckoutSession,
+  clearCheckoutSession,
+  clearLegacyDraft,
+  requestCheckoutIntent,
+} from './draft'
+export type { CheckoutSession } from './draft'

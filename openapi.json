@@ -11178,7 +11178,8 @@
                     "awaiting_shipment",
                     "awaiting_delivery",
                     "shipped",
-                    "delivered"
+                    "delivered",
+                    "refund_completed"
                   ],
                   "type": "string"
                 },
@@ -11260,6 +11261,32 @@
             }
           }
         }
+      }
+    },
+    "/api/v1/orders/summary": {
+      "get": {
+        "tags": [
+          "交易"
+        ],
+        "summary": "统计本人待付款与待核销订单全量数量",
+        "operationId": "trade_order_summary_api_v1_orders_summary_get",
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseModel_ConsumerOrderSummaryRead_"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ConsumerBearer": []
+          }
+        ]
       }
     },
     "/api/v1/orders/{order_id}": {
@@ -24229,6 +24256,26 @@
         ],
         "title": "ConsumerMemberRead"
       },
+      "ConsumerOrderSummaryRead": {
+        "properties": {
+          "pending_payment": {
+            "type": "integer",
+            "title": "Pending Payment",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "awaiting_delivery": {
+            "type": "integer",
+            "title": "Awaiting Delivery",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pending_payment",
+          "awaiting_delivery"
+        ],
+        "title": "ConsumerOrderSummaryRead"
+      },
       "ConsumerPhoneBindIn": {
         "properties": {
           "code": {
@@ -24972,6 +25019,31 @@
             ],
             "title": "Paid At",
             "description": "可信支付确认时间"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "cancel_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
           "fulfillment": {
             "anyOf": [
@@ -25765,6 +25837,19 @@
             ],
             "title": "Delivered At",
             "description": "订单交付完成时间"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
           "auto_confirm_at": {
             "anyOf": [
@@ -35414,6 +35499,38 @@
           "request_id"
         ],
         "title": "ResponseModel[ConsumerMemberRead]"
+      },
+      "ResponseModel_ConsumerOrderSummaryRead_": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定程序代码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向调用方的中文结果消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ConsumerOrderSummaryRead",
+            "description": "响应业务数据"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "用于定位本次请求的唯一标识"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data",
+          "request_id"
+        ],
+        "title": "ResponseModel[ConsumerOrderSummaryRead]"
       },
       "ResponseModel_ConsumerPointsRead_": {
         "properties": {

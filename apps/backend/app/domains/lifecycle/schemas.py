@@ -91,6 +91,7 @@ class FulfillmentRead(BaseModel):
     delivery_reference: str | None
     shipped_at: datetime | None
     delivered_at: datetime | None
+    cancelled_at: datetime | None = None
     auto_confirm_at: datetime | None
     revision: int
 

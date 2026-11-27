@@ -15,6 +15,7 @@ from app.domains.cart.schemas import ConsumerCartItemRead
 from app.domains.orders import CheckoutQuote, CheckoutRequest, OrderRead
 from app.domains.orders.schemas import OperationIntentRead
 from app.services.trade_query_schemas import (
+    ConsumerOrderSummaryRead,
     ConsumerTradeOrderRead,
     TradeFilter,
 )
@@ -96,6 +97,15 @@ async def trade_orders(
     return success_response(
         data=await trade.orders(current.user.id, page, page_size, status), request_id=current_request_id()
     )
+
+
+@router.get(
+    "/orders/summary",
+    response_model=ResponseModel[ConsumerOrderSummaryRead],
+    summary="统计本人待付款与待核销订单全量数量",
+)
+async def trade_order_summary(trade: ConsumerTrade, current: UserPrincipal) -> ResponseModel[ConsumerOrderSummaryRead]:
+    return success_response(data=await trade.order_summary(current.user.id), request_id=current_request_id())
 
 
 @router.get(
