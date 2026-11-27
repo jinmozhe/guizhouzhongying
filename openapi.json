@@ -23585,6 +23585,30 @@
             "title": "Merchant Id",
             "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
+          "merchant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Name",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
+          "merchant_logo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Logo Url",
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
+          },
           "product_id": {
             "anyOf": [
               {
@@ -23651,6 +23675,12 @@
             ],
             "title": "Unit Price",
             "description": "成交单价，单位人民币元"
+          },
+          "max_points_deduction": {
+            "type": "integer",
+            "title": "Max Points Deduction",
+            "default": 0,
+            "description": "当前业务字段，具体语义由所属请求或响应模型定义"
           },
           "available_quantity": {
             "type": "integer",

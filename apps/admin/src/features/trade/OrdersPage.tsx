@@ -51,7 +51,33 @@ function OrderDetail({ id, close }: { id: string; close: () => void }) {
       return undefined;
     })()} onRetry={() => { void order.refetch(); void fulfillment.refetch(); }} />
     {order.data && <>
-      <Descriptions column={{ xs: 1, sm: 2 }} items={[{ key: "id", label: "订单号", children: order.data.id }, { key: "status", label: "状态", children: order.data.status }, { key: "type", label: "类型", children: order.data.product_type === "physical" ? "实物" : "虚拟" }, { key: "amount", label: "应付金额", children: `¥${order.data.total_amount}` }, { key: "created", label: "创建时间", children: formatTime(order.data.created_at) }, { key: "address", label: "收货快照", children: order.data.address_snapshot ? JSON.stringify(order.data.address_snapshot) : "虚拟订单无地址" }]} />
+      <Descriptions
+        column={{ xs: 1, sm: 2 }}
+        items={[
+          { key: "id", label: "订单号", children: order.data.id },
+          { key: "status", label: "状态", children: order.data.status },
+          {
+            key: "type",
+            label: "类型",
+            children: order.data.fulfillment_mode === "local" ? "到店核销" : order.data.product_type === "physical" ? "实物" : "虚拟",
+          },
+          {
+            key: "amount",
+            label: order.data.fulfillment_mode === "local" ? "成交与应付" : "应付金额",
+            children: order.data.fulfillment_mode === "local"
+              ? `成交 ¥${order.data.order_gross_amount} · 积分抵扣 ${order.data.points_deduction} · 现金应付 ¥${order.data.total_amount}`
+              : `¥${order.data.total_amount}`,
+          },
+          { key: "created", label: "创建时间", children: formatTime(order.data.created_at) },
+          order.data.fulfillment_mode === "local"
+            ? { key: "fulfillment", label: "履约方式", children: "到店整单核销（无收货地址）" }
+            : {
+                key: "address",
+                label: "收货快照",
+                children: order.data.address_snapshot ? JSON.stringify(order.data.address_snapshot) : "无收货地址",
+              },
+        ]}
+      />
       {order.data.fulfillment_mode === "local" && <Alert type="info" title={`到店整单核销 · 成交总额 ¥${order.data.order_gross_amount} · 积分抵扣 ${order.data.points_deduction} · 微信应付 ¥${order.data.total_amount}`} description="由所属商家核销，未核销七天自动整单退款。" />}
       {order.data && order.data.fulfillment_mode !== "local" && order.data.status === "paid" && order.data.acceptance_status === "pending" && canAccess(admin, "orders:accept") && (
         <Button
@@ -92,7 +118,7 @@ export function OrdersPage() {
     const userId = readUserIdFromSearch(history.location.search);
     return userId ? { user_id: userId } : undefined;
   }, []);
-  return <PageFrame title="订单履约" description="查看订单快照、履约状态并执行受权限保护的发货或虚拟交付。">
+  return <PageFrame title="订单履约" description="查看订单快照、到店核销与履约状态，并按权限处理历史订单发货或虚拟交付。">
     <CommerceList resource="orders" title="订单" load={commerceApi.orders} initialFilters={initialFilters} fields={[
       { name: "record_id", label: "订单号" }, { name: "user_id", label: "用户" },
       { name: "status", label: "状态", options: [{ label: "待付款", value: "pending_payment" }, { label: "已付款", value: "paid" }, { label: "已取消", value: "cancelled" }] },

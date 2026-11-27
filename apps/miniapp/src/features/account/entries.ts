@@ -14,7 +14,6 @@ export const serviceEntries: ServiceEntry[] = [
   { label: '会员中心', icon: 'User', tone: 'brand', path: '/subpackages/finance/membership/index', access: 'phone' },
   { label: '推荐分享', icon: 'Share', tone: 'brand', path: '/subpackages/finance/referral/index', access: 'phone' },
   { label: '我的积分', icon: 'Star', tone: 'reward', path: '/subpackages/finance/points/index', access: 'phone' },
-  { label: '收货地址', icon: 'Location', tone: 'info', path: '/subpackages/account/addresses/index', access: 'phone' },
   { label: '钱包与流水', icon: 'Wallet', tone: 'brand', path: '/subpackages/finance/wallets/index', access: 'phone' },
   { label: '佣金记录', icon: 'Prices', tone: 'brand', path: '/subpackages/finance/commissions/index', access: 'phone' },
   { label: '历史提现', icon: 'Clock', tone: 'info', path: '/subpackages/finance/withdrawals/index', access: 'phone' },

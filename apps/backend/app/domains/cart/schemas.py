@@ -29,11 +29,14 @@ class CartItemRead(BaseModel):
 
 class ConsumerCartItemRead(CartItemRead):
     merchant_id: UUID | None
+    merchant_name: str | None = None
+    merchant_logo_url: str | None = None
     product_id: UUID | None
     product_type: Literal["physical", "virtual"] | None
     product_name: str
     image_url: str | None
     specifications: dict[str, str]
     unit_price: Decimal | None
+    max_points_deduction: int = 0
     available_quantity: int
     invalid_reason: str | None

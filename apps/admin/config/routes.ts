@@ -29,7 +29,7 @@ export default [
       { path: "/catalog/brands", name: "品牌管理", component: "../features/catalog/BrandsPage", access: "canBrands" },
       { path: "/catalog/spec-attributes", name: "规格属性", component: "../features/catalog/SpecAttributesPage", access: "canSpecAttributes" },
       { path: "/catalog/inventory", name: "库存管理", component: "../features/catalog/InventoryPage", access: "canInventory" },
-      { path: "/catalog/shipping", name: "平台运费", component: "../features/catalog/ShippingPage", access: "canShipping" },
+      { path: "/catalog/shipping", name: "平台运费", component: "../features/catalog/ShippingPage", access: "canShipping", hideInMenu: true },
     ],
   },
   {
