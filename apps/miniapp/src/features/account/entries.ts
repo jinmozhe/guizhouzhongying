@@ -17,7 +17,6 @@ export const serviceEntries: ServiceEntry[] = [
   { label: '钱包与流水', icon: 'Wallet', tone: 'brand', path: '/subpackages/finance/wallets/index', access: 'phone' },
   { label: '佣金记录', icon: 'Prices', tone: 'brand', path: '/subpackages/finance/commissions/index', access: 'phone' },
   { label: '历史提现', icon: 'Clock', tone: 'info', path: '/subpackages/finance/withdrawals/index', access: 'phone' },
-  { label: '继续结算', icon: 'ToPay', tone: 'brand', path: '/subpackages/trade/checkout/index', access: 'phone' },
   { label: '个人资料', icon: 'Edit', tone: 'info', path: '/subpackages/account/profile/index', access: 'identity' },
   { label: '账户安全', icon: 'ShieldCheck', tone: 'brand', path: '/subpackages/account/settings/index', access: 'public' },
   { label: '隐私说明', icon: 'ShieldCheck', tone: 'info', path: '/subpackages/account/privacy/index', access: 'public' },

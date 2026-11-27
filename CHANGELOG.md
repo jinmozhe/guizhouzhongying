@@ -4,6 +4,18 @@
 
 ## Unreleased
 
+### 小程序订单列表视觉重构与本人待处理订单计数接口
+
+- 后端在 `apps/backend/app/api/transaction_router.py`（置于 `/orders/{order_id}` 之前）、`trade_queries.py`、`trade_query_schemas.py` 与 `lifecycle/schemas.py` 中新增无破坏性本人只读聚合接口 `GET /api/v1/orders/summary`（返回 `pending_payment` 与 `awaiting_delivery` 全量笔数），扩展 `TradeFilter` 支持 `refund_completed` 筛选并在 `FulfillmentRead` 补充只读可选字段 `cancelled_at`（保持既有接口零破坏、零冲突），同步导出根 `openapi.json` 并重新生成 `@pinjie/api-client`。
+- 小程序按最新视觉稿重构订单列表页（`apps/miniapp/src/features/orders/OrdersPage.tsx` 与 `order-list.scss`，全量复用标准配色 tokens）：顶部提供“全部、待付款、待核销、已完成、已取消、已退款”六个胶囊筛选并接入 `/orders/summary` 展示待付款/待核销金柑橙真实全量角标；订单卡片直接消费 `merchant_snapshot`（零 N+1 请求）展示商家 LOGO、店名及跳转商家详情、语义状态标签（已退款为带 `Refund` 图标的晴霜蓝胶囊）、商品行与规格标签、待付款实时倒计时提示条（到零仅提示不自动取消）、待核销一单一码 7 天未用自动退款说明条、已退款绿色“已原路退回 ¥X + Y 积分”提示条、下单/核销/退款时间、暖色 `已抵 X 积分` 标签、件数及实付/应付汇总（已取消与已退款采用次要灰蓝字），并按状态提供“取消订单 / 微信付款”“导航 / 查看核销码”“再来一单”胶囊操作按钮及触底连续加载与“没有更多订单了”底栏。重型自动化测试与微信真机动态验收未执行。
+
+### 小程序结算无感提交与内存防重优化
+
+- 小程序结算会话（`apps/miniapp/src/features/checkout/draft.ts`）改为纯内存管理，不再向 `Taro.setStorageSync` 持久化结算草稿，并在进入结算时自动清理历史版本残留的旧缓存键；同时从“我的”服务区（`apps/miniapp/src/features/account/entries.ts`）移除“继续结算”入口。
+- 小程序确认订单页（`CheckoutPage.tsx` 与 `checkout.scss`）移除独立的“请先确认原下单结果”拦截页与二次确认弹窗，底部主按钮文案更新为“确认提交订单”：点击后直接提交并立即禁用按钮与积分输入，原地等待异步结果；建单成功后直接清理关联购物车条目并 `redirectTo` 跳转至订单详情/支付页；明确业务或服务拒绝改为复用小程序原生标准弹窗（`Taro.showModal` + `modalColors`）展示具体原因与追踪编号（报价变动自动刷新最新金额并弹窗提示），避免顶部卡片挤压排版；网络超时或未知 `5xx` 在解锁前自动静默查询 `GET /api/v1/orders/by-request/{request_id}`，已建单则直接跳转，未确认则弹窗提示原因并在未改积分前继续复用原 `request_id` 防止重复下单（后端幂等校验与查单接口保持不变）。重型自动化测试与微信真机动态验收未执行。
+- 小程序订单详情页（`OrdersPage.tsx`、`PaymentPanel.tsx` 与 `order-detail.scss`）移除“查询付款与订单结果”“联系帮助支持”“取消订单”“查看售后记录”和“刷新订单状态”五个冗余按钮，并将待付款订单的“取消订单”操作迁移至订单列表页卡片内；同步按最新视觉稿重构未支付（`pending_payment`）、已付款待核销（`local` + `awaiting_delivery`）、已核销已完成（`local` + `delivered`）、已取消（`cancelled`）与已退款（`refund_completed`）全部五个核心状态的订单详情页：后端 `ConsumerTradeOrderRead` 向后兼容新增只读可选字段 `cancelled_at` 与 `cancel_reason` 并同步 OpenAPI 与 API 客户端；未支付页展示深蓝品牌 Banner、商家卡、商品与金额、微信支付选中态及吸底支付栏；待核销、已完成与已退款页均动态切深钴蓝白字导航栏并承载票券缺口大卡（二维码/核销完成圆标/退款成功圆标与退回金额积分、对应操作胶囊按钮，已退款页同时复用既有 `GET /api/v1/refunds?order_id=...` 呈现三步退款进度时间线与绿色“退款合计”汇总条）；已取消页动态切深灰蓝白字导航栏并承载票券大卡（双层灰蓝叉号圆标、取消时间、取消原因与全宽“再来一单”按钮）及灰蓝未支付金额与商家/订单信息卡。重型自动化测试与微信真机动态验收未执行。
+- 小程序商品详情页（`ProductDetail.tsx` 与 `detail.scss`）优化单规格商品购买路径与规格弹层高度：当商品仅有单一可售 SKU 时，点击底栏“加入购物车”或“立即购买”免弹层直通，直接按默认规格与已选数量（默认 1 件）提交加购或进入结算（异常时弹出标准微信提示框，仍保留点击规格行打开弹层调整数量）；规格弹层移除固定 `80vh` 高度与多余的“默认规格”占位条，改为按内容自适应高度并以 `max-height: 80vh` 封顶，数量区升级为左右同行紧凑布局，消除少规格场景留白。重型自动化测试与微信真机动态验收未执行。
+
 ### 小程序购物车视觉重构与单件可抵积分展示
 
 - 后端在 `ConsumerCartItemRead` 新增只读字段 `max_points_deduction`（`int = 0`）、`merchant_name` 与 `merchant_logo_url`，`CartService.list` 对到店可售商品按 `min(sku.max_points_deduction, int(sku.price))` 计算单件最高可抵扣积分并批量回填商家名称与 LOGO；`CartService.add` 与 `CartService.update(selected=True)` 在用户锁事务内原子取消其他商家的选中态以自动切换结算商家；同步导出根 `openapi.json` 并重新生成 `@pinjie/api-client`。

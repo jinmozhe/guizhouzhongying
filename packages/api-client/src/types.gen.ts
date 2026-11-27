@@ -3914,6 +3914,24 @@ export type ConsumerMemberRead = {
 };
 
 /**
+ * ConsumerOrderSummaryRead
+ */
+export type ConsumerOrderSummaryRead = {
+    /**
+     * Pending Payment
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    pending_payment: number;
+    /**
+     * Awaiting Delivery
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    awaiting_delivery: number;
+};
+
+/**
  * ConsumerPhoneBindIn
  */
 export type ConsumerPhoneBindIn = {
@@ -4447,6 +4465,18 @@ export type ConsumerTradeOrderRead = {
      * 可信支付确认时间
      */
     paid_at: string | null;
+    /**
+     * Cancelled At
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    cancelled_at?: string | null;
+    /**
+     * Cancel Reason
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    cancel_reason?: string | null;
     /**
      * 当前业务字段，具体语义由所属请求或响应模型定义
      */
@@ -4983,6 +5013,12 @@ export type FulfillmentRead = {
      * 订单交付完成时间
      */
     delivered_at: string | null;
+    /**
+     * Cancelled At
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    cancelled_at?: string | null;
     /**
      * Auto Confirm At
      *
@@ -12018,6 +12054,34 @@ export type ResponseModelConsumerMemberRead = {
      * 响应业务数据
      */
     data: ConsumerMemberRead;
+    /**
+     * Request Id
+     *
+     * 用于定位本次请求的唯一标识
+     */
+    request_id: string;
+};
+
+/**
+ * ResponseModel[ConsumerOrderSummaryRead]
+ */
+export type ResponseModelConsumerOrderSummaryRead = {
+    /**
+     * Code
+     *
+     * 稳定程序代码
+     */
+    code: string;
+    /**
+     * Message
+     *
+     * 面向调用方的中文结果消息
+     */
+    message: string;
+    /**
+     * 响应业务数据
+     */
+    data: ConsumerOrderSummaryRead;
     /**
      * Request Id
      *
@@ -22422,7 +22486,7 @@ export type TradeOrdersApiV1OrdersGetData = {
         /**
          * Status
          */
-        status?: 'pending_payment' | 'paid' | 'cancelled' | 'awaiting_shipment' | 'awaiting_delivery' | 'shipped' | 'delivered' | null;
+        status?: 'pending_payment' | 'paid' | 'cancelled' | 'awaiting_shipment' | 'awaiting_delivery' | 'shipped' | 'delivered' | 'refund_completed' | null;
     };
     url: '/api/v1/orders';
 };
@@ -22499,6 +22563,22 @@ export type OrderByRequestApiV1OrdersByRequestRequestIdGetResponses = {
 };
 
 export type OrderByRequestApiV1OrdersByRequestRequestIdGetResponse = OrderByRequestApiV1OrdersByRequestRequestIdGetResponses[keyof OrderByRequestApiV1OrdersByRequestRequestIdGetResponses];
+
+export type TradeOrderSummaryApiV1OrdersSummaryGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/orders/summary';
+};
+
+export type TradeOrderSummaryApiV1OrdersSummaryGetResponses = {
+    /**
+     * 请求成功
+     */
+    200: ResponseModelConsumerOrderSummaryRead;
+};
+
+export type TradeOrderSummaryApiV1OrdersSummaryGetResponse = TradeOrderSummaryApiV1OrdersSummaryGetResponses[keyof TradeOrderSummaryApiV1OrdersSummaryGetResponses];
 
 export type TradeOrderApiV1OrdersOrderIdGetData = {
     body?: never;

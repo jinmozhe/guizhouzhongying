@@ -10,7 +10,14 @@ from app.domains.lifecycle.schemas import FulfillmentRead, ProductReviewRead, Re
 from app.domains.orders.schemas import OrderRead
 
 TradeFilter = Literal[
-    "pending_payment", "paid", "cancelled", "awaiting_shipment", "awaiting_delivery", "shipped", "delivered"
+    "pending_payment",
+    "paid",
+    "cancelled",
+    "awaiting_shipment",
+    "awaiting_delivery",
+    "shipped",
+    "delivered",
+    "refund_completed",
 ]
 DisplayStatus = Literal[
     "pending_payment",
@@ -32,9 +39,16 @@ class ConsumerItemReviewRead(BaseModel):
     review: ProductReviewRead | None
 
 
+class ConsumerOrderSummaryRead(BaseModel):
+    pending_payment: int
+    awaiting_delivery: int
+
+
 class ConsumerTradeOrderRead(OrderRead):
     display_status: DisplayStatus
     paid_at: datetime | None
+    cancelled_at: datetime | None = None
+    cancel_reason: str | None = None
     fulfillment: FulfillmentRead | None
     can_confirm_receipt: bool
     can_refund: bool
