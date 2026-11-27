@@ -2,7 +2,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const routes: Record<string, readonly string[]> = {
   '/pages/home/index': [], '/pages/category/index': [], '/pages/cart/index': [], '/pages/account/index': [],
   '/subpackages/catalog/detail/index': ['id'],
-  '/subpackages/account/addresses/index': [], '/subpackages/account/profile/index': ['onboarding'],
+  '/subpackages/account/profile/index': ['onboarding'],
   '/subpackages/account/settings/index': [], '/subpackages/account/sessions/index': [], '/subpackages/account/closure/index': [],
   '/subpackages/finance/membership/index': [], '/subpackages/finance/wallets/index': [],
   '/subpackages/finance/ledgers/index': ['type'], '/subpackages/finance/commissions/index': [],

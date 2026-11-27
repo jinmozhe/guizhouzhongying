@@ -7,7 +7,7 @@ export default defineAppConfig({
   subPackages: [
     { root: 'subpackages/local', pages: ['merchant/index', 'merchants/index', 'property/index', 'redemption/index', 'finance/index'] },
     { root: 'subpackages/catalog', pages: ['detail/index'] },
-    { root: 'subpackages/account', pages: ['auth/index', 'addresses/index', 'privacy/index', 'profile/index', 'settings/index', 'sessions/index', 'closure/index'] },
+    { root: 'subpackages/account', pages: ['auth/index', 'privacy/index', 'profile/index', 'settings/index', 'sessions/index', 'closure/index'] },
     { root: 'subpackages/finance', pages: ['membership/index', 'wallets/index', 'ledgers/index', 'commissions/index', 'withdrawals/index', 'referral/index', 'points/index'] },
     { root: 'subpackages/trade', pages: ['checkout/index', 'orders/index', 'order-detail/index'] },
     { root: 'subpackages/service', pages: ['refund-apply/index', 'refunds/index', 'refund-detail/index', 'review/index', 'help/index'] },

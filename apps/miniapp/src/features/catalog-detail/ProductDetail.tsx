@@ -1,7 +1,7 @@
 import { colors, richTextStyle } from '@/styles/colors'
 import { useCallback, useEffect, useState } from 'react'
 import Taro, { useDidHide, useDidShow, usePullDownRefresh } from '@tarojs/taro'
-import { Input, ScrollView, Swiper, SwiperItem, Text, View } from '@tarojs/components'
+import { Button as NativeButton, Input, ScrollView, Swiper, SwiperItem, Text, View } from '@tarojs/components'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/Button'
 import { Icon } from '@/components/Icon'
@@ -118,7 +118,11 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
       } catch {
         if (cartRefreshed && epoch === sessionScope()) setActionNotice(successNotice)
       }
-    } else if (intent === 'buy') await startCheckout([{ sku_id: selectedSku.id, quantity: Number(quantity) }], product.product_type)
+    } else if (intent === 'buy') await startCheckout(
+      [{ sku_id: selectedSku.id, quantity: Number(quantity) }],
+      product.product_type,
+      product.images[0] ? { previews: { [selectedSku.id]: product.images[0] } } : undefined,
+    )
     else { setConfirmed({ selection: { ...selection }, quantity }); setOpen(false) }
   } })
   function begin(next: 'cart' | 'buy') { setIntent(next); setActionNotice(''); action.reset(); openSheet() }
@@ -134,6 +138,18 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
     setSelection(next)
     setQuantity('1')
   }
+  const missingGroups = groups.filter((group) => !selection[group.name]).map((group) => group.name)
+  const sheetPrice = selectedSku ? `¥${selectedSku.price}` : priceLabel(matchingSkus(product.skus, selection).map((sku) => sku.price))
+  const sheetPriceClassName = sheetPrice.startsWith('¥') ? 'sku-price' : 'sku-price price-unavailable'
+  const sheetSummary = selectedSku
+    ? `已选：${Object.values(selectedSku.specifications).join(' · ') || '默认规格'} · ${validQuantity ? quantity : 1} 件`
+    : missingGroups.length
+      ? `请选择${missingGroups.join('、')}`
+      : '请选择规格'
+  const sheetSubmitDisabled = !selectedSku || !validQuantity || action.isPending || intent === 'cart' && unknownCart
+  const sheetSubmitText = !selectedSku ? '请选择完整规格' : intent === 'cart' ? '确认加入购物车' : intent === 'buy' ? '确认规格并结算' : '确认规格'
+  const minusDisabled = !validQuantity || Number(quantity) <= 1
+  const plusDisabled = !validQuantity || Number(quantity) >= 99
   return <View className='detail-page'>
     {product.images.length ? <Swiper className='detail-hero' indicatorDots indicatorActiveColor={colors.primary} indicatorColor={colors.secondary}>
       {product.images.map((url) => <SwiperItem key={url}><ProductImage url={url} mode='aspectFit' style={{ height: '100%' }} onClick={() => { void previewImages(product.images, url) }} /></SwiperItem>)}
@@ -192,29 +208,86 @@ function DetailContent({ product, visible }: { product: PublicProductDetailRead;
     </View>
     <Popup className='sku-popup' visible={open} position='bottom' round closeable onClose={() => setOpen(false)} style={{ height: '80vh' }}>
       <View className='sku-sheet'>
-        <View className='sku-header'><ProductImage url={product.images[0]} /><View><View className={priceClassName}>{price}</View><View className='sku-name'>{product.name}</View></View></View>
+        <View className='sku-header'>
+          {product.images[0]
+            ? <View className='sku-thumb'><ProductImage url={product.images[0]} mode='aspectFill' style={{ width: '100%', height: '100%' }} /></View>
+            : <View className='sku-thumb sku-thumb--fallback'><Text className='sku-thumb-text'>{product.name}</Text></View>}
+          <View className='sku-header-info'>
+            <View className={sheetPriceClassName}>{sheetPrice}</View>
+            <View className='sku-name'>{product.name}</View>
+            <View className='sku-selected-hint'>{sheetSummary}</View>
+          </View>
+        </View>
         <ScrollView scrollY className='sku-scroll'>
           {!groups.length && <View className='note'>默认规格</View>}
-          {groups.map((group) => <View key={group.name}>
-            <View className='section-title'>{group.name}</View>
-            <View className='spec-options'>{group.values.map((value) => {
-              const active = selection[group.name] === value
-              const available = active || canSelect(product.skus, selection, group.name, value)
-              return <Button key={value} className={active ? 'spec-active' : ''} fill='outline' disabled={!available} onClick={() => select(group.name, value)}>{value}{!available ? '（组合不可选）' : ''}</Button>
-            })}</View>
-          </View>)}
-          {!!groups.length && <View className='muted'>点击已选规格可取消，再选择其他组合。</View>}
-          <View className='section-title'>数量</View>
-          <View className='quantity-control'>
-            <Button fill='outline' ariaLabel='减少数量' disabled={!validQuantity || Number(quantity) <= 1} onClick={() => setQuantity(String(Number(quantity) - 1))}><Icon name='Minus' size={28} /></Button>
-            <Input placeholderClass='input-placeholder' type='number' value={quantity} maxlength={3} onInput={(event) => setQuantity(event.detail.value)} ariaLabel='规格预览数量' />
-            <Button fill='outline' ariaLabel='增加数量' disabled={!validQuantity || Number(quantity) >= 99} onClick={() => setQuantity(String(Number(quantity) + 1))}><Icon name='Plus' size={28} /></Button>
+          {groups.map((group) => {
+            const unselected = !selection[group.name]
+            return <View className='sku-group' key={group.name}>
+              <View className='sku-group-head'>
+                <Text className='sku-group-title'>{group.name}</Text>
+                {unselected && <Text className='sku-required-badge'>必选</Text>}
+              </View>
+              <View className='spec-options'>{group.values.map((value) => {
+                const active = selection[group.name] === value
+                const available = active || canSelect(product.skus, selection, group.name, value)
+                return <NativeButton
+                  key={value}
+                  className={`spec-pill ${active ? 'spec-pill--active' : ''} ${!available ? 'spec-pill--disabled' : ''}`}
+                  disabled={!available}
+                  onClick={() => select(group.name, value)}
+                >
+                  {active && <Icon name='Check' className='spec-pill-check' size={28} />}
+                  <Text>{value}{!available ? '（不可选）' : ''}</Text>
+                </NativeButton>
+              })}</View>
+            </View>
+          })}
+          {!!groups.length && <View className='sku-tip'>点击已选规格可取消，再选择其他组合。</View>}
+          <View className='sku-group'>
+            <View className='sku-group-head'><Text className='sku-group-title'>数量</Text></View>
+            <View className='quantity-control'>
+              <NativeButton
+                className={`qty-btn ${minusDisabled ? 'qty-btn--disabled' : ''}`}
+                ariaLabel='减少数量'
+                disabled={minusDisabled}
+                onClick={() => setQuantity(String(Number(quantity) - 1))}
+              >
+                <Icon name='Minus' size={28} />
+              </NativeButton>
+              <Input
+                className='qty-input'
+                placeholderClass='input-placeholder'
+                type='number'
+                value={quantity}
+                maxlength={3}
+                onInput={(event) => setQuantity(event.detail.value)}
+                ariaLabel='规格预览数量'
+              />
+              <NativeButton
+                className={`qty-btn ${plusDisabled ? 'qty-btn--disabled' : ''}`}
+                ariaLabel='增加数量'
+                disabled={plusDisabled}
+                onClick={() => setQuantity(String(Number(quantity) + 1))}
+              >
+                <Icon name='Plus' size={28} />
+              </NativeButton>
+            </View>
+            {!validQuantity && <View className='note'>请输入 1 至 99 的整数预览数量</View>}
+            <View className='sku-tip'>可购买数量和库存由服务端确认。</View>
           </View>
-          {!validQuantity && <View className='note'>请输入 1 至 99 的整数预览数量</View>}
-          <View className='muted'>可购买数量和库存由服务端确认。</View>
           {action.error && <QueryState title='操作未完成' error={action.error} detail='加购超时请先到购物车核对结果，再决定是否重试。' />}
         </ScrollView>
-        <View className='sku-footer'>{unknownCart && <Button block fill='outline' onClick={() => { setOpen(false); void Taro.switchTab({ url: '/pages/cart/index' }) }}>查询购物车确认结果</Button>}<Button block type='primary' loading={action.isPending} disabled={!selectedSku || !validQuantity || action.isPending || intent === 'cart' && unknownCart} onClick={() => action.mutate()}>{!selectedSku ? '请选择完整规格' : intent === 'cart' ? '确认加入购物车' : intent === 'buy' ? '确认规格并结算' : '确认规格'}</Button></View>
+        <View className='sku-footer'>
+          {unknownCart && <Button block fill='outline' onClick={() => { setOpen(false); void Taro.switchTab({ url: '/pages/cart/index' }) }}>查询购物车确认结果</Button>}
+          <NativeButton
+            className={`sku-submit-btn ${sheetSubmitDisabled ? 'sku-submit-btn--disabled' : ''}`}
+            loading={action.isPending}
+            disabled={sheetSubmitDisabled}
+            onClick={() => action.mutate()}
+          >
+            {sheetSubmitText}
+          </NativeButton>
+        </View>
       </View>
     </Popup>
   </View>

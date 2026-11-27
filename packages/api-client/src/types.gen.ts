@@ -3522,6 +3522,18 @@ export type ConsumerCartItemRead = {
      */
     merchant_id: string | null;
     /**
+     * Merchant Name
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_name?: string | null;
+    /**
+     * Merchant Logo Url
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    merchant_logo_url?: string | null;
+    /**
      * Product Id
      *
      * 商品标识
@@ -3559,6 +3571,12 @@ export type ConsumerCartItemRead = {
      * 成交单价，单位人民币元
      */
     unit_price: string | null;
+    /**
+     * Max Points Deduction
+     *
+     * 当前业务字段，具体语义由所属请求或响应模型定义
+     */
+    max_points_deduction?: number;
     /**
      * Available Quantity
      *
